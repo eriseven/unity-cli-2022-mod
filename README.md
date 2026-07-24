@@ -31,7 +31,7 @@ $env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod
 
 ### ⚠️ 修改版安装方法（网络被重定向时）
 
-**如果装到的版本号低于 `1.0.0`（例如 `0.1.0`）**，说明官方下载地址在你的网络里被重定向了。此时请改用「**指定版本号 + 本仓库的公开安装脚本**」重新安装——脚本会跳过校验，重新按「当前已知最新版本」`1.0.0-beta.2` 进行安装：
+**如果安装后仍是旧版 `0.1.x`**，说明官方下载地址可能在你的网络里被重定向了。此时请改用「**指定版本号 + 本仓库的公开安装脚本**」，安装已验证的 `1.0.0-beta.2`：
 
 ```
 # macOS / Linux
@@ -63,8 +63,23 @@ unity pipeline install --project-path /path/to/your/unity/project
 
 - 打开任意一款 AI 编程工具（如 Codex/Claude Code）
 - 让 AI 从 Unity Registry 抓取 `com.unity.pipeline` 源码放入工程
-- 让 AI 修复 `PhysicsMaterial` 与 `Material.rawRenderQueue` 等编译错误
+- 让 AI 修复 `PhysicsMaterial` 与 `Material.rawRenderQueue` 等 API 兼容性编译错误
+- 让 AI 将 `Runtime/Plugins/CodeAnalysis` 下 `Microsoft.CodeAnalysis*`、`System.Collections.Immutable`、`System.Reflection.Metadata` 的 DLL `.meta` 转为兼容的v2格式
 - 修复完成后即可在 Unity 2022 工程内正常使用。
+
+---
+
+## 🤖 安装技能和操作规范
+
+安装 `com.unity.pipeline` 后，让 AI：
+
+1. 从包内提取 `.claude/skills/unity-pipeline`，安装到当前工程的技能目录。
+2. 下载 [UNITY-GUIDE.md](https://raw.githubusercontent.com/rocwood/unity-cli-2022-mod/main/UNITY-GUIDE.md) 到工程根目录。
+3. 在 `AGENTS.md` 或 `CLAUDE.md` 中加入：
+
+   ```markdown
+   进行 Unity 开发时，必须阅读并遵循 [UNITY-GUIDE.md](UNITY-GUIDE.md)。
+   ```
 
 ---
 
@@ -79,4 +94,3 @@ unity pipeline install --project-path /path/to/your/unity/project
 > 本项目与 Unity Technologies 无关联，亦未获其赞助、认可或授权。“Unity”及相关名称、标识和商标均归 Unity Technologies 或其关联方所有；本仓库中对其的提及仅用于识别兼容目标，不构成任何商标使用许可。
 >
 > 本仓库按“现状”提供，不提供任何明示或默示保证，包括但不限于适销性、特定用途适用性、非侵权性、稳定性、安全性或与任何 Unity 版本的兼容性保证。使用者应自行测试，并自行承担使用本项目所产生的一切风险与责任。
-```
