@@ -42,10 +42,10 @@ namespace Unity.Pipeline.Editor.Commands.Materials
             {
                 AssetPath = assetPath,
                 Shader = mat.shader != null ? mat.shader.name : null,
-                // rawRenderQueue is -1 when the material inherits from the shader and a positive
-                // integer when explicitly overridden — returning the raw value preserves the
-                // round-trip contract with set_material_properties renderQueue:-1 (inherit).
-                RenderQueue = mat.rawRenderQueue,
+                // Unity 6 exposes rawRenderQueue, which preserves -1 when the material inherits
+                // from its shader. Unity 2022 only exposes renderQueue, so use that as the closest
+                // compatible readback value.
+                RenderQueue = GetRawRenderQueue(mat),
                 EnabledKeywords = GetEnabledKeywords(mat),
             };
 
@@ -82,6 +82,15 @@ namespace Unity.Pipeline.Editor.Commands.Materials
             }
 
             return result;
+        }
+
+        private static int GetRawRenderQueue(Material mat)
+        {
+#if UNITY_6000_0_OR_NEWER
+            return mat.rawRenderQueue;
+#else
+            return mat.renderQueue;
+#endif
         }
 
         [CliCommand("set_material_properties",

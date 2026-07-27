@@ -8,6 +8,9 @@
 
 159f595e313f8cc09bac14588e2466c312f512a4778d9fa2352fcccf2a53aa3d  Microsoft.CodeAnalysis.dll  # Microsoft.CodeAnalysis.Common TODO
 e822156145e1add437b1d893c0315257c12e3d5b1b89d83494db6d88d37fe20a  Microsoft.CodeAnalysis.CSharp.dll  # Microsoft.CodeAnalysis.CSharp TODO
-5b1b1c83ba3d135c2fdfe425842fbe9c7432878b7e468623acb554c69b4c130f  System.Collections.Immutable.dll  # System.Collections.Immutable TODO
-55ef768ffa305de58e38e15420669258b16f420618eb1f702bddb30e5c797961  System.Reflection.Metadata.dll  # System.Reflection.Metadata TODO
-bac58578ec05ecb8c234bf3402a0aa1491a5e437b03008b431e78d663ab52b78  System.Runtime.CompilerServices.Unsafe.dll  # System.Runtime.CompilerServices.Unsafe TODO
+a99911373eb198dbb32d0cf8246e398ac89e8fbfb29023ab6ec8d1017bbd7063  System.Collections.Immutable.dll  # System.Collections.Immutable TODO
+8e76318e8b06692abf7dab1169d27d15557f7f0a34d36af6463eff0fe21213c7  System.Memory.dll  # System.Memory TODO
+1eb4762b34d524b712d9222dbc34754a731db5757ada43dcd1b7470e7bac8155  System.Reflection.Metadata.dll  # System.Reflection.Metadata TODO
+52fb179fb0ec10918a3f5115c9a7290222e22886d173aab4509580824ff5be37  System.Runtime.CompilerServices.Unsafe.dll  # System.Runtime.CompilerServices.Unsafe TODO
+809a9712030d8e8037a6c55fc190b6df7d7c85dd21b78318d0c81445baef4550  System.Text.Encoding.CodePages.dll  # System.Text.Encoding.CodePages TODO
+1f54718bbab6e7a649e460f5097ed444f33452b1451841f67e2e194641d5fccd  System.Threading.Tasks.Extensions.dll  # System.Threading.Tasks.Extensions TODO

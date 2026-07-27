@@ -289,7 +289,11 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             // default can legitimately equal the prior override (e.g. 3000), so comparing the effective
             // value would be flaky. rawRenderQueue is -1 exactly when the material inherits the shader's.
             var mat = AssetDatabase.LoadAssetAtPath<Material>(handle.Path);
+#if UNITY_6000_0_OR_NEWER
             Assert.AreEqual(-1, mat.rawRenderQueue, "renderQueue -1 should clear the override and inherit from the shader");
+#else
+            Assert.AreEqual(-1, mat.renderQueue, "renderQueue -1 should clear the override and inherit from the shader");
+#endif
         }
 
         // ---- unknown / mismatch -------------------------------------------------------------------

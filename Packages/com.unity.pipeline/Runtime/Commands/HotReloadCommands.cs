@@ -17,7 +17,7 @@ namespace Unity.Pipeline.Runtime.Commands
     public static class HotReloadCommands
     {
         [CliCommand("reload_file_override", "Compile and apply hot reload file changes immediately", MainThreadRequired = true)]
-        internal static HotReloadResponse ReloadFileOverride(
+        public static HotReloadResponse ReloadFileOverride(
             [CliArg("filename", "Hot reload source file to compile (e.g. PlayerTweaks.cs)", Required = true)] string filename,
             [CliArg("timeout", "Compilation timeout in milliseconds")] int timeout = 30000,
             [CliArg("assemblyDir", "Directory to save compiled assemblies to disk (optional, default is in-memory only)")] string assemblyDir = null)

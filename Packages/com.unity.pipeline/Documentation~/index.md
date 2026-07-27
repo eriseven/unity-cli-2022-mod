@@ -15,6 +15,7 @@ index; the [README](../README.md) has the full narrative overview, install steps
 | [Runtime connection & setup](runtime-setup.md) | Running the server in a development Player via `RuntimePipelineManager` and the dev-build gating. |
 | [Hot reload](hot-reload.md) | The two hot-reload flavors (in-place and override) with examples, plus the Roslyn / in-memory-assembly architecture. |
 | [Tests architecture](testing.md) | Writing command tests via `PipelineClient` (over HTTP) and via direct command calls. |
+| [Unity 2022 compatibility notes](unity-2022-compatibility.md) | Local changes required to compile `com.unity.pipeline` in Unity 2022.3.62f3, including Roslyn, asmdef, and API compatibility notes. |
 
 ## Command reference
 

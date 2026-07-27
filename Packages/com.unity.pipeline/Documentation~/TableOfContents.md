@@ -7,6 +7,7 @@
   * [Runtime connection & setup](runtime-setup.md)
   * [Hot reload](hot-reload.md)
   * [Tests architecture](testing.md)
+  * [Unity 2022 compatibility notes](unity-2022-compatibility.md)
 * Command reference
   * [Asset & file commands](commands/assets-and-files.md)
   * [Scene commands](commands/scenes.md)

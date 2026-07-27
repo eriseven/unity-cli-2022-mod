@@ -1,9 +1,7 @@
 {
     "name": "Unity.Pipeline",
     "rootNamespace": "Unity.Pipeline",
-    "references": [
-        "Unity.InputSystem"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
@@ -12,8 +10,11 @@
         "Microsoft.CodeAnalysis.dll",
         "Microsoft.CodeAnalysis.CSharp.dll",
         "System.Collections.Immutable.dll",
+        "System.Memory.dll",
+        "System.Threading.Tasks.Extensions.dll",
         "System.Runtime.CompilerServices.Unsafe.dll",
         "System.Reflection.Metadata.dll",
+        "System.Text.Encoding.CodePages.dll",
         "Newtonsoft.Json.dll"
     ],
     "autoReferenced": true,

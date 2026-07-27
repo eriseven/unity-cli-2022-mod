@@ -143,7 +143,7 @@ namespace Unity.Pipeline
         /// This server's current auth token. Exposed to the test assembly (via InternalsVisibleTo)
         /// so the test client can authenticate without re-deriving the token.
         /// </summary>
-        internal string Token => GetToken();
+        public string Token => GetToken();
 
         /// <summary>
         /// Start the HTTP server on the specified port or auto-assign from range.
