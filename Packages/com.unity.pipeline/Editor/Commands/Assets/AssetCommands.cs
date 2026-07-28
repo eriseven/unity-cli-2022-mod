@@ -336,7 +336,7 @@ namespace Unity.Pipeline.Editor.Commands.Assets
             Type typeFilter = null;
             if (!string.IsNullOrWhiteSpace(type))
             {
-                typeFilter = ResolveTypeName(type.Trim());
+                typeFilter = ResolveType(type);
                 if (typeFilter == null)
                     throw new ArgumentException(
                         $"Could not resolve type '{type}'. Use a short name (e.g. Material) or a fully-qualified name (e.g. MyGame.GameConfig).");
@@ -372,51 +372,6 @@ namespace Unity.Pipeline.Editor.Commands.Assets
 
             result.Count = result.Assets.Count;
             return result;
-        }
-
-        /// <summary>
-        /// Resolve a user-supplied type name (short or fully-qualified) to a <see cref="Type"/> by
-        /// scanning non-dynamic loaded assemblies. Returns null when no match is found.
-        /// </summary>
-        private static Type ResolveTypeName(string typeName)
-        {
-            var direct = Type.GetType(typeName, throwOnError: false);
-            if (direct != null)
-                return direct;
-
-            foreach (var assembly in PipelineUtils.GetLoadedAssemblies())
-            {
-                if (assembly.IsDynamic)
-                    continue;
-
-                var byFullName = assembly.GetType(typeName, throwOnError: false);
-                if (byFullName != null)
-                    return byFullName;
-            }
-
-            foreach (var assembly in PipelineUtils.GetLoadedAssemblies())
-            {
-                if (assembly.IsDynamic)
-                    continue;
-
-                Type[] types;
-                try
-                {
-                    types = assembly.GetTypes();
-                }
-                catch (ReflectionTypeLoadException ex)
-                {
-                    types = ex.Types;
-                }
-
-                foreach (var candidate in types)
-                {
-                    if (candidate != null && candidate.Name == typeName)
-                        return candidate;
-                }
-            }
-
-            return null;
         }
 
         /// <summary>
@@ -554,6 +509,9 @@ namespace Unity.Pipeline.Editor.Commands.Assets
 
             foreach (var assembly in PipelineUtils.GetLoadedAssemblies())
             {
+                if (assembly.IsDynamic)
+                    continue;
+
                 var byFullName = assembly.GetType(typeName, throwOnError: false);
                 if (byFullName != null)
                     return byFullName;
@@ -562,6 +520,9 @@ namespace Unity.Pipeline.Editor.Commands.Assets
             // Fall back to a short-name match across all loaded types.
             foreach (var assembly in PipelineUtils.GetLoadedAssemblies())
             {
+                if (assembly.IsDynamic)
+                    continue;
+
                 Type[] types;
                 try
                 {
