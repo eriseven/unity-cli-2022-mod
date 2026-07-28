@@ -105,6 +105,16 @@ namespace Unity.Pipeline.Tests.Editor.Materials
                 .ToArray();
         }
 
+        private static int RawRenderQueue(Material mat)
+        {
+#if UNITY_6000_0_OR_NEWER
+            return mat.rawRenderQueue;
+#else
+            var serialized = new SerializedObject(mat);
+            return serialized.FindProperty("m_CustomRenderQueue").intValue;
+#endif
+        }
+
         // ---- get_material_properties --------------------------------------------------------------
 
         [Test]
@@ -287,13 +297,10 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             MaterialCommands.SetMaterialProperties(handle, renderQueue: -1);
             // Validate inheritance via rawRenderQueue == -1 rather than the effective queue: the shader
             // default can legitimately equal the prior override (e.g. 3000), so comparing the effective
-            // value would be flaky. rawRenderQueue is -1 exactly when the material inherits the shader's.
+            // value would be flaky. The serialized override is -1 exactly when the material inherits
+            // the shader's queue on Unity versions that do not expose rawRenderQueue.
             var mat = AssetDatabase.LoadAssetAtPath<Material>(handle.Path);
-#if UNITY_6000_0_OR_NEWER
-            Assert.AreEqual(-1, mat.rawRenderQueue, "renderQueue -1 should clear the override and inherit from the shader");
-#else
-            Assert.AreEqual(-1, mat.renderQueue, "renderQueue -1 should clear the override and inherit from the shader");
-#endif
+            Assert.AreEqual(-1, RawRenderQueue(mat), "renderQueue -1 should clear the override and inherit from the shader");
         }
 
         // ---- unknown / mismatch -------------------------------------------------------------------
