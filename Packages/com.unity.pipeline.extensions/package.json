@@ -1,0 +1,21 @@
+{
+  "name": "com.unity.pipeline.extensions",
+  "displayName": "Unity Pipeline Extensions",
+  "version": "0.1.0-exp.1",
+  "unity": "2022.3",
+  "category": "Pipeline",
+  "description": "Optional Unity Pipeline editor commands for compatibility workflows that are not part of the core com.unity.pipeline package.",
+  "keywords": [
+    "pipeline",
+    "cli",
+    "authoring",
+    "extensions"
+  ],
+  "dependencies": {
+    "com.unity.pipeline": "0.4.0-exp.1",
+    "com.unity.nuget.newtonsoft-json": "3.0.2",
+    "com.unity.modules.ai": "1.0.0",
+    "com.unity.modules.director": "1.0.0",
+    "com.unity.modules.imageconversion": "1.0.0"
+  }
+}

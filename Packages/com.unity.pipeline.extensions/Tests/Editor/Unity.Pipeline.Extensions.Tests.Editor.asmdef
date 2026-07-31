@@ -1,0 +1,27 @@
+{
+  "name": "Unity.Pipeline.Extensions.Tests.Editor",
+  "rootNamespace": "Unity.Pipeline.Extensions.Tests.Editor",
+  "references": [
+    "UnityEditor.TestRunner",
+    "Unity.Pipeline.Extensions.Editor",
+    "Unity.Pipeline.Editor",
+    "Unity.Pipeline",
+    "UnityEngine.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll",
+    "Newtonsoft.Json.dll"
+  ],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
