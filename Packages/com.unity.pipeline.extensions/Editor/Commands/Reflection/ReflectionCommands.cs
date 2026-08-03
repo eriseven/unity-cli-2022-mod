@@ -91,6 +91,24 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
             };
         }
 
+        [CliCommand("get_json_schema", "Generate a JSON Schema for a loaded C# type. The result follows the Unity-MCP type-get-json-schema compatibility contract and is returned as a JSON string in result.")]
+        public static JsonSchemaResult GetJsonSchema(
+            [CliArg("type", "Fully-qualified (preferred) or unambiguous short type name.", Required = true)] string type,
+            [CliArg("description_mode", "Ignore, Include, or IncludeRecursively. Descriptions are emitted when reflection metadata provides them.")] string descriptionMode = "Ignore",
+            [CliArg("property_description_mode", "Ignore, Include, or IncludeRecursively. Descriptions are emitted when reflection metadata provides them.")] string propertyDescriptionMode = "Ignore",
+            [CliArg("include_nested_types", "Place nested complex types in $defs and reference them with $ref.")] bool includeNestedTypes = false,
+            [CliArg("write_indented", "Pretty-print the returned JSON Schema.")] bool writeIndented = false)
+        {
+            ValidateDescriptionMode(descriptionMode, nameof(descriptionMode));
+            ValidateDescriptionMode(propertyDescriptionMode, nameof(propertyDescriptionMode));
+
+            var schema = new JsonSchemaBuilder(includeNestedTypes).Build(ResolveType(type));
+            return new JsonSchemaResult
+            {
+                Result = schema.ToString(writeIndented ? Formatting.Indented : Formatting.None)
+            };
+        }
+
         [CliCommand("invoke_method", "Invoke a reflected public method. confirm=true is required because arbitrary method calls can mutate project state; use dry_run first to validate overload selection.")]
         public static ReflectionInvocationResult InvokeMethod(
             [CliArg("method", "Exact method name to invoke.", Required = true)] string method,
@@ -220,6 +238,16 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
             throw new ArgumentException($"Type name '{typeName}' is ambiguous. Use an assembly-qualified name.");
         }
 
+        private static void ValidateDescriptionMode(string value, string parameter)
+        {
+            if (string.Equals(value, "Ignore", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "Include", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "IncludeRecursively", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            throw new ArgumentException($"{parameter} must be Ignore, Include, or IncludeRecursively.");
+        }
+
         private static bool TryConvertArguments(JArray supplied, ParameterInfo[] parameters, out object[] converted)
         {
             converted = new object[parameters.Length];
@@ -309,6 +337,30 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
         {
             if (value is Object unityObject)
                 return ObjectResolver.Describe(unityObject);
+
+            if (value == null)
+                return null;
+
+            // Unity value types such as Vector3 expose calculated properties (for example
+            // Vector3.normalized) that point back to the same value type. Handing the boxed
+            // value to the CLI serializer therefore creates an infinite object graph. Match
+            // the field-oriented data shape used by Unity-MCP and make the result safe to
+            // serialize by projecting public instance fields only.
+            var valueType = value.GetType();
+            if (valueType.IsValueType && !valueType.IsPrimitive && !valueType.IsEnum && valueType != typeof(decimal))
+            {
+                var fields = valueType.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                    .OrderBy(field => field.Name, StringComparer.Ordinal)
+                    .ToArray();
+                if (fields.Length > 0)
+                {
+                    var result = new JObject();
+                    foreach (var field in fields)
+                        result[field.Name] = JToken.FromObject(NormalizeReturnValue(field.GetValue(value)));
+                    return result;
+                }
+            }
+
             return value;
         }
 
@@ -397,5 +449,163 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
         [JsonProperty("type")] public string Type { get; set; }
         [JsonProperty("signature")] public ReflectionMethodInfo Signature { get; set; }
         [JsonProperty("returnValue")] public object ReturnValue { get; set; }
+    }
+
+    [Serializable]
+    public sealed class JsonSchemaResult
+    {
+        [JsonProperty("result")] public string Result { get; set; }
+    }
+
+    internal sealed class JsonSchemaBuilder
+    {
+        private readonly bool m_UseDefinitions;
+        private readonly HashSet<Type> m_Building = new HashSet<Type>();
+        private readonly Dictionary<Type, string> m_DefinitionNames = new Dictionary<Type, string>();
+        private readonly Dictionary<string, JObject> m_Definitions = new Dictionary<string, JObject>(StringComparer.Ordinal);
+
+        public JsonSchemaBuilder(bool useDefinitions)
+        {
+            m_UseDefinitions = useDefinitions;
+        }
+
+        public JObject Build(Type type)
+        {
+            var root = BuildSchema(type, isRoot: true) as JObject ?? new JObject();
+            if (m_Definitions.Count > 0)
+            {
+                var definitions = new JObject();
+                foreach (var definition in m_Definitions.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+                    definitions[definition.Key] = definition.Value;
+                root["$defs"] = definitions;
+            }
+            return root;
+        }
+
+        private JToken BuildSchema(Type type, bool isRoot = false)
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+
+            if (type.IsEnum)
+                return new JObject { ["type"] = "string", ["enum"] = new JArray(Enum.GetNames(type)) };
+            if (type == typeof(bool))
+                return new JObject { ["type"] = "boolean" };
+            if (type == typeof(string) || type == typeof(char) || type == typeof(Guid) || type == typeof(DateTime) || type == typeof(DateTimeOffset))
+                return new JObject { ["type"] = "string" };
+            if (IsInteger(type))
+                return new JObject { ["type"] = "integer" };
+            if (IsNumber(type))
+                return new JObject { ["type"] = "number" };
+            if (type.IsArray)
+                return new JObject { ["type"] = "array", ["items"] = BuildSchema(type.GetElementType()) };
+            if (TryGetDictionaryValueType(type, out var valueType))
+                return new JObject { ["type"] = "object", ["additionalProperties"] = BuildSchema(valueType) };
+            if (TryGetEnumerableElementType(type, out var elementType))
+                return new JObject { ["type"] = "array", ["items"] = BuildSchema(elementType) };
+            if (m_UseDefinitions && !isRoot)
+                return GetOrCreateDefinitionReference(type);
+            return BuildObjectSchema(type);
+        }
+
+        private JToken GetOrCreateDefinitionReference(Type type)
+        {
+            if (!m_DefinitionNames.TryGetValue(type, out var name))
+            {
+                name = GetUniqueDefinitionName(type);
+                m_DefinitionNames[type] = name;
+                m_Definitions[name] = new JObject();
+                m_Definitions[name] = BuildObjectSchema(type);
+            }
+            return new JObject { ["$ref"] = $"#/$defs/{name}" };
+        }
+
+        private JObject BuildObjectSchema(Type type)
+        {
+            if (!m_Building.Add(type))
+                return new JObject { ["type"] = "object" };
+
+            try
+            {
+                var members = type.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(field => !field.IsSpecialName)
+                    .Select(field => new SchemaMember(field.Name, field.FieldType))
+                    .Concat(type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(property => property.GetIndexParameters().Length == 0 && property.GetMethod != null && property.SetMethod != null)
+                        .Select(property => new SchemaMember(property.Name, property.PropertyType)))
+                    .OrderBy(member => member.Name, StringComparer.Ordinal)
+                    .ToArray();
+
+                var properties = new JObject();
+                foreach (var member in members)
+                    properties[member.Name] = BuildSchema(member.Type);
+
+                return new JObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = properties,
+                    ["required"] = new JArray(members.Select(member => member.Name)),
+                    ["additionalProperties"] = false
+                };
+            }
+            finally
+            {
+                m_Building.Remove(type);
+            }
+        }
+
+        private string GetUniqueDefinitionName(Type type)
+        {
+            var baseName = (type.FullName ?? type.Name).Replace('+', '.').Replace('`', '_');
+            var name = baseName;
+            var suffix = 2;
+            while (m_Definitions.ContainsKey(name))
+                name = $"{baseName}_{suffix++}";
+            return name;
+        }
+
+        private static bool IsInteger(Type type)
+        {
+            return type == typeof(byte) || type == typeof(sbyte) || type == typeof(short) || type == typeof(ushort) ||
+                   type == typeof(int) || type == typeof(uint) || type == typeof(long) || type == typeof(ulong);
+        }
+
+        private static bool IsNumber(Type type)
+        {
+            return type == typeof(float) || type == typeof(double) || type == typeof(decimal);
+        }
+
+        private static bool TryGetDictionaryValueType(Type type, out Type valueType)
+        {
+            var dictionary = type.GetInterfaces().Concat(new[] { type })
+                .FirstOrDefault(candidate => candidate.IsGenericType && candidate.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+            valueType = dictionary?.GetGenericArguments()[1];
+            return valueType != null;
+        }
+
+        private static bool TryGetEnumerableElementType(Type type, out Type elementType)
+        {
+            if (type == typeof(string))
+            {
+                elementType = null;
+                return false;
+            }
+
+            var enumerable = type.GetInterfaces().Concat(new[] { type })
+                .FirstOrDefault(candidate => candidate.IsGenericType && candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            elementType = enumerable?.GetGenericArguments()[0];
+            return elementType != null;
+        }
+
+        private readonly struct SchemaMember
+        {
+            public SchemaMember(string name, Type type)
+            {
+                Name = name;
+                Type = type;
+            }
+
+            public string Name { get; }
+            public Type Type { get; }
+        }
     }
 }

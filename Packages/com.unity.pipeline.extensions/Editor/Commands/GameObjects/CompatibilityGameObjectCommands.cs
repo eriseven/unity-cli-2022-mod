@@ -18,15 +18,45 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.GameObjects
     {
         private const int MaxComponentTypes = 500;
 
-        [CliCommand("duplicate_gameobject", "Duplicate a GameObject, optionally rename or reparent the copy. Undo-able; blocked during Play mode.")]
-        public static AuthoringResult DuplicateGameObject(
-            [CliArg("source", "Reference to the GameObject to duplicate.", Required = true)] ObjectRef source,
+        [CliCommand("duplicate_gameobject", "Duplicate one or more GameObjects atomically. The default path uses Unity Editor's canonical duplicate command, preserving its naming and selection behaviour. Blocked during Play mode.")]
+        public static DuplicateGameObjectsResult DuplicateGameObject(
+            [CliArg("sources", "GameObjects to duplicate. All references are resolved before mutation, so an invalid entry leaves the scene unchanged.")] ObjectRef[] sources = null,
+            [CliArg("source", "Backward-compatible single-object alias for sources.")] ObjectRef source = null,
             [CliArg("name", "Optional name for the duplicated GameObject.")] string name = null,
             [CliArg("parent", "Optional parent for the duplicate. Omit to keep the source parent.")] ObjectRef parent = null,
             [CliArg("world_position_stays", "When a parent is supplied, preserve the duplicate's world position (default true).")] bool worldPositionStays = true)
         {
             GuardNotPlaying("duplicate_gameobject");
-            var sourceGo = ResolveGameObject(source, "source");
+            if (sources != null && sources.Length > 0 && source != null && !source.IsEmpty)
+                throw new ArgumentException("Provide either sources or source, not both.");
+            if ((sources == null || sources.Length == 0) && (source == null || source.IsEmpty))
+                throw new ArgumentException("duplicate_gameobject requires at least one source reference.");
+
+            var requestedSources = sources != null && sources.Length > 0 ? sources : new[] { source };
+            // Resolve the complete batch before touching selection or the scene, preserving the
+            // original Unity-MCP atomic failure behaviour.
+            var sourceGos = requestedSources
+                .Select((reference, index) => ResolveGameObject(reference, $"sources[{index}]"))
+                .ToArray();
+
+            var hasCustomPlacement = !string.IsNullOrWhiteSpace(name) || (parent != null && !parent.IsEmpty);
+            if (hasCustomPlacement && sourceGos.Length != 1)
+                throw new ArgumentException("name and parent options are supported only when duplicating one source.");
+
+            if (!hasCustomPlacement)
+            {
+                Selection.objects = sourceGos;
+                Unsupported.DuplicateGameObjectsUsingPasteboard();
+                foreach (var duplicate in Selection.gameObjects)
+                    EditorSceneManager.MarkSceneDirty(duplicate.scene);
+
+                return new DuplicateGameObjectsResult
+                {
+                    Result = sourceGos.Select(DescribeCompatibilityReference).ToArray()
+                };
+            }
+
+            var sourceGo = sourceGos[0];
             var parentGo = parent == null || parent.IsEmpty ? null : ResolveGameObject(parent, "parent");
             var sourceLocalPosition = sourceGo.transform.localPosition;
             var sourceLocalRotation = sourceGo.transform.localRotation;
@@ -61,7 +91,11 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.GameObjects
                     duplicate.name = name;
 
                 EditorSceneManager.MarkSceneDirty(duplicate.scene);
-                return ObjectResolver.Describe(duplicate) ?? new AuthoringResult { Type = nameof(GameObject) };
+                Selection.activeGameObject = duplicate;
+                return new DuplicateGameObjectsResult
+                {
+                    Result = new[] { DescribeCompatibilityReference(sourceGo) }
+                };
             }
         }
 
@@ -113,6 +147,24 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.GameObjects
             return go;
         }
 
+        private static CompatibilityGameObjectReference DescribeCompatibilityReference(GameObject gameObject)
+        {
+            return new CompatibilityGameObjectReference
+            {
+                InstanceId = PipelineUtils.GetObjectId(gameObject),
+                Path = GetHierarchyPath(gameObject.transform),
+                Name = gameObject.name
+            };
+        }
+
+        private static string GetHierarchyPath(Transform transform)
+        {
+            var names = new Stack<string>();
+            for (var current = transform; current != null; current = current.parent)
+                names.Push(current.name);
+            return string.Join("/", names);
+        }
+
         private static void GuardNotPlaying(string command)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -128,5 +180,19 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.GameObjects
         [JsonProperty("pageSize")] public int PageSize { get; set; }
         [JsonProperty("totalCount")] public int TotalCount { get; set; }
         [JsonProperty("totalPages")] public int TotalPages { get; set; }
+    }
+
+    [Serializable]
+    public sealed class DuplicateGameObjectsResult
+    {
+        [JsonProperty("result")] public CompatibilityGameObjectReference[] Result { get; set; }
+    }
+
+    [Serializable]
+    public sealed class CompatibilityGameObjectReference
+    {
+        [JsonProperty("instanceID")] public int InstanceId { get; set; }
+        [JsonProperty("path")] public string Path { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
     }
 }

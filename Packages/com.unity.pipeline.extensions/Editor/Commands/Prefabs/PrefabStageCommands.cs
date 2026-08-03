@@ -35,6 +35,48 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Prefabs
             return DescribeStage(stage, "opened");
         }
 
+        [CliCommand("create_prefab_stage_gameobject", "Create an empty GameObject or primitive in the currently open Prefab Stage. By default the object is parented to the Prefab contents root.", MainThreadRequired = true)]
+        public static AuthoringResult CreateGameObject(
+            [CliArg("name", "Name for the new GameObject. Defaults to 'GameObject' (or the primitive name).")]
+            string name = null,
+            [CliArg("primitive", "Optional primitive type: cube, sphere, capsule, cylinder, plane, quad. Omit for an empty GameObject.")]
+            string primitive = null,
+            [CliArg("parent", "Optional parent inside the open Prefab Stage. Defaults to the Prefab contents root.")]
+            ObjectRef parent = null)
+        {
+            var stage = RequireCurrentStage();
+            var parentObject = parent == null || parent.IsEmpty
+                ? stage.prefabContentsRoot
+                : ResolveStageGameObject(parent, stage, "parent");
+            if (parentObject == null)
+                throw new InvalidOperationException("The current Prefab Stage has no prefab contents root.");
+
+            GameObject created;
+            if (string.IsNullOrEmpty(primitive))
+            {
+                created = new GameObject();
+            }
+            else
+            {
+                if (!Enum.TryParse(primitive, true, out PrimitiveType primitiveType))
+                    throw new ArgumentException(
+                        $"Unknown primitive '{primitive}'. Expected one of: cube, sphere, capsule, cylinder, plane, quad.");
+                created = GameObject.CreatePrimitive(primitiveType);
+            }
+
+            if (!string.IsNullOrEmpty(name))
+                created.name = name;
+
+            Undo.RegisterCreatedObjectUndo(created, "Create Prefab Stage GameObject");
+            StageUtility.PlaceGameObjectInCurrentStage(created);
+            if (created.scene != stage.scene)
+                throw new InvalidOperationException("Failed to place the new GameObject in the current Prefab Stage.");
+
+            Undo.SetTransformParent(created.transform, parentObject.transform, "Create Prefab Stage GameObject");
+            EditorSceneManager.MarkSceneDirty(stage.scene);
+            return ObjectResolver.Describe(created);
+        }
+
         [CliCommand("save_prefab_stage", "Save the currently open Prefab Stage back to its prefab asset without closing it.")]
         public static PrefabStageResult Save()
         {
@@ -87,6 +129,14 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Prefabs
             return gameObject;
         }
 
+        private static GameObject ResolveStageGameObject(ObjectRef reference, PrefabStage stage, string argumentName)
+        {
+            var gameObject = ResolveGameObject(reference);
+            if (gameObject.scene != stage.scene)
+                throw new ArgumentException($"{argumentName} must resolve to an object in the current Prefab Stage.");
+            return gameObject;
+        }
+
         private static string GetPrefabAssetPath(GameObject gameObject)
         {
             var path = AssetDatabase.GetAssetPath(gameObject);
@@ -109,7 +159,8 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Prefabs
                 Action = action,
                 AssetPath = stage.assetPath,
                 IsDirty = stage.prefabContentsRoot != null && stage.prefabContentsRoot.scene.isDirty,
-                Prefab = ObjectResolver.Describe(asset)
+                Prefab = ObjectResolver.Describe(asset),
+                ContentsRoot = stage.prefabContentsRoot == null ? null : ObjectResolver.Describe(stage.prefabContentsRoot)
             };
         }
     }
@@ -121,5 +172,6 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Prefabs
         public string AssetPath { get; set; }
         public bool IsDirty { get; set; }
         public AuthoringResult Prefab { get; set; }
+        public AuthoringResult ContentsRoot { get; set; }
     }
 }

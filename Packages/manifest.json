@@ -1,9 +1,11 @@
 {
   "dependencies": {
+    "com.unity.ai.navigation": "1.1.7",
     "com.unity.ide.rider": "3.0.40",
     "com.unity.pipeline": "file:com.unity.pipeline",
     "com.unity.pipeline.extensions": "file:com.unity.pipeline.extensions",
     "com.unity.render-pipelines.universal": "14.0.12",
+    "com.unity.timeline": "1.7.7",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
     "com.unity.modules.animation": "1.0.0",

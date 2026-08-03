@@ -4,6 +4,7 @@
   "references": [
     "Unity.Pipeline.Editor",
     "Unity.Pipeline",
+    "Unity.AI.Navigation",
     "Unity.Nuget.Newtonsoft-Json"
   ],
   "includePlatforms": [
