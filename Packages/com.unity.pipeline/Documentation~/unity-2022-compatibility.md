@@ -1,7 +1,7 @@
 # Unity 2022.3.62f3 compatibility notes
 
 This document records the local compatibility changes made to run `com.unity.pipeline`
-`0.4.0-exp.1` in an empty Unity `2022.3.62f3` project.
+`0.5.0-exp.1` in an empty Unity `2022.3.62f3` project.
 
 The upstream package declares `"unity": "6000.0"` and uses several Unity 6-era API and plugin import
 assumptions. Unity 2022 can compile most of the package, but it needs explicit adjustments around
@@ -198,14 +198,40 @@ Potential impact:
 - `ReloadFileOverride` was already exposed as a CLI command via `[CliCommand]`; making the C# method
   public aligns direct API visibility with the command surface.
 
+### Descriptor watchdog recovery
+
+File changed:
+
+- `Runtime/Common/BasePipelineServer.cs`
+
+What changed:
+
+- A healthy watchdog tick now also refreshes the instance descriptor heartbeat.
+
+Why:
+
+- During the `0.5.0-exp.1` upgrade validation, the HTTP listener remained healthy on port 7800
+  while `Library/Pipeline/.unity-pipeline-port` was absent, so the Unity CLI could not discover the
+  running server.
+- Refreshing the heartbeat recreates a missing descriptor from the server's in-memory descriptor
+  without requiring a domain reload or a manual Editor restart.
+- Test servers are unaffected because they override `WritesDescriptor` to `false`.
+
 ## Verification
 
 Verified in the Unity Editor:
 
 - Unity `2022.3.62f3`
+- Embedded package reports `com.unity.pipeline` version `0.5.0-exp.1`
 - Project refresh completed with `Mono: successfully reloaded assembly`
 - Latest editor refresh showed `LogAssemblyErrors (0ms)`
 - No current compile errors remained in the Unity Console
+- Unity CLI discovered the live server on port 7800 and listed 191 registered commands, including
+  the new `audit` and `audit_status` commands
+- Core EditMode tests: 651 total, 649 passed, 0 failed, 2 skipped for version/package constraints
+- Extension EditMode tests: 7 total, 7 passed, 0 failed
+- `audit` returned the expected structured `unavailable` result because Project Auditor is not
+  installed in this Unity 2022 project
 
 Also verified with Unity-generated Bee response files through Roslyn `csc`:
 

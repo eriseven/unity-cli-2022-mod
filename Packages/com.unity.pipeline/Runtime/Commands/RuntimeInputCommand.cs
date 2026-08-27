@@ -31,7 +31,8 @@ namespace Unity.Pipeline.Runtime.Commands
     public static class RuntimeInputCommand
     {
         [CliCommand("simulate_key", "Simulate a keyboard key event (Input System). Drives the running app.",
-            MainThreadRequired = true, RuntimeOnly = true)]
+            MainThreadRequired = true, RuntimeOnly = true,
+            Tags = new[] { "runtime/input" })]
         public static InputSimulationResponse SimulateKey(
             [CliArg("key", "Input System Key name, e.g. Space, W, Enter, LeftArrow", Required = true)] string key,
             [CliArg("action", "down | up | press (down+up). Default: press")] string action = "press")
@@ -71,7 +72,8 @@ namespace Unity.Pipeline.Runtime.Commands
         }
 
         [CliCommand("simulate_pointer", "Simulate a mouse/pointer event at screen coordinates (Input System).",
-            MainThreadRequired = true, RuntimeOnly = true)]
+            MainThreadRequired = true, RuntimeOnly = true,
+            Tags = new[] { "runtime/input" })]
         public static InputSimulationResponse SimulatePointer(
             [CliArg("x", "Screen X in pixels (origin bottom-left)", Required = true)] float x,
             [CliArg("y", "Screen Y in pixels (origin bottom-left)", Required = true)] float y,

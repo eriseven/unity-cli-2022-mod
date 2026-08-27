@@ -2,6 +2,7 @@
   "dependencies": {
     "com.unity.ai.navigation": "1.1.7",
     "com.unity.ide.rider": "3.0.40",
+    "com.unity.ide.vscode": "1.2.5",
     "com.unity.pipeline": "file:com.unity.pipeline",
     "com.unity.pipeline.extensions": "file:com.unity.pipeline.extensions",
     "com.unity.render-pipelines.universal": "14.0.12",

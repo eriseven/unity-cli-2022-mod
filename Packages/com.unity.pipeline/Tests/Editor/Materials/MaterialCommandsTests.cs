@@ -19,6 +19,11 @@ namespace Unity.Pipeline.Tests.Editor.Materials
     public class MaterialCommandsTests
     {
         private const string Root = "Assets/__CLI213MaterialTest";
+        private const string UrpLitShader = "Universal Render Pipeline/Lit";
+        private const string StandardShader = "Standard";
+        private const string BaseMapProp = "_BaseMap";
+        private const string BaseColorProp = "_BaseColor";
+        private const string MetallicProp = "_Metallic";
 
         private string m_KnownShader;       // a shader guaranteed to resolve on this project
         private bool m_HasUrpLit;
@@ -27,7 +32,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
         public void SetUp()
         {
             ProjectPaths.ResetAuthoringRoot();
-            m_HasUrpLit = Shader.Find("Universal Render Pipeline/Lit") != null;
+            m_HasUrpLit = Shader.Find(UrpLitShader) != null;
             m_KnownShader = PickKnownShader();
             EnsureFolder(Root);
         }
@@ -39,21 +44,21 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             if (AssetDatabase.IsValidFolder(Root))
             {
                 AssetDatabase.DeleteAsset(Root);
-                AssetDatabase.Refresh();
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             }
         }
 
         private static string PickKnownShader()
         {
-            if (Shader.Find("Standard") != null)
-                return "Standard";
-            if (Shader.Find("Universal Render Pipeline/Lit") != null)
-                return "Universal Render Pipeline/Lit";
+            if (Shader.Find(StandardShader) != null)
+                return StandardShader;
+            if (Shader.Find(UrpLitShader) != null)
+                return UrpLitShader;
             return "Sprites/Default";
         }
 
         /// <summary>The Color property to exercise: URP/Lit uses _BaseColor; built-in Standard uses _Color.</summary>
-        private string ColorProp => m_HasUrpLit ? "_BaseColor" : "_Color";
+        private string ColorProp => m_KnownShader == UrpLitShader ? BaseColorProp : "_Color";
 
         private static void EnsureFolder(string folder)
         {
@@ -138,14 +143,14 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             if (!m_HasUrpLit)
                 Assert.Ignore("URP/Lit not available in this project; skipping URP-specific assertion (AC #1).");
 
-            var handle = CreateMaterial("UrpGet", "Universal Render Pipeline/Lit");
+            var handle = CreateMaterial("UrpGet", UrpLitShader);
             var result = MaterialCommands.GetMaterialProperties(handle);
 
-            var baseColor = Prop(result, "_BaseColor");
+            var baseColor = Prop(result, BaseColorProp);
             Assert.IsNotNull(baseColor, "_BaseColor should be present");
             Assert.AreEqual("Color", baseColor.Type);
 
-            var metallic = Prop(result, "_Metallic");
+            var metallic = Prop(result, MetallicProp);
             Assert.IsNotNull(metallic, "_Metallic should be present");
             Assert.AreEqual("Range", metallic.Type);
             Assert.IsNotNull(metallic.Range, "_Metallic (Range) should carry range limits");
@@ -195,22 +200,22 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             if (!m_HasUrpLit)
                 Assert.Ignore("URP/Lit not available; skipping _BaseMap texture test (AC #4).");
 
-            var handle = CreateMaterial("SetTex", "Universal Render Pipeline/Lit");
+            var handle = CreateMaterial("SetTex", UrpLitShader);
             var tex = CreateTexture("Albedo");
 
             var set = MaterialCommands.SetMaterialProperties(handle,
-                properties: new JObject { ["_BaseMap"] = JToken.FromObject(tex) });
-            CollectionAssert.Contains(set.Applied, "_BaseMap");
+                properties: new JObject { [BaseMapProp] = JToken.FromObject(tex) });
+            CollectionAssert.Contains(set.Applied, BaseMapProp);
 
             var loadedTex = AssetDatabase.LoadAssetAtPath<Texture>(tex.Path);
             var mat = AssetDatabase.LoadAssetAtPath<Material>(handle.Path);
-            Assert.AreEqual(loadedTex, mat.GetTexture("_BaseMap"), "texture should be assigned");
+            Assert.AreEqual(loadedTex, mat.GetTexture(BaseMapProp), "texture should be assigned");
 
             // Clear with null.
             MaterialCommands.SetMaterialProperties(handle,
-                properties: new JObject { ["_BaseMap"] = JValue.CreateNull() });
+                properties: new JObject { [BaseMapProp] = JValue.CreateNull() });
             mat = AssetDatabase.LoadAssetAtPath<Material>(handle.Path);
-            Assert.IsNull(mat.GetTexture("_BaseMap"), "passing null should clear the texture");
+            Assert.IsNull(mat.GetTexture(BaseMapProp), "passing null should clear the texture");
         }
 
         [Test]
@@ -224,13 +229,13 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             var sub = $"{Root}/Sub";
             if (!AssetDatabase.IsValidFolder(sub))
                 AssetDatabase.CreateFolder(Root, "Sub");
-            var handle = CreateMaterial("Sub/SetTexSandbox", "Universal Render Pipeline/Lit");
+            var handle = CreateMaterial("Sub/SetTexSandbox", UrpLitShader);
 
             ProjectPaths.AuthoringRoot = sub; // now Root/OutsideAlbedo.png is outside the root
 
             var ex = Assert.Throws<System.ArgumentException>(() =>
                 MaterialCommands.SetMaterialProperties(handle,
-                    properties: new JObject { ["_BaseMap"] = JToken.FromObject(outsideTex) }));
+                    properties: new JObject { [BaseMapProp] = JToken.FromObject(outsideTex) }));
             StringAssert.Contains("outside the authoring root", ex.Message);
         }
 
@@ -239,15 +244,15 @@ namespace Unity.Pipeline.Tests.Editor.Materials
         [Test]
         public void Set_Shader_Reassigns()
         {
-            if (Shader.Find("Standard") == null)
+            if (Shader.Find(StandardShader) == null)
                 Assert.Ignore("Built-in Standard shader not available; skipping shader-reassign test (AC #5).");
 
             var handle = CreateMaterial("Reassign", m_KnownShader);
-            var result = MaterialCommands.SetMaterialProperties(handle, shader: "Standard");
+            var result = MaterialCommands.SetMaterialProperties(handle, shader: StandardShader);
 
-            Assert.AreEqual("Standard", result.Shader);
+            Assert.AreEqual(StandardShader, result.Shader);
             var read = MaterialCommands.GetMaterialProperties(handle);
-            Assert.AreEqual("Standard", read.Shader);
+            Assert.AreEqual(StandardShader, read.Shader);
         }
 
         [Test]
@@ -328,18 +333,18 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             if (!m_HasUrpLit)
                 Assert.Ignore("URP/Lit not available; skipping _Metallic type-mismatch test.");
 
-            var handle = CreateMaterial("Mismatch", "Universal Render Pipeline/Lit");
+            var handle = CreateMaterial("Mismatch", UrpLitShader);
             // _Metallic is a Range (number); send an array to force a mismatch.
             var props = new JObject
             {
-                ["_BaseColor"] = new JArray(1, 1, 1, 1),
-                ["_Metallic"] = new JArray(1, 2, 3),
+                [BaseColorProp] = new JArray(1, 1, 1, 1),
+                [MetallicProp] = new JArray(1, 2, 3),
             };
 
             var result = MaterialCommands.SetMaterialProperties(handle, properties: props);
 
-            CollectionAssert.Contains(result.Applied, "_BaseColor");
-            Assert.IsTrue(result.Unknown.Any(u => u.Contains("_Metallic")),
+            CollectionAssert.Contains(result.Applied, BaseColorProp);
+            Assert.IsTrue(result.Unknown.Any(u => u.Contains(MetallicProp)),
                 "a type mismatch should be reported in unknown[] with a reason");
         }
 

@@ -32,7 +32,8 @@ namespace Unity.Pipeline.Editor.Commands.Materials
     public static class MaterialCommands
     {
         [CliCommand("get_material_properties",
-            "Read a material's shader, render queue, enabled keywords, and all shader properties with their current values (Color as [r,g,b,a], Vector as [x,y,z,w], Texture as an object reference).")]
+            "Read a material's shader, render queue, enabled keywords, and all shader properties with their current values (Color as [r,g,b,a], Vector as [x,y,z,w], Texture as an object reference).",
+            Tags = new[] { "materials" })]
         public static MaterialPropertiesResult GetMaterialProperties(
             [CliArg("material", "Reference to the .mat asset (or a loaded material) to read (path / guid / globalId / instanceId).", Required = true)] ObjectRef material)
         {
@@ -94,7 +95,8 @@ namespace Unity.Pipeline.Editor.Commands.Materials
         }
 
         [CliCommand("set_material_properties",
-            "Set shader properties on a material (Float/Range/Int=number; Color=[r,g,b,a] or \"#RRGGBBAA\" hex; Vector=[x,y,z,w]; Texture=an object reference or null to clear), optionally reassign the shader, set the render queue, and toggle keywords. Unknown names / type mismatches are reported in unknown[].")]
+            "Set shader properties on a material (Float/Range/Int=number; Color=[r,g,b,a] or \"#RRGGBBAA\" hex; Vector=[x,y,z,w]; Texture=an object reference or null to clear), optionally reassign the shader, set the render queue, and toggle keywords. Unknown names / type mismatches are reported in unknown[].",
+            Tags = new[] { "materials" })]
         public static SetMaterialPropertiesResult SetMaterialProperties(
             [CliArg("material", "Reference to the .mat asset (or a loaded material) to edit (path / guid / globalId / instanceId).", Required = true)] ObjectRef material,
             [CliArg("shader", "Reassign the material's shader by name (e.g. \"Standard\", \"Universal Render Pipeline/Lit\", or a Shader Graph shader name). Applied before properties so new property names resolve against the new shader.")] string shader = null,
