@@ -1,7 +1,9 @@
 {
     "name": "Unity.Pipeline",
     "rootNamespace": "Unity.Pipeline",
-    "references": [],
+    "references": [
+        "Unity.InputSystem"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
