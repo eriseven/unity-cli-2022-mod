@@ -10,9 +10,6 @@ using Unity.Pipeline.Runtime.Commands;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
-using ObservabilityConsoleLogBuffer = Unity.Pipeline.Editor.Commands.Observability.ConsoleLogBuffer;
-using ObservabilityConsoleCommands = Unity.Pipeline.Editor.Commands.Observability.ConsoleCommands;
-using ObservabilityConsoleLogEntryDto = Unity.Pipeline.Editor.Commands.Observability.ConsoleLogEntryDto;
 
 namespace Unity.Pipeline.Tests.Editor.Console
 {
@@ -24,7 +21,6 @@ namespace Unity.Pipeline.Tests.Editor.Console
             if (EditorApplication.isPlaying)
                 yield return new ExitPlayMode();
 
-            RearmObservability();
             RearmConsoleLogCapture();
         }
 
@@ -37,11 +33,6 @@ namespace Unity.Pipeline.Tests.Editor.Console
             var marker = NewMarker("survives_exit");
             EmitError(marker);
 
-            var observabilityResult = ObservabilityConsoleCommands.GetConsoleLogs("error", 50);
-            var observabilityLogs = ReadObservabilityLogs(observabilityResult);
-            Assert.IsTrue(observabilityLogs.Any(e => e.Message != null && e.Message.Contains(marker)),
-                "get_console_logs must still capture entries logged after exiting play mode");
-
             var consoleResponse = ConsoleCommand.GetConsole(level: "error");
             Assert.IsTrue(consoleResponse.Entries.Any(e => e.Message != null && e.Message.Contains(marker)),
                 "console must still capture entries logged after exiting play mode");
@@ -49,11 +40,6 @@ namespace Unity.Pipeline.Tests.Editor.Console
 
         private static IEnumerable TestCases()
         {
-            yield return new TestCaseData(
-                    (Action)StripObservabilitySubscription,
-                    (Action)RearmObservability,
-                    (Func<string, int>)CountObservabilityCaptures)
-                .SetName("{m}(Observability_get_console_logs)");
             yield return new TestCaseData(
                     (Action)StripConsoleLogCaptureSubscription,
                     (Action)RearmConsoleLogCapture,
@@ -93,26 +79,6 @@ namespace Unity.Pipeline.Tests.Editor.Console
             LogAssert.Expect(LogType.Error, new Regex(".*" + Regex.Escape(marker) + ".*"));
             Debug.LogError(marker);
         }
-
-        private static List<ObservabilityConsoleLogEntryDto> ReadObservabilityLogs(object result)
-        {
-            var logsProp = result.GetType().GetProperty("logs");
-            Assert.IsNotNull(logsProp, "Result should expose a 'logs' property");
-            return (List<ObservabilityConsoleLogEntryDto>)logsProp.GetValue(result);
-        }
-
-        private static void StripObservabilitySubscription()
-        {
-            var method = typeof(ObservabilityConsoleLogBuffer).GetMethod("OnLogMessageThreaded", BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.IsNotNull(method, "ConsoleLogBuffer.OnLogMessageThreaded must exist for this test to strip its subscription");
-            var handler = (Application.LogCallback)Delegate.CreateDelegate(typeof(Application.LogCallback), method);
-            Application.logMessageReceivedThreaded -= handler;
-        }
-
-        private static void RearmObservability() => ObservabilityConsoleLogBuffer.EnsureCapturing();
-
-        private static int CountObservabilityCaptures(string marker) =>
-            ObservabilityConsoleLogBuffer.Snapshot().Count(e => e.Message != null && e.Message.Contains(marker));
 
         private static void StripConsoleLogCaptureSubscription()
         {

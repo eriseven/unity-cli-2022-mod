@@ -3,6 +3,7 @@
     "rootNamespace": "Unity.Pipeline",
     "references": [
         "Unity.InputSystem",
+        "Unity.Pipeline.Attributes",
         "Unity.Pipeline.IlInterpreter"
     ],
     "includePlatforms": [],
@@ -21,12 +22,19 @@
         "Newtonsoft.Json.dll"
     ],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "UNITY_EDITOR || ENABLE_PROFILER || ENABLE_RUNTIME_PIPELINE"
+    ],
     "versionDefines": [
         {
             "name": "com.unity.modules.unitywebrequest",
             "expression": "1.0.0",
             "define": "UNITY_2022_3_OR_NEWER"
+        },
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "0.0.0",
+            "define": "PIPELINE_HAS_INPUT_SYSTEM_PACKAGE"
         }
     ],
     "noEngineReferences": false

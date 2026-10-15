@@ -23,7 +23,7 @@ namespace Unity.Pipeline.Tests.Runtime
         /// <summary>
         /// Create a Pipeline client for the specified server.
         /// </summary>
-        /// <param name="baseUrl">Base URL of the Pipeline server (e.g., "http://localhost:7900")</param>
+        /// <param name="baseUrl">Base URL of the Pipeline server (e.g., "http://127.0.0.1:7900")</param>
         /// <param name="authToken">Optional authentication token</param>
         public PipelineClient(string baseUrl, string authToken = null)
         {

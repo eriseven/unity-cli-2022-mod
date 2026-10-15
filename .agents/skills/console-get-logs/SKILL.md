@@ -17,11 +17,15 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_console_logs --severity error --limit 100
+unity command console --level error --tail 100
+unity command console_status
 unity command console --tail 100 --level warn
 ```
 
 ## Notes
 
-Use `get_console_logs` for Editor diagnostics. `console` also works against a connected development Player and supports a `since` cursor.
+Use `console` for Editor or development Player diagnostics. Pipeline 0.8 removed `get_console_logs`.
+When following, pass both `since` and `since_session` from the preceding response; check `reset` and
+`dropped`. Use `groundTruth.compilationFailed` and native counts to distinguish historical buffered
+errors from current compilation state.
 

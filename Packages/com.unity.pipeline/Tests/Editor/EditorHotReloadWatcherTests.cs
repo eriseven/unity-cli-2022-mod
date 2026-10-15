@@ -10,12 +10,12 @@ using UnityEngine.TestTools;
 namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
-    /// Smoke tests for <see cref="EditorHotReloadWatcher"/> state machine: Start/Stop flips IsWatching
+    /// Smoke tests for <see cref="EditorCodeReloadWatcher"/> state machine: Start/Stop flips IsWatching
     /// and restores the auto-refresh pref. Full file-change → reload behavior is covered by the
-    /// InPlaceReloadProcessor tests (HotReloadInPlaceTests); here we tolerate the initial apply's log
-    /// since a throwaway temp file has no real [HotReload] override.
+    /// InPlaceReloadProcessor tests (CodeReloadInPlaceTests); here we tolerate the initial apply's log
+    /// since a throwaway temp file has no real [CodeReload] override.
     /// </summary>
-    class EditorHotReloadWatcherTests
+    class EditorCodeReloadWatcherTests
     {
         private const string AutoRefreshPref = "kAutoRefresh";          // pre-2021.2 bool
         private const string AutoRefreshModePref = "kAutoRefreshMode";  // 2021.2+ enum (0/1/2)
@@ -27,7 +27,7 @@ namespace Unity.Pipeline.Tests.Editor
         [SetUp]
         public void SetUp()
         {
-            if (EditorHotReloadWatcher.IsWatching) EditorHotReloadWatcher.StopWatch();
+            if (EditorCodeReloadWatcher.IsWatching) EditorCodeReloadWatcher.StopWatch();
             _savedAutoRefresh = EditorPrefs.GetInt(AutoRefreshPref, 1);
             _savedAutoRefreshMode = EditorPrefs.GetInt(AutoRefreshModePref, 1);
             // Known starting state; mode deliberately non-1 to prove Stop restores the value, not just "on".
@@ -42,26 +42,26 @@ namespace Unity.Pipeline.Tests.Editor
         [TearDown]
         public void TearDown()
         {
-            if (EditorHotReloadWatcher.IsWatching) EditorHotReloadWatcher.StopWatch();
+            if (EditorCodeReloadWatcher.IsWatching) EditorCodeReloadWatcher.StopWatch();
             EditorPrefs.SetInt(AutoRefreshPref, _savedAutoRefresh);
             EditorPrefs.SetInt(AutoRefreshModePref, _savedAutoRefreshMode);
             try { if (_tempFile != null && File.Exists(_tempFile)) File.Delete(_tempFile); } catch { }
             try { if (_tempDir != null && Directory.Exists(_tempDir)) Directory.Delete(_tempDir, true); } catch { }
         }
 
-        // The single-file initial apply on a throwaway file with no [HotReload] override logs a graceful failure.
+        // The single-file initial apply on a throwaway file with no [CodeReload] override logs a graceful failure.
         static void ExpectInitialApplyError() =>
-            LogAssert.Expect(LogType.Error, new Regex(@"\[HotReloadWatch\] Reload failed"));
+            LogAssert.Expect(LogType.Error, new Regex(@"\[CodeReloadWatch\] Reload failed"));
 
         [Test]
         public void StartWatch_File_SetsStateAndDisablesAutoRefresh()
         {
             ExpectInitialApplyError();
-            EditorHotReloadWatcher.StartWatch(_tempFile, isFolder: false);
+            EditorCodeReloadWatcher.StartWatch(_tempFile, isFolder: false);
 
-            Assert.IsTrue(EditorHotReloadWatcher.IsWatching, "should be watching after StartWatch");
-            Assert.AreEqual(Path.GetFullPath(_tempFile), EditorHotReloadWatcher.WatchPath);
-            Assert.IsFalse(EditorHotReloadWatcher.IsFolder);
+            Assert.IsTrue(EditorCodeReloadWatcher.IsWatching, "should be watching after StartWatch");
+            Assert.AreEqual(Path.GetFullPath(_tempFile), EditorCodeReloadWatcher.WatchPath);
+            Assert.IsFalse(EditorCodeReloadWatcher.IsFolder);
             Assert.AreEqual(0, EditorPrefs.GetInt(AutoRefreshPref, 1), "auto-refresh (legacy key) should be off while watching");
             Assert.AreEqual(0, EditorPrefs.GetInt(AutoRefreshModePref, 1), "auto-refresh mode (2021.2+ key) should be off while watching");
         }
@@ -70,21 +70,21 @@ namespace Unity.Pipeline.Tests.Editor
         public void StartWatch_Folder_SetsFolderStateNoInitialApply()
         {
             // Folder mode must NOT bulk-apply on start, so there is no initial-apply error to expect.
-            EditorHotReloadWatcher.StartWatch(_tempDir, isFolder: true);
+            EditorCodeReloadWatcher.StartWatch(_tempDir, isFolder: true);
 
-            Assert.IsTrue(EditorHotReloadWatcher.IsWatching);
-            Assert.IsTrue(EditorHotReloadWatcher.IsFolder, "should be a folder watch");
-            Assert.AreEqual(Path.GetFullPath(_tempDir), EditorHotReloadWatcher.WatchPath);
+            Assert.IsTrue(EditorCodeReloadWatcher.IsWatching);
+            Assert.IsTrue(EditorCodeReloadWatcher.IsFolder, "should be a folder watch");
+            Assert.AreEqual(Path.GetFullPath(_tempDir), EditorCodeReloadWatcher.WatchPath);
         }
 
         [Test]
         public void StopWatch_ClearsStateAndRestoresAutoRefresh()
         {
-            EditorHotReloadWatcher.StartWatch(_tempDir, isFolder: true);
-            EditorHotReloadWatcher.StopWatch();
+            EditorCodeReloadWatcher.StartWatch(_tempDir, isFolder: true);
+            EditorCodeReloadWatcher.StopWatch();
 
-            Assert.IsFalse(EditorHotReloadWatcher.IsWatching, "should not be watching after StopWatch");
-            Assert.IsNull(EditorHotReloadWatcher.WatchPath);
+            Assert.IsFalse(EditorCodeReloadWatcher.IsWatching, "should not be watching after StopWatch");
+            Assert.IsNull(EditorCodeReloadWatcher.WatchPath);
             Assert.AreEqual(1, EditorPrefs.GetInt(AutoRefreshPref, 1), "auto-refresh (legacy key) should be restored on stop");
             Assert.AreEqual(2, EditorPrefs.GetInt(AutoRefreshModePref, 1), "auto-refresh mode should be restored to its prior value (2), not just re-enabled");
         }
@@ -93,8 +93,8 @@ namespace Unity.Pipeline.Tests.Editor
         public void StartWatch_MissingPath_DoesNotWatch()
         {
             LogAssert.Expect(LogType.Error, new Regex("not found"));
-            EditorHotReloadWatcher.StartWatch(Path.Combine(Path.GetTempPath(), "does_not_exist_x9.cs"), isFolder: false);
-            Assert.IsFalse(EditorHotReloadWatcher.IsWatching);
+            EditorCodeReloadWatcher.StartWatch(Path.Combine(Path.GetTempPath(), "does_not_exist_x9.cs"), isFolder: false);
+            Assert.IsFalse(EditorCodeReloadWatcher.IsWatching);
         }
     }
 }

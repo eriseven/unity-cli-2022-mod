@@ -110,7 +110,7 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void ServerStart_AlreadyOverriddenByHotReloadPush_DoesNotClobberSavedValue()
+        public void ServerStart_AlreadyOverriddenByCodeReloadPush_DoesNotClobberSavedValue()
         {
             // Simulates a hot-reload push arriving over PlayerConnection (which needs no HTTP
             // server) before StartServer ever ran, so DrainPendingReloads already forced

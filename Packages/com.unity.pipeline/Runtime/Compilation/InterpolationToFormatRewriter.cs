@@ -1,3 +1,7 @@
+// This Unity 2022 port retains its compatible unprefixed Roslyn bundle. Those plugins
+// ship only to the Editor and desktop players, so mobile/console players compile this file out; the
+// dotnet harnesses define PIPELINE_HAS_ROSLYN.
+#if UNITY_EDITOR || UNITY_STANDALONE || PIPELINE_HAS_ROSLYN
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -80,3 +84,4 @@ namespace Unity.Pipeline.Compilation
         }
     }
 }
+#endif

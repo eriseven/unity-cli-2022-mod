@@ -5,7 +5,7 @@ using Unity.Pipeline.Runtime.Commands;
 namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
-    /// Unit tests for HotReloadCommands.ValidateReloadPath - the scope guard that ensures only files
+    /// Unit tests for CodeReloadCommands.ValidateReloadPath - the scope guard that ensures only files
     /// under the build-baked allowed roots (Assets/, or a loaded package's location) are compiled and
     /// injected at runtime.
     ///
@@ -47,7 +47,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             var path = CreateFile(Path.Combine("Assets", "Scripts", "Player.cs"));
 
-            var result = HotReloadCommands.ValidateReloadPath(path, new[] { m_Assets });
+            var result = CodeReloadCommands.ValidateReloadPath(path, new[] { m_Assets });
 
             Assert.IsTrue(result.IsValid, result.ErrorDetails);
         }
@@ -65,7 +65,7 @@ namespace Unity.Pipeline.Tests.Editor
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, "// test");
 
-                var result = HotReloadCommands.ValidateReloadPath(path, new[] { m_Assets, externalPkg });
+                var result = CodeReloadCommands.ValidateReloadPath(path, new[] { m_Assets, externalPkg });
 
                 Assert.IsTrue(result.IsValid, result.ErrorDetails);
             }
@@ -80,7 +80,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             var path = Path.Combine(m_Assets, "Scripts", "Ghost.cs");
 
-            var result = HotReloadCommands.ValidateReloadPath(path, new[] { m_Assets });
+            var result = CodeReloadCommands.ValidateReloadPath(path, new[] { m_Assets });
 
             Assert.IsFalse(result.IsValid);
             Assert.AreEqual("File Not Found", result.Error);
@@ -96,7 +96,7 @@ namespace Unity.Pipeline.Tests.Editor
                 var path = Path.Combine(outside, "Evil.cs");
                 File.WriteAllText(path, "// test");
 
-                var result = HotReloadCommands.ValidateReloadPath(path, new[] { m_Assets });
+                var result = CodeReloadCommands.ValidateReloadPath(path, new[] { m_Assets });
 
                 Assert.IsFalse(result.IsValid);
                 Assert.AreEqual("Out Of Project Scope", result.Error);
@@ -116,7 +116,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             var traversal = Path.Combine(m_Assets, "..", "Secrets", "Leak.cs");
 
-            var result = HotReloadCommands.ValidateReloadPath(traversal, new[] { m_Assets });
+            var result = CodeReloadCommands.ValidateReloadPath(traversal, new[] { m_Assets });
 
             Assert.IsFalse(result.IsValid);
             Assert.AreEqual("Out Of Project Scope", result.Error);
@@ -128,7 +128,7 @@ namespace Unity.Pipeline.Tests.Editor
             // "AssetsExtra" shares a prefix with "Assets" but is not under it.
             var path = CreateFile(Path.Combine("AssetsExtra", "Sneaky.cs"));
 
-            var result = HotReloadCommands.ValidateReloadPath(path, new[] { m_Assets });
+            var result = CodeReloadCommands.ValidateReloadPath(path, new[] { m_Assets });
 
             Assert.IsFalse(result.IsValid);
             Assert.AreEqual("Out Of Project Scope", result.Error);
@@ -139,7 +139,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             var path = CreateFile(Path.Combine("Assets", "Player.cs"));
 
-            var result = HotReloadCommands.ValidateReloadPath(path, null);
+            var result = CodeReloadCommands.ValidateReloadPath(path, null);
 
             Assert.IsFalse(result.IsValid);
             Assert.AreEqual("Out Of Project Scope", result.Error);
@@ -148,7 +148,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void Validate_EmptyPath_IsBadRequest()
         {
-            var result = HotReloadCommands.ValidateReloadPath("", new[] { m_Assets });
+            var result = CodeReloadCommands.ValidateReloadPath("", new[] { m_Assets });
 
             Assert.IsFalse(result.IsValid);
             Assert.AreEqual("Bad Request", result.Error);

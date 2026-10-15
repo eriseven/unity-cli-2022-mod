@@ -4,7 +4,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "Unity.Pipeline",
-        "Unity.Pipeline.IlInterpreter"
+        "Unity.Pipeline.IlInterpreter",
+        "Unity.Pipeline.Attributes"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

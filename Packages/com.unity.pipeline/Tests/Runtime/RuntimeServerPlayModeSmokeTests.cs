@@ -43,7 +43,7 @@ namespace Unity.Pipeline.Tests.Runtime
 
         static async Task<bool> ServeStatus(int port, string token)
         {
-            using (var client = new PipelineClient($"http://localhost:{port}", token))
+            using (var client = new PipelineClient($"http://127.0.0.1:{port}", token))
             {
                 var response = await client.ExecuteCommandAsync("runtime_status", null);
                 return response.IsSuccess;

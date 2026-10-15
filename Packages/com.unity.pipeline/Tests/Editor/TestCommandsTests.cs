@@ -47,7 +47,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             var status = TestCommands.GetTestStatus();
             Assert.IsNotNull(status);
-            Assert.IsTrue(status.Contains("status"));
+            Assert.IsNotNull(status["status"]);
         }
 
         #endregion

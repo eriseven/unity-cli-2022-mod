@@ -1,14 +1,14 @@
 using System.Collections;
 using System.IO;
 using NUnit.Framework;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 using Unity.Pipeline.Runtime.Commands;
 using UnityEngine;
 
 namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
-    /// Probe with method-level [HotReload] STATIC methods. The weaver injects the same dispatch
+    /// Probe with method-level [CodeReload] STATIC methods. The weaver injects the same dispatch
     /// prologue as for instance methods, passing null as the instance argument; the override
     /// keeps the leading instance parameter and receives null.
     /// </summary>
@@ -18,19 +18,19 @@ namespace Unity.Pipeline.Tests.Editor
         public static int hotValue;
         public int instanceValue;
 
-        [HotReload]
+        [CodeReload]
         public static void Compute()
         {
             baseline++; // original body
         }
 
-        [HotReload]
+        [CodeReload]
         public static void Mark(StaticReloadProbe target)
         {
             target.instanceValue = 1; // original body
         }
 
-        [HotReload]
+        [CodeReload]
         public static IEnumerator Countdown(StaticReloadProbe target)
         {
             target.instanceValue = -1; // original body
@@ -40,7 +40,7 @@ namespace Unity.Pipeline.Tests.Editor
 
     static class StaticOverrides
     {
-        [HotReloadOverrideMethod("StaticReloadProbe.Compute")]
+        [CodeReloadOverrideMethod("StaticReloadProbe.Compute")]
         public static void Compute(StaticReloadProbe instance) // instance arrives null
         {
             StaticReloadProbe.hotValue++;
@@ -52,32 +52,32 @@ namespace Unity.Pipeline.Tests.Editor
     /// the compiled (Assembly.Load) and interpreter (IlInterpreter) backends, and the static +
     /// coroutine combination.
     /// </summary>
-    class HotReloadStaticTests
+    class CodeReloadStaticTests
     {
         [SetUp]
         public void Setup()
         {
-            HotReloadRegistry.ClearAllForTesting();
+            CodeReloadRegistry.ClearAllForTesting();
             StaticReloadProbe.baseline = 0;
             StaticReloadProbe.hotValue = 0;
         }
 
         [TearDown]
-        public void TearDown() => HotReloadRegistry.ClearAllForTesting();
+        public void TearDown() => CodeReloadRegistry.ClearAllForTesting();
 
         static void RegisterProbeMethod(string name) =>
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(StaticReloadProbe).GetMethod(name),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
         [Test]
         public void WovenDispatch_StaticMethod_RoutesToOverride_WithNullInstance()
         {
             RegisterProbeMethod(nameof(StaticReloadProbe.Compute));
 
-            var registered = HotReloadRegistry.RegisterMethodOverride(
+            var registered = CodeReloadRegistry.RegisterMethodOverride(
                 typeof(StaticOverrides).GetMethod(nameof(StaticOverrides.Compute)),
-                new HotReloadOverrideMethodAttribute("StaticReloadProbe.Compute"),
+                new CodeReloadOverrideMethodAttribute("StaticReloadProbe.Compute"),
                 typeof(StaticOverrides),
                 out var reason);
             Assert.IsTrue(registered, reason);
@@ -94,7 +94,7 @@ namespace Unity.Pipeline.Tests.Editor
             RegisterProbeMethod(nameof(StaticReloadProbe.Compute));
 
             var editedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class StaticReloadProbe
@@ -102,7 +102,7 @@ namespace Unity.Pipeline.Tests.Editor
         public static int baseline;
         public static int hotValue;
 
-        [HotReload]
+        [CodeReload]
         public static void Compute()
         {
             hotValue = 99;
@@ -114,7 +114,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFile(path);
+                var response = CodeReloadCommands.ReloadFile(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file should succeed for a static method. Error: {response.ErrorDetails}");
 
@@ -134,14 +134,14 @@ namespace Unity.Pipeline.Tests.Editor
             RegisterProbeMethod(nameof(StaticReloadProbe.Mark));
 
             var editedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class StaticReloadProbe
     {
         public int instanceValue;
 
-        [HotReload]
+        [CodeReload]
         public static void Mark(StaticReloadProbe target)
         {
             target.instanceValue = 42;
@@ -153,7 +153,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed for a static method. Error: {response.ErrorDetails}");
 
@@ -174,7 +174,7 @@ namespace Unity.Pipeline.Tests.Editor
             RegisterProbeMethod(nameof(StaticReloadProbe.Compute));
 
             var editedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class StaticReloadProbe
@@ -182,7 +182,7 @@ namespace Unity.Pipeline.Tests.Editor
         public static int baseline;
         public static int hotValue;
 
-        [HotReload]
+        [CodeReload]
         public static void Compute()
         {
             hotValue = 77;
@@ -194,7 +194,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed. Error: {response.ErrorDetails}");
 
@@ -216,14 +216,14 @@ namespace Unity.Pipeline.Tests.Editor
 
             var editedSource = @"
 using System.Collections;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class StaticReloadProbe
     {
         public int instanceValue;
 
-        [HotReload]
+        [CodeReload]
         public static IEnumerator Countdown(StaticReloadProbe target)
         {
             target.instanceValue = 1;
@@ -237,7 +237,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed for a static coroutine. Error: {response.ErrorDetails}");
 

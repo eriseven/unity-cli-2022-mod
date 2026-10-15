@@ -5,6 +5,5 @@ using System.Runtime.CompilerServices;
 // Lets the EditMode test assembly unit-test internal runtime utilities (e.g. MaxLengthStream).
 [assembly: InternalsVisibleTo("Unity.Pipeline.Tests.Editor")]
 // Lets the Editor assembly feed CliProgress's internal ambient mirror (EditorProgressMirror)
-// and consume internal interpreter glue (e.g. IlInterpreterHostBindings, which the hot-reload
-// link.xml generator derives its preservation set from).
+// and consume internal interpreter glue (e.g. IlInterpreterHostBindings).
 [assembly: InternalsVisibleTo("Unity.Pipeline.Editor")]

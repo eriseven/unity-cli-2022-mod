@@ -2,13 +2,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Unity.Pipeline.Editor.Commands.Observability;
+using Unity.Pipeline.Runtime.Commands;
 using UnityEngine;
 using UnityEngine.TestTools;
 
 namespace Unity.Pipeline.Tests.Editor.Observability
 {
     /// <summary>
-    /// Tests for the observability commands (CLI-198): get_console_logs, clear_console, and
+    /// Tests for the observability commands (CLI-198): console, clear_console, and
     /// get_performance_stats, exercised directly and via PipelineClient. Console capture is verified
     /// against a unique marker logged in-test; Application.logMessageReceivedThreaded fires
     /// synchronously on Debug.Log, so the entry is in the buffer immediately.
@@ -26,12 +27,12 @@ namespace Unity.Pipeline.Tests.Editor.Observability
             LogAssert.Expect(LogType.Warning, new Regex(".*" + Marker + ".*"));
             Debug.LogWarning(Marker);
 
-            var result = ConsoleCommands.GetConsoleLogs("warning", 50);
-            var logs = ReadLogs(result);
+            var result = ConsoleCommand.GetConsole(tail: 50, level: "warn");
+            var logs = result.Entries;
 
             var match = logs.FirstOrDefault(e => e.Message != null && e.Message.Contains(Marker));
             Assert.IsNotNull(match, "Warning marker should be captured by the console buffer");
-            Assert.AreEqual("Warning", match.Type, "Captured marker should carry the Warning type");
+            Assert.AreEqual("Warning", match.LogType, "Captured marker should carry the Warning type");
         }
 
         [Test]
@@ -56,14 +57,14 @@ namespace Unity.Pipeline.Tests.Editor.Observability
             var marker = "CLI198_CLEAR_marker_" + System.Guid.NewGuid().ToString("N");
             Debug.Log(marker);
 
-            var beforeClear = ConsoleLogBuffer.Snapshot();
+            var beforeClear = ConsoleCommand.GetConsole().Entries;
             Assert.IsTrue(beforeClear.Any(e => e.Message != null && e.Message.Contains(marker)),
                 "Seeded marker should be present in the buffer before clear");
 
-            var result = ConsoleCommands.ClearConsole();
+            var result = ConsoleCommand.ClearConsole();
 
             Assert.IsNotNull(result);
-            var afterClear = ConsoleLogBuffer.Snapshot();
+            var afterClear = ConsoleCommand.GetConsole().Entries;
             Assert.IsFalse(afterClear.Any(e => e.Message != null && e.Message.Contains(marker)),
                 "Seeded marker should no longer be in the buffer after clear_console");
         }
@@ -77,9 +78,9 @@ namespace Unity.Pipeline.Tests.Editor.Observability
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("get_console_logs", new { severity = "all", limit = 10 });
+                var response = server.Execute("console", new { level = "log", tail = 10 });
 
-                Assert.IsTrue(response.IsSuccess, $"get_console_logs should succeed: {response.Error}");
+                Assert.IsTrue(response.IsSuccess, $"console should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");
                 Assert.IsTrue(response.JsonResponse.ContainsKey("result"), "Should have result field");
             }
@@ -113,15 +114,5 @@ namespace Unity.Pipeline.Tests.Editor.Observability
 
         #endregion
 
-        /// <summary>
-        /// get_console_logs returns an anonymous object whose <c>logs</c> field is the typed entry
-        /// list; reflect it out so direct tests can assert on entry fields.
-        /// </summary>
-        private static System.Collections.Generic.List<ConsoleLogEntryDto> ReadLogs(object result)
-        {
-            var logsProp = result.GetType().GetProperty("logs");
-            Assert.IsNotNull(logsProp, "Result should expose a 'logs' property");
-            return (System.Collections.Generic.List<ConsoleLogEntryDto>)logsProp.GetValue(result);
-        }
     }
 }

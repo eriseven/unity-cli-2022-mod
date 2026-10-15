@@ -2,15 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 using Unity.Pipeline.Runtime.Commands;
 using UnityEngine;
 
 namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
-    /// Probe with a method-level [HotReload] coroutine. The IL weaver routes IEnumerator
-    /// returns through TryInvokeHotReloadResult (like any value-returning method), so a
+    /// Probe with a method-level [CodeReload] coroutine. The IL weaver routes IEnumerator
+    /// returns through TryInvokeCodeReloadResult (like any value-returning method), so a
     /// registered override supplies the iterator that the caller — in Unity, StartCoroutine —
     /// actually drives.
     /// </summary>
@@ -20,14 +20,14 @@ namespace Unity.Pipeline.Tests.Editor
         public int hotRuns;
         public int touched;
 
-        [HotReload]
+        [CodeReload]
         public IEnumerator Run()
         {
             originalRuns++; // original body
             yield return null;
         }
 
-        [HotReload]
+        [CodeReload]
         public void Touch()
         {
             touched++; // original body
@@ -36,7 +36,7 @@ namespace Unity.Pipeline.Tests.Editor
 
     static class CoroutineOverrides
     {
-        [HotReloadOverrideMethod("CoroutineReloadProbe.Run")]
+        [CodeReloadOverrideMethod("CoroutineReloadProbe.Run")]
         public static IEnumerator Run(CoroutineReloadProbe instance)
         {
             instance.hotRuns++;
@@ -53,7 +53,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int originalSteps;
         public int hotSteps;
 
-        [HotReload]
+        [CodeReload]
         public IEnumerator Run()
         {
             originalSteps++; // original body
@@ -62,17 +62,17 @@ namespace Unity.Pipeline.Tests.Editor
     }
 
     /// <summary>
-    /// Coroutine hot reload: `[HotReload] IEnumerator` methods weave a result dispatch at
+    /// Coroutine hot reload: `[CodeReload] IEnumerator` methods weave a result dispatch at
     /// iterator CREATION, so each new StartCoroutine-style call picks up the active override
     /// while in-flight iterators keep running the code they were created from.
     /// </summary>
-    class HotReloadCoroutineTests
+    class CodeReloadCoroutineTests
     {
         [SetUp]
-        public void Setup() => HotReloadRegistry.ClearAllForTesting();
+        public void Setup() => CodeReloadRegistry.ClearAllForTesting();
 
         [TearDown]
-        public void TearDown() => HotReloadRegistry.ClearAllForTesting();
+        public void TearDown() => CodeReloadRegistry.ClearAllForTesting();
 
         [Test]
         public void Transform_CoroutineBody_EmitsIteratorOverride_KeepingYields()
@@ -80,13 +80,13 @@ namespace Unity.Pipeline.Tests.Editor
             const string coroutineSource = @"
 using System.Collections;
 using UnityEngine;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 
 public class CoDemo : MonoBehaviour
 {
     public int step;
 
-    [HotReload]
+    [CodeReload]
     IEnumerator Run()
     {
         step = 1;
@@ -100,7 +100,7 @@ public class CoDemo : MonoBehaviour
             var output = SourceCodeTransformer.TransformMethodBodies(
                 bodies, "CoDemo", new Dictionary<string, MethodSignatureInfo>(), coroutineSource);
 
-            StringAssert.Contains("[HotReloadOverrideMethod(\"CoDemo.Run\")]", output);
+            StringAssert.Contains("[CodeReloadOverrideMethod(\"CoDemo.Run\")]", output);
             StringAssert.Contains("public static IEnumerator Run(CoDemo instance", output);
             StringAssert.Contains("yield return null", output);
             StringAssert.Contains("instance.step", output);
@@ -109,18 +109,18 @@ public class CoDemo : MonoBehaviour
         [Test]
         public void WovenDispatch_RoutesNewIteratorsToOverride()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(CoroutineReloadProbe).GetMethod(nameof(CoroutineReloadProbe.Run)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
-            var registered = HotReloadRegistry.RegisterMethodOverride(
+            var registered = CodeReloadRegistry.RegisterMethodOverride(
                 typeof(CoroutineOverrides).GetMethod(nameof(CoroutineOverrides.Run)),
-                new HotReloadOverrideMethodAttribute("CoroutineReloadProbe.Run"),
+                new CodeReloadOverrideMethodAttribute("CoroutineReloadProbe.Run"),
                 typeof(CoroutineOverrides),
                 out var reason);
             Assert.IsTrue(registered, reason);
 
-            // Run() was woven (IEnumerator returns go through TryInvokeHotReloadResult), so the
+            // Run() was woven (IEnumerator returns go through TryInvokeCodeReloadResult), so the
             // returned iterator IS the override's state machine.
             var probe = new CoroutineReloadProbe();
             var routine = probe.Run();
@@ -133,16 +133,16 @@ public class CoDemo : MonoBehaviour
         [Test]
         public void WovenDispatch_InFlightIteratorKeepsOldBody_NextCallGetsNew()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(CoroutineReloadProbe).GetMethod(nameof(CoroutineReloadProbe.Run)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
             var probe = new CoroutineReloadProbe();
             var inFlight = probe.Run(); // created BEFORE the override lands
 
-            HotReloadRegistry.RegisterMethodOverride(
+            CodeReloadRegistry.RegisterMethodOverride(
                 typeof(CoroutineOverrides).GetMethod(nameof(CoroutineOverrides.Run)),
-                new HotReloadOverrideMethodAttribute("CoroutineReloadProbe.Run"),
+                new CodeReloadOverrideMethodAttribute("CoroutineReloadProbe.Run"),
                 typeof(CoroutineOverrides),
                 out _);
 
@@ -159,13 +159,13 @@ public class CoDemo : MonoBehaviour
         [Test]
         public void ReloadFileInPlace_CoroutineOnlyFile_Succeeds()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(CoroutineReloadProbe).GetMethod(nameof(CoroutineReloadProbe.Run)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
             var editedSource = @"
 using System.Collections;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class CoroutineReloadProbe
@@ -173,7 +173,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int originalRuns;
         public int hotRuns;
 
-        [HotReload]
+        [CodeReload]
         public IEnumerator Run()
         {
             hotRuns = 99;
@@ -186,7 +186,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFile(path);
+                var response = CodeReloadCommands.ReloadFile(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file should succeed for a coroutine-only file. Error: {response.ErrorDetails}");
 
@@ -205,16 +205,16 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInPlace_CoroutineNextToVoidMethod_ReloadsBoth()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(CoroutineReloadProbe).GetMethod(nameof(CoroutineReloadProbe.Run)),
-                new HotReloadWithOverridesAttribute());
-            HotReloadRegistry.RegisterReloadableMethod(
+                new CodeReloadAttribute());
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(CoroutineReloadProbe).GetMethod(nameof(CoroutineReloadProbe.Touch)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
             var editedSource = @"
 using System.Collections;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class CoroutineReloadProbe
@@ -223,14 +223,14 @@ namespace Unity.Pipeline.Tests.Editor
         public int hotRuns;
         public int touched;
 
-        [HotReload]
+        [CodeReload]
         public IEnumerator Run()
         {
             hotRuns = 99;
             yield return null;
         }
 
-        [HotReload]
+        [CodeReload]
         public void Touch()
         {
             touched = 42;
@@ -269,13 +269,13 @@ namespace Unity.Pipeline.Tests.Editor
             // The IL2CPP-shaped path: the edited coroutine compiles to a state machine the
             // IlInterpreter VM interprets; the woven dispatch returns a ScriptEnumerator bridge
             // that the caller (in Unity, StartCoroutine) drives like any IEnumerator.
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterCoroutineProbe).GetMethod(nameof(IlInterpreterCoroutineProbe.Run)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
             var editedSource = @"
 using System.Collections;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterCoroutineProbe
@@ -283,7 +283,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int originalSteps;
         public int hotSteps;
 
-        [HotReload]
+        [CodeReload]
         public IEnumerator Run()
         {
             hotSteps = 1;
@@ -299,7 +299,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed for a coroutine. Error: {response.ErrorDetails}");
 

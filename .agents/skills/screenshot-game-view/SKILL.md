@@ -23,5 +23,6 @@ unity command screenshot --view game --output Temp/pipeline-screenshots/game.png
 
 ## Notes
 
-Use `capture_game_view` for a camera/base64-capable result and `screenshot` for a straightforward Editor Game-view file.
+In Pipeline 0.8, `capture_game_view` defaults to `source=screen` and works in Edit Mode.
+Pass `--source camera` for an off-screen camera render. `screenshot` also writes Editor Game-view files.
 

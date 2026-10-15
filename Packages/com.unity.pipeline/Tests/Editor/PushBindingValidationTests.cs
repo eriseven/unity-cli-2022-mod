@@ -6,7 +6,7 @@ namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
     /// Push-time host-surface validation
-    /// (<see cref="InterpreterHotReloadExecutor.ValidateBindingSurface"/>): the editor-side load
+    /// (<see cref="InterpreterCodeReloadExecutor.ValidateBindingSurface"/>): the editor-side load
     /// pass that reports member refs which would resolve to throwing stubs on the player, so
     /// reload_file_player_interpreter surfaces binding gaps synchronously in its response instead of after the async
     /// device ack (which carries only a count, with the member list buried in the device log).
@@ -35,7 +35,7 @@ public static class Probe {{ public static void Run() {{ {body} }} }}",
             // auto-bind policy declines System.* — exactly the class of gap that used to surface
             // only as a mid-play ScriptRuntimeException on the device.
             var bytes = CompileProbe("Debug.Log(System.Environment.ProcessorCount);");
-            var unbound = InterpreterHotReloadExecutor.ValidateBindingSurface(bytes, "Probe", ProbeMethods, out _);
+            var unbound = InterpreterCodeReloadExecutor.ValidateBindingSurface(bytes, "Probe", ProbeMethods, out _);
             Assert.That(unbound, Has.Some.Contains("Environment.get_ProcessorCount"),
                 "the unregistered BCL member should be named in the validation result");
         }
@@ -49,7 +49,7 @@ public static class Probe {{ public static void Run() {{ {body} }} }}",
             var bytes = CompileProbe(
                 "GameObject a = new GameObject(\"push-validate\"); " +
                 "bool same = a.GetType() == typeof(GameObject); Debug.Log(same);");
-            var unbound = InterpreterHotReloadExecutor.ValidateBindingSurface(bytes, "Probe", ProbeMethods, out var note);
+            var unbound = InterpreterCodeReloadExecutor.ValidateBindingSurface(bytes, "Probe", ProbeMethods, out var note);
             Assert.IsEmpty(unbound, $"unexpected unbound members (note: {note ?? "none"})");
         }
     }

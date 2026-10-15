@@ -2,7 +2,7 @@
 
 [![Unity Version](https://img.shields.io/badge/Unity-2022.3-blue.svg)](Documentation~/unity-2022-compatibility.md)
 
-This embedded Unity 2022.3 port is synchronized with upstream **0.6.0-exp.1**. See the
+This embedded Unity 2022.3 port is synchronized with upstream **0.8.0-exp.1**. See the
 [compatibility and validation notes](Documentation~/unity-2022-compatibility.md) for retained
 APIs, runtime migration, version-specific limitations, and test results. The installation commands
 below describe the upstream distribution; this project uses the embedded package in `Packages/`.
@@ -85,11 +85,11 @@ Click [here](Documentation~/connectivity.md) for more details on Connectivity tr
 
 ## Documentation
 
-For the full command reference, connectivity details, runtime setup, and hot-reload guides, see the [Pipeline documentation](Documentation~/index.md).
+For the full command reference, connectivity details, runtime setup, and code-reload guides, see the [Pipeline documentation](Documentation~/index.md).
 
 ## License
 
-com.unity.package is licensed under the Unity Companion License. See [LICENSE.md](LICENSE.md) for more legal information.
+com.unity.pipeline is made available under the [Unity Terms of Service](https://unity.com/legal/terms-of-service). See [LICENSE.md](LICENSE.md) for more legal information.
 
 ## Contributions to this repository
 

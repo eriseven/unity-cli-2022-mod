@@ -56,21 +56,21 @@ namespace Unity.Pipeline.Tests.Editor
         public void Status_WithoutToken_Returns401()
         {
             using (var server = new PipelineTestServer())
-                Assert.AreEqual(401, Get($"http://localhost:{server.Port}/api/status").status);
+                Assert.AreEqual(401, Get($"http://127.0.0.1:{server.Port}/api/status").status);
         }
 
         [Test]
         public void Status_WithInvalidToken_Returns401()
         {
             using (var server = new PipelineTestServer())
-                Assert.AreEqual(401, Get($"http://localhost:{server.Port}/api/status", token: "not-the-token").status);
+                Assert.AreEqual(401, Get($"http://127.0.0.1:{server.Port}/api/status", token: "not-the-token").status);
         }
 
         [Test]
         public void Status_WithValidToken_Returns200()
         {
             using (var server = new PipelineTestServer())
-                Assert.AreEqual(200, Get($"http://localhost:{server.Port}/api/status", token: SecurityTokenManager.GetOrCreateToken()).status);
+                Assert.AreEqual(200, Get($"http://127.0.0.1:{server.Port}/api/status", token: SecurityTokenManager.GetOrCreateToken()).status);
         }
 
         [Test, Ignore("6.0 Issues")]
@@ -78,7 +78,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             using (var server = new PipelineTestServer())
             {
-                var status = Get($"http://localhost:{server.Port}/api/status",
+                var status = Get($"http://127.0.0.1:{server.Port}/api/status",
                     token: SecurityTokenManager.GetOrCreateToken(), origin: "http://evil.test").status;
                 Assert.AreEqual(403, status);
             }
@@ -90,14 +90,14 @@ namespace Unity.Pipeline.Tests.Editor
         public void Exec_WithoutToken_Returns401()
         {
             using (var server = new PipelineTestServer())
-                Assert.AreEqual(401, Post($"http://localhost:{server.Port}/api/exec", ExecLogEditorBody).status);
+                Assert.AreEqual(401, Post($"http://127.0.0.1:{server.Port}/api/exec", ExecLogEditorBody).status);
         }
 
         [Test]
         public void Exec_WithInvalidToken_Returns401()
         {
             using (var server = new PipelineTestServer())
-                Assert.AreEqual(401, Post($"http://localhost:{server.Port}/api/exec", ExecLogEditorBody, token: "not-the-token").status);
+                Assert.AreEqual(401, Post($"http://127.0.0.1:{server.Port}/api/exec", ExecLogEditorBody, token: "not-the-token").status);
         }
     }
 }

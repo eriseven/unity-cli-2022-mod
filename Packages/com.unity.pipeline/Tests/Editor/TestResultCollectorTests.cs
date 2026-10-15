@@ -18,6 +18,28 @@ namespace Unity.Pipeline.Tests.Editor
     class TestResultCollectorTests
     {
         [Test]
+        public void SyncRunner_CancelWithoutRunFinished_CompletesWaiter()
+        {
+            var collector = new TestResultCollector();
+            var callback = new System.Threading.Tasks.TaskCompletionSource<ITestResultAdaptor>();
+            var waiting = PipelineTestRunner.AwaitTestCompletion(callback.Task, collector);
+            collector.Cancel();
+            Assert.ThrowsAsync<System.Threading.Tasks.TaskCanceledException>(async () => await waiting);
+            Assert.IsFalse(callback.Task.IsCompleted, "No RunFinished callback should be needed.");
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task SyncRunner_CallbackCompletes_ReturnsResult()
+        {
+            var collector = new TestResultCollector();
+            var callback = new System.Threading.Tasks.TaskCompletionSource<ITestResultAdaptor>();
+            var waiting = PipelineTestRunner.AwaitTestCompletion(callback.Task, collector);
+            var result = new FakeTestResultAdaptor();
+            callback.SetResult(result);
+            Assert.AreSame(result, await waiting);
+        }
+
+        [Test]
         public void RunFinished_CalledTwiceOnSameCollector_SecondCallDoesNotThrow()
         {
             var collector = new TestResultCollector();

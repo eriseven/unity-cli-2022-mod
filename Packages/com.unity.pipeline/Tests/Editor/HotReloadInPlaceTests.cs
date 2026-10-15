@@ -2,19 +2,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 using Unity.Pipeline.Runtime.Commands;
 using UnityEngine;
 
 namespace FakeReload
 {
     /// <summary>
-    /// An unrelated attribute that happens to share the simple name <c>HotReloadAttribute</c>.
+    /// An unrelated attribute that happens to share the simple name <c>CodeReloadAttribute</c>.
     /// The IL weaver must match the attribute's full name, so methods tagged with this never get
-    /// a dispatch prologue (runtime discovery only honors the real Unity.Pipeline.HotReload type).
+    /// a dispatch prologue (runtime discovery only honors the real Unity.Pipeline.CodeReload type).
     /// Lives in its own namespace so it cannot shadow the real attribute elsewhere in this file.
     /// </summary>
-    public class HotReloadAttribute : System.Attribute
+    public class CodeReloadAttribute : System.Attribute
     {
     }
 }
@@ -22,7 +22,7 @@ namespace FakeReload
 namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
-    /// Top-level probe type woven by the HotReloadInPlace ILPostProcessor. Must be top-level (not
+    /// Top-level probe type woven by the CodeReloadInPlace ILPostProcessor. Must be top-level (not
     /// nested) so the generated override can reference it by name from a separate assembly.
     /// </summary>
     public class InPlaceReloadProbe
@@ -33,7 +33,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int hotValue;
 
         /// <summary>Test target for the in-place hot-reload weaving/dispatch mechanism.</summary>
-        [HotReload]
+        [CodeReload]
         public void Compute()
         {
             baseline = 1; // original body
@@ -52,7 +52,7 @@ namespace Unity.Pipeline.Tests.Editor
         private int m_Secret;
         public int Secret => m_Secret;
 
-        [HotReload]
+        [CodeReload]
         public void Compute()
         {
             m_Secret = 1; // original body
@@ -68,7 +68,7 @@ namespace Unity.Pipeline.Tests.Editor
     {
         public int ticks;
 
-        [HotReload]
+        [CodeReload]
         public int Tick()
         {
             ticks++;      // original body
@@ -79,14 +79,14 @@ namespace Unity.Pipeline.Tests.Editor
     /// <summary>
     /// Probe for the nested-type gate: the weaver weaves <c>Inner.Boom</c> too (Cecil's
     /// <c>GetTypes()</c> is recursive), but the reload pipeline only lifts methods declared
-    /// directly in the top-level class — a nested [HotReload] must be skipped LOUDLY, never
+    /// directly in the top-level class — a nested [CodeReload] must be skipped LOUDLY, never
     /// silently dropped.
     /// </summary>
     public class NestedReloadProbe
     {
         public int ticks;
 
-        [HotReload]
+        [CodeReload]
         public void Tick()
         {
             ticks = 1; // original body
@@ -96,7 +96,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             public int booms;
 
-            [HotReload]
+            [CodeReload]
             public void Boom()
             {
                 booms = 1; // original body
@@ -105,23 +105,23 @@ namespace Unity.Pipeline.Tests.Editor
     }
 
     /// <summary>
-    /// Probe mirroring the Pong sample's layout: the <c>[OnHotReload]</c> callback is declared
-    /// BEFORE the <c>[HotReload]</c> method. The callback is a post-reload hook, not a reload
+    /// Probe mirroring the Pong sample's layout: the <c>[OnCodeReload]</c> callback is declared
+    /// BEFORE the <c>[CodeReload]</c> method. The callback is a post-reload hook, not a reload
     /// target — the extractor must not push it (the player registry doesn't hold it, and its name
     /// landing first in the pushed list used to fail the whole push).
     /// </summary>
-    public class OnHotReloadPushProbe
+    public class OnCodeReloadPushProbe
     {
         public int ticked;
         public string reloadMarker = "none";
 
-        [OnHotReload]
+        [OnCodeReload]
         public void OnReloaded()
         {
             reloadMarker = "reloaded";
         }
 
-        [HotReload]
+        [CodeReload]
         public void Tick()
         {
             ticked = 1;
@@ -135,7 +135,7 @@ namespace Unity.Pipeline.Tests.Editor
     {
         public int computedValue;
 
-        [HotReload]
+        [CodeReload]
         public void Compute()
         {
             computedValue = 42; // original body
@@ -148,7 +148,7 @@ namespace Unity.Pipeline.Tests.Editor
     ///  - the Roslyn semantic-model transform + accessibility validation,
     ///  - the full reload_file pipeline end to end.
     /// </summary>
-    class HotReloadInPlaceTests
+    class CodeReloadInPlaceTests
     {
         // -------- weaving fixtures --------
 
@@ -157,7 +157,7 @@ namespace Unity.Pipeline.Tests.Editor
             public int ticks;
             public bool overrideRan;
 
-            [HotReload]
+            [CodeReload]
             public void Tick()
             {
                 ticks++; // original body
@@ -166,21 +166,21 @@ namespace Unity.Pipeline.Tests.Editor
 
         public static class WeaveOverrides
         {
-            [HotReloadOverrideMethod("WeaveTarget.Tick")]
+            [CodeReloadOverrideMethod("WeaveTarget.Tick")]
             public static void Tick(WeaveTarget instance)
             {
                 instance.overrideRan = true;
             }
         }
 
-        // Tagged with FakeReload.HotReloadAttribute — same simple name, wrong type. The weaver
+        // Tagged with FakeReload.CodeReloadAttribute — same simple name, wrong type. The weaver
         // must not weave a dispatch prologue into Tick, so even a registered override never runs.
         public class ForeignWeaveTarget
         {
             public int ticks;
             public bool overrideRan;
 
-            [FakeReload.HotReload]
+            [FakeReload.CodeReload]
             public void Tick()
             {
                 ticks++; // original body
@@ -189,20 +189,20 @@ namespace Unity.Pipeline.Tests.Editor
 
         public static class ForeignWeaveOverrides
         {
-            [HotReloadOverrideMethod("ForeignWeaveTarget.Tick")]
+            [CodeReloadOverrideMethod("ForeignWeaveTarget.Tick")]
             public static void Tick(ForeignWeaveTarget instance)
             {
                 instance.overrideRan = true;
             }
         }
 
-        // Value-returning [HotReload] method: exercises the weaver's result prologue
-        // (out-param dispatch + unbox.any) and the registry's TryInvokeHotReloadResult path.
+        // Value-returning [CodeReload] method: exercises the weaver's result prologue
+        // (out-param dispatch + unbox.any) and the registry's TryInvokeCodeReloadResult path.
         public class ValueWeaveTarget
         {
             public int ticks;
 
-            [HotReload]
+            [CodeReload]
             public int Tick(int d)
             {
                 ticks++;      // original body
@@ -212,7 +212,7 @@ namespace Unity.Pipeline.Tests.Editor
 
         public static class ValueWeaveOverrides
         {
-            [HotReloadOverrideMethod("ValueWeaveTarget.Tick")]
+            [CodeReloadOverrideMethod("ValueWeaveTarget.Tick")]
             public static int Tick(ValueWeaveTarget instance, int d)
             {
                 return d + 100; // override result (distinct from the original body's d + 1)
@@ -224,7 +224,7 @@ namespace Unity.Pipeline.Tests.Editor
         // it and falling back to the original body.
         public static class ExitGuiWeaveOverrides
         {
-            [HotReloadOverrideMethod("WeaveTarget.Tick")]
+            [CodeReloadOverrideMethod("WeaveTarget.Tick")]
             public static void Tick(WeaveTarget instance)
             {
                 instance.overrideRan = true;
@@ -234,13 +234,13 @@ namespace Unity.Pipeline.Tests.Editor
 
         private const string PublicSource = @"
 using UnityEngine;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 
 public class Demo : MonoBehaviour
 {
     public float speed = 1f;
 
-    [HotReload]
+    [CodeReload]
     void Tick()
     {
         var dt = Time.deltaTime;
@@ -253,7 +253,7 @@ public class Demo : MonoBehaviour
         // declared on UnityEngine.Object) and a nested type (the private enum Mode).
         private const string ScopedSource = @"
 using UnityEngine;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 
 public class Scoped : MonoBehaviour
 {
@@ -261,7 +261,7 @@ public class Scoped : MonoBehaviour
 
     private Mode m_Mode = Mode.Idle;
 
-    [HotReload]
+    [CodeReload]
     void Tick()
     {
         var all = FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
@@ -275,7 +275,7 @@ public class Scoped : MonoBehaviour
         // InvalidCastException (as hit with TrackManager's nested MultiplierModifier delegate).
         private const string TypePositionSource = @"
 using UnityEngine;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 
 public class Typed : MonoBehaviour
 {
@@ -284,7 +284,7 @@ public class Typed : MonoBehaviour
 
     enum Mode { Idle, Run }
 
-    [HotReload]
+    [CodeReload]
     void Tick()
     {
         foreach (Handler h in OnChanged.GetInvocationList())
@@ -306,10 +306,10 @@ public class Typed : MonoBehaviour
         }
 
         [SetUp]
-        public void Setup() => HotReloadRegistry.ClearAllForTesting();
+        public void Setup() => CodeReloadRegistry.ClearAllForTesting();
 
         [TearDown]
-        public void TearDown() => HotReloadRegistry.ClearAllForTesting();
+        public void TearDown() => CodeReloadRegistry.ClearAllForTesting();
 
         // -------- weaving + dispatch --------
 
@@ -326,13 +326,13 @@ public class Typed : MonoBehaviour
         [Test]
         public void WithOverride_WovenDispatchInvokesOverride()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(WeaveTarget).GetMethod(nameof(WeaveTarget.Tick)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
-            var registered = HotReloadRegistry.RegisterMethodOverride(
+            var registered = CodeReloadRegistry.RegisterMethodOverride(
                 typeof(WeaveOverrides).GetMethod(nameof(WeaveOverrides.Tick)),
-                new HotReloadOverrideMethodAttribute("WeaveTarget.Tick"),
+                new CodeReloadOverrideMethodAttribute("WeaveTarget.Tick"),
                 typeof(WeaveOverrides),
                 out var reason);
 
@@ -358,13 +358,13 @@ public class Typed : MonoBehaviour
         [Test]
         public void ValueReturning_WithOverride_ReturnsOverrideResult()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(ValueWeaveTarget).GetMethod(nameof(ValueWeaveTarget.Tick)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
-            var registered = HotReloadRegistry.RegisterMethodOverride(
+            var registered = CodeReloadRegistry.RegisterMethodOverride(
                 typeof(ValueWeaveOverrides).GetMethod(nameof(ValueWeaveOverrides.Tick)),
-                new HotReloadOverrideMethodAttribute("ValueWeaveTarget.Tick"),
+                new CodeReloadOverrideMethodAttribute("ValueWeaveTarget.Tick"),
                 typeof(ValueWeaveOverrides),
                 out var reason);
 
@@ -381,10 +381,10 @@ public class Typed : MonoBehaviour
                // actionable error instead of the opaque NullReferenceException of a bare unbox.
         public void ValueReturning_NullOverrideResult_ThrowsActionable()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(NullResultWeaveTarget).GetMethod(nameof(NullResultWeaveTarget.Tick)),
-                new HotReloadWithOverridesAttribute());
-            var ok = HotReloadRegistry.RegisterInterpreterMethodOverride(
+                new CodeReloadAttribute());
+            var ok = CodeReloadRegistry.RegisterInterpreterMethodOverride(
                 "NullResultWeaveTarget.Tick", (instance, args) => null, out var reason);
             Assert.IsTrue(ok, reason);
 
@@ -398,13 +398,13 @@ public class Typed : MonoBehaviour
         [Test]
         public void WithThrowingOverride_PropagatesOriginalException()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(WeaveTarget).GetMethod(nameof(WeaveTarget.Tick)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
-            var registered = HotReloadRegistry.RegisterMethodOverride(
+            var registered = CodeReloadRegistry.RegisterMethodOverride(
                 typeof(ExitGuiWeaveOverrides).GetMethod(nameof(ExitGuiWeaveOverrides.Tick)),
-                new HotReloadOverrideMethodAttribute("WeaveTarget.Tick"),
+                new CodeReloadOverrideMethodAttribute("WeaveTarget.Tick"),
                 typeof(ExitGuiWeaveOverrides),
                 out var reason);
 
@@ -426,16 +426,16 @@ public class Typed : MonoBehaviour
         public void Weaver_IgnoresForeignAttributeWithSameSimpleName()
         {
             // Even with a reloadable registration and a bound override in place, a method tagged
-            // with FakeReload.HotReloadAttribute must run its original body: the weaver matches the
-            // real Unity.Pipeline.HotReload.HotReloadAttribute by full name and never weaves a
+            // with FakeReload.CodeReloadAttribute must run its original body: the weaver matches the
+            // real Unity.Pipeline.CodeReload.CodeReloadAttribute by full name and never weaves a
             // dispatch prologue for the impostor.
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(ForeignWeaveTarget).GetMethod(nameof(ForeignWeaveTarget.Tick)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
-            var registered = HotReloadRegistry.RegisterMethodOverride(
+            var registered = CodeReloadRegistry.RegisterMethodOverride(
                 typeof(ForeignWeaveOverrides).GetMethod(nameof(ForeignWeaveOverrides.Tick)),
-                new HotReloadOverrideMethodAttribute("ForeignWeaveTarget.Tick"),
+                new CodeReloadOverrideMethodAttribute("ForeignWeaveTarget.Tick"),
                 typeof(ForeignWeaveOverrides),
                 out var reason);
 
@@ -445,7 +445,7 @@ public class Typed : MonoBehaviour
             t.Tick();
 
             Assert.IsFalse(t.overrideRan,
-                "No dispatch prologue may be woven for a foreign attribute named HotReloadAttribute");
+                "No dispatch prologue may be woven for a foreign attribute named CodeReloadAttribute");
             Assert.AreEqual(1, t.ticks, "Original body should run");
         }
 
@@ -457,7 +457,7 @@ public class Typed : MonoBehaviour
             var output = SourceCodeTransformer.TransformMethodBodies(
                 Bodies("Tick"), "Demo", new Dictionary<string, MethodSignatureInfo>(), PublicSource);
 
-            StringAssert.Contains("[HotReloadOverrideMethod(\"Demo.Tick\")]", output);
+            StringAssert.Contains("[CodeReloadOverrideMethod(\"Demo.Tick\")]", output);
             StringAssert.Contains("public static void Tick(Demo instance", output);
 
             // Instance members are qualified.
@@ -505,28 +505,28 @@ public class Interp : MonoBehaviour
         // -------- nested-type gate --------
 
         private const string NestedOnlySource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class NestedOnlyOuter
     {
         public class Inner
         {
-            [HotReload]
+            [CodeReload]
             public void Boom() { }
         }
     }
 }";
 
         private const string MixedNestedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class NestedReloadProbe
     {
         public int ticks;
 
-        [HotReload]
+        [CodeReload]
         public void Tick()
         {
             ticks = 2; // edited body
@@ -536,7 +536,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             public int booms;
 
-            [HotReload]
+            [CodeReload]
             public void Boom()
             {
                 booms = 1; // original body
@@ -545,9 +545,9 @@ namespace Unity.Pipeline.Tests.Editor
     }
 }";
 
-        [Test] // A file whose only [HotReload] method is nested must fail with the real reason,
-               // not "No [HotReload] methods found".
-        public void Reload_NestedOnlyHotReload_FailsLoudly()
+        [Test] // A file whose only [CodeReload] method is nested must fail with the real reason,
+               // not "No [CodeReload] methods found".
+        public void Reload_NestedOnlyCodeReload_FailsLoudly()
         {
             var path = Path.Combine(Application.temporaryCachePath, "NestedOnlyOuter_edit.cs");
             try
@@ -558,7 +558,7 @@ namespace Unity.Pipeline.Tests.Editor
                 Assert.IsFalse(result.Success);
                 StringAssert.Contains("'Boom'", result.ErrorMessage);
                 StringAssert.Contains("nested type 'NestedOnlyOuter.Inner'", result.ErrorMessage);
-                StringAssert.DoesNotContain("No [HotReload] methods found", result.ErrorMessage);
+                StringAssert.DoesNotContain("No [CodeReload] methods found", result.ErrorMessage);
             }
             finally
             {
@@ -568,11 +568,11 @@ namespace Unity.Pipeline.Tests.Editor
 
         [Test] // The woven-but-unreloadable nested method must surface as a diagnostic while the
                // top-level method still reloads.
-        public void Reload_NestedHotReload_SkippedLoudly_OuterStillReloads()
+        public void Reload_NestedCodeReload_SkippedLoudly_OuterStillReloads()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(NestedReloadProbe).GetMethod(nameof(NestedReloadProbe.Tick)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
             var path = Path.Combine(Application.temporaryCachePath, "NestedReloadProbe_edit.cs");
             try
@@ -584,7 +584,7 @@ namespace Unity.Pipeline.Tests.Editor
                 CollectionAssert.AreEquivalent(new[] { "NestedReloadProbe.Tick" }, result.RegisteredMethods);
                 Assert.IsTrue(result.CompilationDiagnostics.Any(d =>
                         d.Contains("'Boom'") && d.Contains("nested type 'NestedReloadProbe.Inner'")),
-                    "Nested [HotReload] must be skipped with an explicit diagnostic; got: " +
+                    "Nested [CodeReload] must be skipped with an explicit diagnostic; got: " +
                     string.Join(" | ", result.CompilationDiagnostics));
             }
             finally
@@ -661,13 +661,13 @@ namespace Unity.Pipeline.Tests.Editor
         public void ReloadFileInPlace_EditedBody_AppliesViaWovenDispatch()
         {
             // Auto-discovery would do this at play start; register the target explicitly for the test.
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(InPlaceReloadProbe).GetMethod(nameof(InPlaceReloadProbe.Compute)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
             // The "edited" source: Compute now writes hotValue instead of baseline.
             var editedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class InPlaceReloadProbe
@@ -675,7 +675,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int baseline;
         public int hotValue;
 
-        [HotReload]
+        [CodeReload]
         public void Compute()
         {
             hotValue = 99;
@@ -687,13 +687,13 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFile(path);
+                var response = CodeReloadCommands.ReloadFile(path);
                 Assert.IsTrue(response.Success, $"reload_file should succeed. Error: {response.ErrorDetails}");
 
                 var probe = new InPlaceReloadProbe();
                 probe.Compute();
 
-                Assert.AreEqual(99, probe.hotValue, "Edited [HotReload] body should run via the woven dispatch");
+                Assert.AreEqual(99, probe.hotValue, "Edited [CodeReload] body should run via the woven dispatch");
                 Assert.AreEqual(0, probe.baseline, "Original body should be skipped when the override runs");
             }
             finally
@@ -705,22 +705,22 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInPlace_EmptyBody_AppliesNoOpOverride()
         {
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(InPlaceEmptyBodyProbe).GetMethod(nameof(InPlaceEmptyBodyProbe.Compute)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
-            // Emptying a [HotReload] body is a legitimate edit (e.g. deleting a Debug.Log): the
-            // reload must bind a no-op override, not fail with "No [HotReload] methods found"
+            // Emptying a [CodeReload] body is a legitimate edit (e.g. deleting a Debug.Log): the
+            // reload must bind a no-op override, not fail with "No [CodeReload] methods found"
             // (which would leave the previous override live).
             var editedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class InPlaceEmptyBodyProbe
     {
         public int computedValue;
 
-        [HotReload]
+        [CodeReload]
         public void Compute()
         {
         }
@@ -731,9 +731,9 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFile(path);
+                var response = CodeReloadCommands.ReloadFile(path);
                 Assert.IsTrue(response.Success,
-                    $"reload of an emptied [HotReload] body should succeed. Error: {response.ErrorDetails}");
+                    $"reload of an emptied [CodeReload] body should succeed. Error: {response.ErrorDetails}");
 
                 var probe = new InPlaceEmptyBodyProbe();
                 probe.Compute();
@@ -751,7 +751,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void ReloadFileInPlace_PrivateFieldAccess_FailsValidationUpFront()
         {
             // KNOWN LIMITATION of the Assembly.Load backend (the interpreter backend supports this —
-            // see IlInterpreterHotReloadInterpreterTests). Roslyn's IgnoreAccessibility only disables
+            // see IlInterpreterCodeReloadInterpreterTests). Roslyn's IgnoreAccessibility only disables
             // COMPILE-time access checks; Unity's Mono (6.13) still enforces field accessibility when
             // JIT-ing the loaded override IL, and does not honor [assembly: IgnoresAccessChecksTo]
             // (verified empirically) — the failure would only surface on first dispatch as a
@@ -759,12 +759,12 @@ namespace Unity.Pipeline.Tests.Editor
             // AccessibilityValidator rejects the reload UP FRONT with an actionable error. If the
             // runtime ever gains private access, drop the gate (enforcePublicAccess) and flip this
             // test to assert Secret == 77.
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(InPlacePrivateReloadProbe).GetMethod(nameof(InPlacePrivateReloadProbe.Compute)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
             var editedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class InPlacePrivateReloadProbe
@@ -772,7 +772,7 @@ namespace Unity.Pipeline.Tests.Editor
         private int m_Secret;
         public int Secret => m_Secret;
 
-        [HotReload]
+        [CodeReload]
         public void Compute()
         {
             m_Secret = 77;
@@ -784,7 +784,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFile(path);
+                var response = CodeReloadCommands.ReloadFile(path);
 
                 Assert.IsFalse(response.Success,
                     "reload_file on the compiled backend must reject non-public access up front — " +
@@ -811,12 +811,12 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // Functional parity: the --pdb path (#line directives + portable PDB, unoptimized) must
             // still compile and dispatch exactly like the default path.
-            HotReloadRegistry.RegisterReloadableMethod(
+            CodeReloadRegistry.RegisterReloadableMethod(
                 typeof(InPlaceReloadProbe).GetMethod(nameof(InPlaceReloadProbe.Compute)),
-                new HotReloadWithOverridesAttribute());
+                new CodeReloadAttribute());
 
             var editedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class InPlaceReloadProbe
@@ -824,7 +824,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int baseline;
         public int hotValue;
 
-        [HotReload]
+        [CodeReload]
         public void Compute()
         {
             hotValue = 99;
@@ -836,7 +836,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = HotReloadCommands.ReloadFile(path, pdb: true);
+                var response = CodeReloadCommands.ReloadFile(path, pdb: true);
                 Assert.IsTrue(response.Success, $"reload_file --pdb should succeed. Error: {response.ErrorDetails}");
 
                 var probe = new InPlaceReloadProbe();
@@ -852,35 +852,35 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void CompileOverrideForPush_ExcludesOnHotReloadCallback()
+        public void CompileOverrideForPush_ExcludesOnCodeReloadCallback()
         {
-            // [OnHotReload] ends with "HotReload", so a suffix-based attribute match extracts the
+            // [OnCodeReload] ends with "CodeReload", so a suffix-based attribute match extracts the
             // callback as a reload target. Pushed first (declaration order), an unregistered name
             // fails the player-side type resolution and the WHOLE file is skipped — the Pong sample
-            // failure. Only [HotReload] methods may be pushed.
+            // failure. Only [CodeReload] methods may be pushed.
             var editedSource = @"
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 namespace Unity.Pipeline.Tests.Editor
 {
-    public class OnHotReloadPushProbe
+    public class OnCodeReloadPushProbe
     {
         public int ticked;
         public string reloadMarker = ""none"";
 
-        [OnHotReload]
+        [OnCodeReload]
         public void OnReloaded()
         {
             reloadMarker = ""reloaded-edited"";
         }
 
-        [HotReload]
+        [CodeReload]
         public void Tick()
         {
             ticked = 2;
         }
     }
 }";
-            var path = Path.Combine(Application.temporaryCachePath, "OnHotReloadPushProbe_edit.cs");
+            var path = Path.Combine(Application.temporaryCachePath, "OnCodeReloadPushProbe_edit.cs");
             File.WriteAllText(path, editedSource);
 
             try
@@ -889,9 +889,9 @@ namespace Unity.Pipeline.Tests.Editor
 
                 Assert.IsTrue(result.Success, $"Push compile should succeed. Error: {result.Error}");
                 CollectionAssert.Contains(result.MethodNames, "Tick",
-                    "[HotReload] methods must be pushed.");
+                    "[CodeReload] methods must be pushed.");
                 CollectionAssert.DoesNotContain(result.MethodNames, "OnReloaded",
-                    "[OnHotReload] is a post-reload callback, not a reload target — pushing it makes " +
+                    "[OnCodeReload] is a post-reload callback, not a reload target — pushing it makes " +
                     "the player skip the entire file as unregistered.");
             }
             finally

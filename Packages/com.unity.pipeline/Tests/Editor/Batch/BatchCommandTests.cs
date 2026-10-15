@@ -628,7 +628,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 Assert.IsFalse(dry["valid"]?.ToObject<bool>() ?? true);
                 var error = dry["results"][0]["error"]?.ToString();
                 StringAssert.Contains("not_batchable", error);
-                StringAssert.Contains("runtime-only", error);
+                StringAssert.Contains("Player command surface", error);
             }
         }
 

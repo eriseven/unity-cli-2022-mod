@@ -1,6 +1,6 @@
 ---
 name: unity-pipeline
-description: Drive a running Unity Editor or development Player from the command line via the unity-pipeline package — install the package, keep the editor ticking while unfocused, run the edit→recompile→run_tests loop, evaluate C#, and hot-reload files at runtime. Use when an agent needs to control a live Unity instance, automate Unity tests, recompile scripts headlessly, or apply runtime hot reloads. Assumes the `unity` CLI is on PATH.
+description: Drive a running Unity Editor or development Player from the command line via the unity-pipeline package — install the package, keep the editor ticking while unfocused, run the edit→recompile→run_tests loop, evaluate C#, and code-reload files at runtime. Use when an agent needs to control a live Unity instance, automate Unity tests, recompile scripts headlessly, or apply runtime reloads. Assumes the `unity` CLI is on PATH.
 ---
 
 # Unity Pipeline (agent control)
@@ -50,19 +50,29 @@ unity command run_tests --mode editor --filter MyFixture.MyTest
 > result instead of the failure details. Re-run a narrower `--filter`, or inspect the
 > editor's Test Runner / logs to get the real failure.
 
-## 3. Runtime hot reload
+**Reading exit codes.** They separate "rewrite the invocation" from "the Editor failed", which
+is the distinction this loop depends on:
+
+| Exit | Meaning | What to do |
+|------|---------|------------|
+| `2` | Bad arguments — a misspelled flag, a wrong type, too many positionals. Nothing ran. | Fix the command line and retry. The error names the problem and often suggests the right flag. |
+| `6` | The command ran and failed, or the Editor could not service it. | Read the error; retrying the same invocation will not help. |
+
+Do not retry an exit 2 unchanged, and do not rewrite a command line on an exit 6.
+
+## 3. Runtime code reload
 
 Change gameplay code in a **running** game with no domain reload. The game must be live:
-enter Editor Play Mode (`unity command editor_play`) or run a dev Player. Configure the runtime server in Project Settings > Pipeline > Runtime;
-`RuntimePipelineBootstrap` creates the driver automatically when enabled (no scene component
-is required). The `reload_file` path is Mono only — Editor Play Mode and Mono desktop dev builds, not IL2CPP. The token
+enter Editor Play Mode (`unity command editor_play`) or run a dev Player. A
+The runtime Pipeline driver (enabled via Project Settings > Pipeline > Runtime) auto-discovers tagged methods on `Awake` (no manual
+registration). Mono only — Editor Play Mode and Mono desktop dev builds, not IL2CPP. The token
 is auto-injected for local requests.
 
-### Prefer: in-place — `reload_file`
+### `reload_file`
 
 Edit the method body directly; no separate file, no boilerplate.
 
-1. Tag the method `[HotReload]` on the MonoBehaviour.
+1. Tag the method `[CodeReload]` on the MonoBehaviour.
 2. Edit its body on disk.
 3. Apply (re-run to iterate):
    ```bash
@@ -77,24 +87,44 @@ Edit the method body directly; no separate file, no boilerplate.
 Constraints: `void` instance methods only; **public** members only; debugging requires `--pdb`
 (the default emits no symbols).
 
-### Alternative: with helper — `reload_file_override`
-
-Keep the original method; put the tweak in a **separate** override file.
-
-1. Tag the method `[HotReloadWithOverrides]` and route it via
-   `HotReloadHelper.ExecuteWithHotReload(this, "Update", OriginalUpdate)` (original body in `OriginalUpdate`).
-2. In a **separate file that does not redeclare the target type**, add a `public static`
-   method tagged `[HotReloadOverrideMethod("BossController.Update")]` taking the instance first.
-3. Apply: `unity command reload_file_override --filename Assets/HotReload/BossOverrides.cs`
-
-Constraints: **public** members only; you cannot break into the override.
-
-`unity command hotreload_status` shows active overrides. `reload_file_override*` options: `--timeout <ms>`
+`unity command codereload_status` shows active overrides. `reload_file` options: `--timeout <ms>`
 (default 30000), `--assemblyDir <dir>` (persist DLLs instead of in-memory);
-`cleanup_hotreload --assemblyDir <dir>` clears old DLLs. Both commands validate the file up front
-and return a clear error on misconfiguration (no override found, target type redeclared, bad signature).
+`cleanup_codereload --assemblyDir <dir>` clears old DLLs.
 
-## 4. Quick C# eval (Runtime)
+## 4. Bulk construction: `run_script` (the builder pattern)
+
+For bulk work — creating many objects, wiring fields, generating content — put the code in a
+**versioned project script** and run a named static entry point with `run_script`. No domain
+reload, no code carried through the protocol; iterating costs an in-memory compile (< ~2s), not
+a 15–20s recompile.
+
+```bash
+# 1. Write the builder OUTSIDE Assets/ (so the write triggers no asset import / domain reload),
+#    e.g. AgentScripts/Build.cs:  public static class Build { public static int All() { ... } }
+# 2. Run it — relative paths resolve against the project root (the parent of Assets/):
+unity command run_script --file AgentScripts/Build.cs --entry Build.All
+# 3. Iterate: edit the file, re-run. Useful extras:
+unity command run_script --file AgentScripts/Build.cs --dry_run true   # compile-only check: diagnostics, nothing loaded or executed
+unity command run_script --file AgentScripts/Build.cs --entry Build.All --args '[3, "Green"]'
+```
+
+Rules of thumb:
+
+- **Code goes in files on disk via `run_script`; `eval` is for genuinely ad-hoc one-liners.**
+  Never ship multi-line escaped C# strings through `eval` — write the file, run the entry.
+- Compiles see the project's **active editor defines** (`UNITY_EDITOR`, version/platform symbols);
+  `--defines` appends extra symbols on top.
+- Entry points may be `async Task`/`Task<T>` — they are awaited asynchronously (the editor keeps
+  pumping, so awaits resuming on Unity's context work naturally) and `Task<T>.Result` is returned.
+  The wait is bounded by `timeout_ms`; on expiry the task keeps running detached.
+- Runtime exceptions come back with `file:line` mapped to your source (a source-mapped PDB is
+  always emitted for executing runs; they compile unoptimized).
+- `--mode hotpatch` instead applies `[CodeReload]` in-place method replacements (delegates to
+  `reload_file`); `entry`/`args`/`dry_run` are rejected there and `references`/`defines` don't apply.
+
+## 5. Quick C# eval (Runtime)
+
+For genuinely ad-hoc one-liners only — anything longer belongs in a file run via `run_script`.
 
 ```bash
 unity command eval "return 2 + 2;"
@@ -102,11 +132,38 @@ unity command eval "return 2 + 2;"
 unity command eval_file Assets/Scratch.cs
 ```
 
+## 5. Project audit (Editor)
+
+Static-analysis scan via Project Auditor, producing a CSV of issues to fix. Trigger, poll, read.
+
+```bash
+unity command audit                              # optional: --categories Code,ProjectSetting --output my.csv
+unity command audit_status                       # repeat until terminal status
+```
+
+`audit_status` is terminal on `completed` (with `csvPath` + `issueCount`), `failed`, `unavailable`, or
+`interrupted` (a domain reload killed the scan — just re-run `audit`). Polling stays responsive while a
+Code-category scan compiles assemblies and holds the main thread. One scan at a time: a second `audit`
+returns `busy`. There is no cancel — stop polling to abandon a scan.
+
+CSV columns: `Category, Severity, Areas, Description, RelativePath, Line, DescriptorId, Recommendation`
+(diagnostics only, so every row is something to fix; `Recommendation` says how).
+
+> **Requires Project Auditor plus its rules.** `unavailable` means the Editor has no Project Auditor,
+> or it has no analysis rules — in a built-in-module Editor the rules live in the separate
+> `com.unity.project-auditor-rules` package (`unity command package_add --identifier
+> com.unity.project-auditor-rules --confirm true`). Read the `message` field; the command never reports
+> an empty `completed` scan that would look like a clean project.
+
 ## Gotchas
 
 - **`set_autotick` first.** Without it, recompile and tests can hang while the editor is
   unfocused. The package's watchdog relies on the tick loop staying alive.
-- **Hot reload needs the game running.** `reload_file_override` / `reload_file` apply to a live
+- **A stuck command may mean a modal dialog is open**, not a hang — a dialog blocks the main
+  thread until dismissed. If a command runs long, check `unity command editor_status` (answers
+  instantly even when blocked); `status: "blocked_by_dialog"` means stop retrying and tell the
+  human what's blocking (its `dialog.title`/`message`/`buttons`) — it can't be clicked over CLI.
+- **Code reload needs the game running.** `reload_file` applies to a live
   game — enter Editor Play Mode (`unity command editor_play`) first, or run a dev Player.
 - **Player-only commands need a dev Player.** `log`, `set_timescale`, `runtime_status`, etc. hit
   the Runtime server, which does not run in the Editor.

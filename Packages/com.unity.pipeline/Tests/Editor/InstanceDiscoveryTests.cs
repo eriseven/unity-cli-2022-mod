@@ -246,7 +246,7 @@ namespace Unity.Pipeline.Tests.Editor
             await Task.Delay(200);
 
             // Act - Make HTTP request to /api/editor_status (executes command via main thread marshaling)
-            using (var client = new PipelineClient($"http://localhost:{m_ServerPort}", m_ServerToken))
+            using (var client = new PipelineClient($"http://127.0.0.1:{m_ServerPort}", m_ServerToken))
             {
                 var response = await client.GetAsync("/api/editor_status");
 
@@ -394,7 +394,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                using (var client = new PipelineClient($"http://localhost:{instance.Port}", instance.EvalToken))
+                using (var client = new PipelineClient($"http://127.0.0.1:{instance.Port}", instance.EvalToken))
                 {
                     var response = await client.GetAsync("/api/status");
                     return response.IsSuccess && response.JsonResponse?["status"]?.ToString() == "ready";

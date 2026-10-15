@@ -238,6 +238,7 @@ namespace Unity.Pipeline.Tests.Editor
     /// Tests actual build generation with authored RuntimePipelineConfig settings.
     /// </summary>
     [RequirePlatformSupport(BuildTarget.StandaloneWindows64)]
+    [Explicit("Builds a Player; run separately with explicit build authorization.")]
     class RuntimePipelineWindows64BuildTests : RuntimePipelineBuildTestBase
     {
         protected override BuildTarget Target => BuildTarget.StandaloneWindows64;

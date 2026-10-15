@@ -345,8 +345,8 @@ namespace Unity.Pipeline.Tests.Editor
             // Failed" instead. See the ArgumentException arm there.
             var response = await m_PipelineClient.PostJsonAsync("/api/exec", new
             {
-                command = "get_console_logs",
-                parameters = new { limit = "not-a-number" },
+                command = "console",
+                parameters = new { tail = "not-a-number" },
                 job = true
             });
 
@@ -355,12 +355,12 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.IsNotNull(jobId, "Submission must return a job id immediately");
 
             LogAssert.Expect(LogType.Error,
-                new Regex("^ExecuteCommandByName: Parameter conversion failed: Parameter 'limit'"));
+                new Regex("^ExecuteCommandByName: Parameter conversion failed: Parameter 'tail'"));
 
             var failed = await WaitForStateAsync(jobId, "failed");
             Assert.AreEqual("Parameter Validation Failed", failed["error"]?.ToString(),
                 "Job path must keep the parameter-validation category rather than reporting a command execution failure");
-            Assert.That(failed["errorDetails"]?.ToString(), Contains.Substring("limit"),
+            Assert.That(failed["errorDetails"]?.ToString(), Contains.Substring("tail"),
                 "Details should name the offending parameter");
             Assert.That(failed["errorDetails"]?.ToString(), Contains.Substring("Int32"),
                 "Details should name the type the value could not be converted to");

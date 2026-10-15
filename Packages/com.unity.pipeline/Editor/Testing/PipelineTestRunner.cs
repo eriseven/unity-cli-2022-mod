@@ -186,7 +186,9 @@ namespace Unity.Pipeline.Editor.Testing
                 cts.Token.Register(() =>
                 {
                     Debug.Log("[PipelineTestRunner] Test execution timed out, cancelling...");
-                    InvalidatePreviousRun();
+                    // The timer callback runs on a worker thread. Only cancel the managed
+                    // waiter here; callback unregistration belongs to the main-thread finally.
+                    collector.Cancel();
                 });
 
                 try
@@ -358,7 +360,17 @@ namespace Unity.Pipeline.Editor.Testing
                 }
             });
 
-            return await tcs.Task;
+            // Cancel() completes the collector's task, not the callback task above. Observe
+            // both so a timeout/cancellation releases the server's serialized execution gate
+            // even when Unity never sends RunFinished (for example after cancelling a dialog).
+            return await AwaitTestCompletion(tcs.Task, collector);
+        }
+
+        internal static async Task<ITestResultAdaptor> AwaitTestCompletion(
+            Task<ITestResultAdaptor> callbackTask, TestResultCollector collector)
+        {
+            var completed = await Task.WhenAny(callbackTask, collector.WaitForCompletionAsync());
+            return await completed;
         }
 
         /// <summary>

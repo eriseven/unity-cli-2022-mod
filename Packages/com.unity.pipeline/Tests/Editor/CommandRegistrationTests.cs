@@ -135,6 +135,8 @@ namespace Unity.Pipeline.Tests.Editor
             var shippedAssemblies = new[] { "Unity.Pipeline", "Unity.Pipeline.Editor" };
             var untagged = commands
                 .Where(cmd => shippedAssemblies.Contains(cmd.Package))
+                // The local extensions use an asmref into the host but are a separate package.
+                .Where(cmd => !(cmd.Method.DeclaringType?.Namespace?.StartsWith("Unity.Pipeline.Extensions.") ?? false))
                 .Where(cmd => cmd.Tags.Count == 0)
                 .Select(cmd => cmd.Name)
                 .OrderBy(name => name)

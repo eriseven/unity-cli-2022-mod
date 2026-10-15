@@ -10,8 +10,8 @@ namespace Unity.Pipeline.Tests.Editor
             TestName = "GetStatusMessage_DisabledInBuilds_ReturnsFeatureInfo")]
         [TestCase(true, true, MessageType.Warning, "Only ship this in development",
             TestName = "GetStatusMessage_EnabledWithDevelopmentBuildOn_ReturnsWarning")]
-        [TestCase(true, false, MessageType.Error, "RELEASE build",
-            TestName = "GetStatusMessage_EnabledWithDevelopmentBuildOff_ReturnsError")]
+        [TestCase(true, false, MessageType.Info, "excluded from non-development",
+            TestName = "GetStatusMessage_EnabledWithDevelopmentBuildOff_ReturnsExcludedInfo")]
         public void GetStatusMessage_ReturnsExpectedMessage(
             bool enableInBuilds, bool developmentBuildCurrentlyOn, MessageType expectedType, string expectedSubstring)
         {

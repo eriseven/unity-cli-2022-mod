@@ -193,11 +193,11 @@ namespace Unity.Pipeline.Editor
             {
                 batchmode = Application.isBatchMode,
                 automated = EditorPipelineServer.DetectAutomatedMode(Environment.GetCommandLineArgs()),
-                // Both fall back to what the server starts with when no settings asset is authored:
+                // Both fall back to what the server starts with when no settings are authored:
                 // browser clients refused, port auto-assigned from the range.
                 browserAllowed = server?.AllowSandboxedBrowserClients ?? false,
                 dynamicPortAssignation = server?.PortAutoAssigned ?? true,
-                hotReloadWatcherEnabled = EditorHotReloadWatcher.IsWatching,
+                hotReloadWatcherEnabled = EditorCodeReloadWatcher.IsWatching,
             }));
         }
 
@@ -310,6 +310,7 @@ namespace Unity.Pipeline.Editor
             public bool automated;
             public bool browserAllowed;
             public bool dynamicPortAssignation;
+            // Keeps the registered analytics schema's field name from before the code-reload rename.
             public bool hotReloadWatcherEnabled;
         }
 

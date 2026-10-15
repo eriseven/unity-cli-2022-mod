@@ -75,7 +75,7 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public async Task ApiCommands_OnEditorServer_ExcludesRuntimeOnlyCommands()
+        public async Task ApiCommands_OnEditorServer_IncludesTaggedRuntimeCommands()
         {
             // Act - List commands from the Editor server
             var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands");
@@ -86,10 +86,12 @@ namespace Unity.Pipeline.Tests.Editor
                 .Select(cmd => cmd["name"]?.ToString())
                 .ToList();
 
-            // Assert - editor commands are listed, runtime-only commands are hidden
+            // Assert - both surfaces are listed; the runtime tag distinguishes Player commands
             Assert.Contains("editor_status", commandNames, "Editor command should be listed");
-            CollectionAssert.DoesNotContain(commandNames, "runtime_status", "Runtime-only eval should be hidden on the Editor server");
-            CollectionAssert.DoesNotContain(commandNames, "set_target_framerate", "Runtime-only reload_file_override should be hidden on the Editor server");
+            CollectionAssert.Contains(commandNames, "runtime_status");
+            var runtime = responseJson["commands"].First(c => (string)c["name"] == "runtime_status");
+            CollectionAssert.Contains(runtime["tags"].Values<string>().ToArray(), "runtime");
+            CollectionAssert.Contains(commandNames, "set_target_framerate");
         }
 
         [Test]
@@ -676,13 +678,13 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // Arrange - 'limit' is an int defaulting to 100. Falling back to that default would
             // hand the caller far more entries than it asked for, with no way to detect it.
-            var request = new CommandExecutionRequest("get_console_logs");
-            request.Parameters["limit"] = "not-a-number";
+            var request = new CommandExecutionRequest("console");
+            request.Parameters["tail"] = "not-a-number";
 
             // Act
             var response = await m_PipelineClient.PostJsonAsync("/api/exec", request);
 
-            LogAssert.Expect(LogType.Error, new Regex("^ExecuteCommandByName: Parameter conversion failed: Parameter 'limit'"));
+            LogAssert.Expect(LogType.Error, new Regex("^ExecuteCommandByName: Parameter conversion failed: Parameter 'tail'"));
 
             // Assert - pin the HTTP contract, not just "some failure": without the status and
             // category, a regression to the command-execution handler would still pass.
@@ -695,7 +697,7 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.AreEqual("Parameter Validation Failed", responseJson["error"]?.ToString(),
                 "Should be classified as a parameter validation failure");
             Assert.That(responseJson["errorDetails"]?.ToString(),
-                Contains.Substring("limit"),
+                Contains.Substring("tail"),
                 "Error should name the offending parameter");
             Assert.That(responseJson["errorDetails"]?.ToString(),
                 Contains.Substring("Int32"),
@@ -714,8 +716,8 @@ namespace Unity.Pipeline.Tests.Editor
                 UnityEngine.Debug.Log($"CLI978_numeric_string_seed_{i}");
             }
 
-            var request = new CommandExecutionRequest("get_console_logs");
-            request.Parameters["limit"] = "5";
+            var request = new CommandExecutionRequest("console");
+            request.Parameters["tail"] = "5";
 
             // Act
             var response = await m_PipelineClient.PostJsonAsync("/api/exec", request);
@@ -774,9 +776,9 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // The guard above must not catch a legitimately null optional argument: an explicit JSON
             // null is the one value allowed to convert to null, and it falls back to the default.
-            var request = new CommandExecutionRequest("get_console_logs");
-            request.Parameters["severity"] = null;
-            request.Parameters["limit"] = 5;
+            var request = new CommandExecutionRequest("console");
+            request.Parameters["level"] = null;
+            request.Parameters["tail"] = 5;
 
             var response = await m_PipelineClient.PostJsonAsync("/api/exec", request);
 

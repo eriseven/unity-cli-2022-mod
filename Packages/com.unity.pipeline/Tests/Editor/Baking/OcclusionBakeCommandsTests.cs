@@ -62,7 +62,7 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         [Test]
         public void OcclusionBakeStatus_AlwaysHasStatusField()
         {
-            var json = JObject.Parse(OcclusionBakeCommands.OcclusionBakeStatus());
+            var json = OcclusionBakeCommands.OcclusionBakeStatus();
             Assert.IsNotNull(json["status"]);
         }
     }

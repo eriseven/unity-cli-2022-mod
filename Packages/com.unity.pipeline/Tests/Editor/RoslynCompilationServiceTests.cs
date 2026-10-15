@@ -8,7 +8,7 @@ namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
     /// Tests for the shared RoslynCompilationService to verify core compilation functionality.
-    /// This service is used by both EvalCodeCompiler and HotReloadCompiler.
+    /// This service is used by both EvalCodeCompiler and CodeReloadCompiler.
     /// </summary>
     class RoslynCompilationServiceTests
     {
@@ -210,7 +210,7 @@ public static class TestClass
         }
 
         [Test]
-        public void Compile_WithHotReloadExample_CompilesCorrectly()
+        public void Compile_WithCodeReloadExample_CompilesCorrectly()
         {
             // Arrange - Test hot reload specific compilation
             var request = new CompilationRequest
@@ -218,11 +218,11 @@ public static class TestClass
                 SourceCode = @"
 using System;
 using UnityEngine;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 
-public static class HotReloadTestClass
+public static class CodeReloadTestClass
 {
-    [HotReloadOverrideMethod(""TargetClass.TargetMethod"")]
+    [CodeReloadOverrideMethod(""TargetClass.TargetMethod"")]
     public static void OverrideMethod(TargetClass instance)
     {
         Debug.Log(""Hot reload method executed"");
@@ -236,7 +236,7 @@ public class TargetClass
         Debug.Log(""Original method"");
     }
 }",
-                AssemblyName = "HotReloadTestAssembly",
+                AssemblyName = "CodeReloadTestAssembly",
                 AdditionalAssemblyPrefixes = new[] { "Microsoft.CodeAnalysis" } // For hot reload attributes
             };
 
@@ -248,7 +248,7 @@ public class TargetClass
             Assert.IsNotNull(result.Assembly, "Should return compiled assembly");
 
             var types = result.Assembly.GetTypes();
-            Assert.Contains("HotReloadTestClass", types.Select(t => t.Name).ToList(), "Should contain hot reload class");
+            Assert.Contains("CodeReloadTestClass", types.Select(t => t.Name).ToList(), "Should contain hot reload class");
             Assert.Contains("TargetClass", types.Select(t => t.Name).ToList(), "Should contain target class");
         }
 

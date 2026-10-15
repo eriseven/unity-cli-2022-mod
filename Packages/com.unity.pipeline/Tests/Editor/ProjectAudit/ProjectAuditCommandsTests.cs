@@ -43,7 +43,7 @@ namespace Unity.Pipeline.Tests.Editor.ProjectAudit
         {
             // Returns idle/scanning/completed when Project Auditor is present, or unavailable when not;
             // in every case a 'status' field must be present.
-            var json = JObject.Parse(ProjectAuditCommands.AuditStatus());
+            var json = ProjectAuditCommands.AuditStatus();
             Assert.IsNotNull(json["status"], "audit_status should always include a 'status' field");
         }
 

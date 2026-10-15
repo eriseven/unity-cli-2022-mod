@@ -108,7 +108,7 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         [Test]
         public void NavMeshBakeStatus_AlwaysHasStatusField()
         {
-            var json = JObject.Parse(NavMeshBakeCommands.NavMeshBakeStatus());
+            var json = NavMeshBakeCommands.NavMeshBakeStatus();
             Assert.IsNotNull(json["status"]);
         }
 

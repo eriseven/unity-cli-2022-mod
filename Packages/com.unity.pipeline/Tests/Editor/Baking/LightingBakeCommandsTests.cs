@@ -192,7 +192,7 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         {
             // The status reflects either a clean idle or the result of a prior (cancelled/completed)
             // bake from another test; in all cases it must be valid JSON carrying a "status" field.
-            var json = JObject.Parse(LightingBakeCommands.LightingBakeStatus());
+            var json = LightingBakeCommands.LightingBakeStatus();
             Assert.IsNotNull(json["status"], "lighting_bake_status should always include a 'status' field");
         }
     }

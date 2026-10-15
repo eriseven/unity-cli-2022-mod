@@ -181,13 +181,13 @@ namespace Unity.Pipeline.Tests.Editor.Capture
         #region Source routing (AUTHAPI-10)
 
         [Test]
-        public void CaptureGameView_ScreenSource_InEditMode_Throws()
+        public void CaptureGameView_ScreenSource_InEditMode_ReturnsImage()
         {
-            // Overlay/screen capture is a Play-Mode operation; in Edit Mode it must fail with a clear
-            // message (this guard runs before the GPU check, so the message is deterministic headless too).
-            var ex = Assert.Throws<InvalidOperationException>(
-                () => CaptureCommands.CaptureGameView(64, 64, source: "screen"));
-            StringAssert.Contains("Play Mode", ex.Message);
+            if (IsHeadless) Assert.Ignore("Screen capture requires a graphics device.");
+            var result = CaptureCommands.CaptureGameView(64, 64, source: "screen");
+            Assert.IsNotEmpty(result.Base64);
+            Assert.AreEqual(64, result.Width);
+            Assert.AreEqual(64, result.Height);
         }
 
         [Test]

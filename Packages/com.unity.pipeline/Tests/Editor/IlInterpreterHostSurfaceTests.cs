@@ -6,7 +6,7 @@ using NUnit.Framework;
 using UnityEngine;
 using Unity.Pipeline.Compilation;
 using Unity.Pipeline.Editor.BuildProcessors;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 using IlInterpreter.Interpreter;
 
 namespace Unity.Pipeline.Tests.Editor
@@ -76,7 +76,7 @@ namespace Unity.Pipeline.Tests.Editor
         class DummyReloadTarget { public int Value; public void Tick() { } }
 
         [Test]
-        public void HotReloadOverlay_OnlyAdds_TargetType()
+        public void CodeReloadOverlay_OnlyAdds_TargetType()
         {
             var baseNames = RegisteredLinkNames(IlInterpreterHostBindings.CreateStandard());
             var overlay = RegisteredLinkNames(
@@ -86,52 +86,5 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.That(overlay, Contains.Item(LinkName(typeof(DummyReloadTarget))), "Overlay must register the target type.");
         }
 
-        // The drift guarantee: link.xml preserves the full CreateStandard() surface (no host type dropped),
-        // plus reloadable [HotReload] target components (so their private fields survive IL2CPP stripping).
-        // Every emitted entry must be one or the other — nothing else leaks in.
-        [Test]
-        public void LinkXml_Preserves_HostSurface_And_Only_ReloadTargets_Beyond()
-        {
-            var hostSurface = RegisteredLinkNames(IlInterpreterHostBindings.CreateStandard());
-
-            var xml = HotReloadLinkXmlGenerator.GenerateLinkXml();
-            var emitted = Regex.Matches(xml, "<type fullname=\"([^\"]+)\"")
-                .Select(m => m.Groups[1].Value)
-                .ToHashSet(StringComparer.Ordinal);
-
-            Assert.That(emitted, Is.SupersetOf(hostSurface),
-                "link.xml must preserve every host type CreateStandard() registers.");
-
-            foreach (var name in emitted.Except(hostSurface))
-                Assert.IsTrue(IsReloadableTargetByLinkName(name),
-                    $"link.xml preserved a type that is neither a host-surface type nor a [HotReload] target: {name}");
-        }
-
-        // Resolve a link.xml fullname ('/' = nested separator) to a loaded Type and check whether it carries
-        // a class-level [HotReload] or any [HotReload]/[HotReloadWithOverrides] method — the same predicate
-        // HotReloadLinkXmlGenerator uses to decide what reload targets to preserve.
-        static bool IsReloadableTargetByLinkName(string linkName)
-        {
-            var full = linkName.Replace('/', '+');
-            foreach (var asm in PipelineUtils.GetLoadedAssemblies())
-            {
-                Type t;
-                try { t = asm.GetType(full, throwOnError: false); }
-                catch { continue; }
-                if (t == null) continue;
-
-                if (t.IsDefined(typeof(HotReloadAttribute), inherit: false))
-                    return true;
-                const System.Reflection.BindingFlags f = System.Reflection.BindingFlags.Public
-                    | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
-                    | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly;
-                foreach (var m in t.GetMethods(f))
-                    if (m.IsDefined(typeof(HotReloadAttribute), inherit: false) ||
-                        m.IsDefined(typeof(HotReloadWithOverridesAttribute), inherit: false))
-                        return true;
-                return false;
-            }
-            return false;
-        }
     }
 }

@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-15",
+  "unity": "2022.3.62f3",
+  "pipeline": "0.8.0-exp.1",
+  "upstreamTarballSha1": "62c08c808737255821f3449466689a527a2eea50",
+  "upstreamRevision": "dde7080264d32a1091171d4b358351279fa10ddb",
+  "compilationFailed": false,
+  "reports": {
+    "editmode": {
+      "total": 1135,
+      "passed": 1133,
+      "failed": 0,
+      "skipped": 2,
+      "nativeXmlSha256": "4218e9071628772c045fa67849ef1c4d273f0dd4d27448f9aa75df25cc35162f",
+      "nonPassingCases": [
+        {
+          "name": "Unity.Pipeline.Tests.Editor.E2E.AgentAuthoringE2ETests.FullAuthoringLoop_CreatesAssetsSceneAndPrefab_AndSerializedReferenceReadsBack",
+          "result": "Skipped",
+          "message": "CLI-196 blocked on CLI-191..195: authoring commands not yet implemented"
+        },
+        {
+          "name": "Unity.Pipeline.Tests.Editor.ServerAuthTests.Request_WithOriginHeader_Returns403",
+          "result": "Skipped",
+          "message": "6.0 Issues"
+        }
+      ],
+      "addedRegressionCasesPassed": [
+        "Unity.Pipeline.Tests.Editor.TestResultCollectorTests.SyncRunner_CallbackCompletes_ReturnsResult",
+        "Unity.Pipeline.Tests.Editor.TestResultCollectorTests.SyncRunner_CancelWithoutRunFinished_CompletesWaiter",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.Attributes_AreInUnconstrainedAssembly",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.ConsoleGroundTruth_UsesNativeCountsAndBackfillsLostEntry",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.DynamicCommand_InvokesBoundInstanceAndSurvivesDiscoverySwap",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.Interpreter080Features_ExecuteWithUnity2022Compiler(\"class Probe { public int Add(int n) => n + 2; public static object Run() { System.Func<int,int> add = new Probe().Add; return add(40); } }\",42)",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.Interpreter080Features_ExecuteWithUnity2022Compiler(\"class Probe { public static object Run() { return new string(new char[] { 'o', 'k' }); } }\",\"ok\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"recompile_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"build_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"lighting_bake_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"navmesh_bake_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"occlusion_bake_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.WaitCondition_ReadsEditorStateAndRejectsUnknownMember"
+      ]
+    },
+    "playmode": {
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "nativeXmlSha256": "6d10913cbdde178ea558ce1eee0902040621d01c1aa4d0d9b6d068e507bd86c2",
+      "nonPassingCases": []
+    },
+    "batch": {
+      "total": 28,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "nativeXmlSha256": "a831ef23838d9ff5fd9ac9aaac93c6cf23cd61e339c50bb12c16263caa528301",
+      "nonPassingCases": []
+    },
+    "collector": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "nativeXmlSha256": "e9269c7a8cbbb1be581c98af574aef416f5e6fd0a90cccd0333d260610cbff88",
+      "nonPassingCases": []
+    }
+  },
+  "renamedIdentitiesWithPreservedGuids": 20,
+  "preexistingInputAndPlayerSettingsPreserved": true,
+  "editorFinalState": {
+    "playing": false,
+    "scenePath": "",
+    "sceneDirty": false
+  },
+  "limitations": [
+    "Two inherited EditMode skips remain.",
+    "No release-build or IL2CPP qualification; see compatibility notes for the inherited build fixture.",
+    "Unity 2022 keeps unprefixed Roslyn 3.11 dependencies and lacks native modal-dialog tracking.",
+    "EditMode totals use native XML because Pipeline status can remain running after a domain reload."
+  ]
+}

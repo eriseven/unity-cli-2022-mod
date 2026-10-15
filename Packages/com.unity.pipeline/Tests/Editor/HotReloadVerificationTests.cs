@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 using NUnit.Framework;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 using UnityEngine;
 
 namespace Unity.Pipeline.Tests.Editor
@@ -10,27 +10,27 @@ namespace Unity.Pipeline.Tests.Editor
     /// Simple verification tests for hot reload infrastructure.
     /// These tests verify the core functionality works correctly in isolation.
     /// </summary>
-    class HotReloadVerificationTests
+    class CodeReloadVerificationTests
     {
         [SetUp]
         public void SetUp()
         {
             // Ensure clean state for each test
-            HotReloadRegistry.ClearAllForTesting();
+            CodeReloadRegistry.ClearAllForTesting();
         }
 
         [TearDown]
         public void TearDown()
         {
             // Clean up after each test
-            HotReloadRegistry.ClearAllForTesting();
+            CodeReloadRegistry.ClearAllForTesting();
         }
 
         [Test]
-        public void HotReloadRegistry_EmptyState_HasZeroStats()
+        public void CodeReloadRegistry_EmptyState_HasZeroStats()
         {
             // Act
-            var stats = HotReloadRegistry.GetStats();
+            var stats = CodeReloadRegistry.GetStats();
 
             // Assert
             Assert.That(stats.ReloadableMethodCount, Is.EqualTo(0));
@@ -39,25 +39,25 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void HotReloadRegistry_RegisterSingleMethod_CorrectCount()
+        public void CodeReloadRegistry_RegisterSingleMethod_CorrectCount()
         {
             // Arrange
             var testType = typeof(SimpleTestClass);
             var testMethod = testType.GetMethod("TestMethod");
-            var attribute = new HotReloadWithOverridesAttribute();
+            var attribute = new CodeReloadAttribute();
 
             // Act
-            HotReloadRegistry.RegisterReloadableMethod(testMethod, attribute);
+            CodeReloadRegistry.RegisterReloadableMethod(testMethod, attribute);
 
             // Assert
-            var stats = HotReloadRegistry.GetStats();
+            var stats = CodeReloadRegistry.GetStats();
             Assert.That(stats.ReloadableMethodCount, Is.EqualTo(1));
             Assert.That(stats.ReloadableMethodIds.Count, Is.EqualTo(1));
             Assert.That(stats.ReloadableMethodIds.Contains("SimpleTestClass.TestMethod"));
         }
 
         [Test]
-        public void HotReloadRegistry_RegisterMultipleMethods_CorrectCount()
+        public void CodeReloadRegistry_RegisterMultipleMethods_CorrectCount()
         {
             // Arrange
             var testType = typeof(SimpleTestClass);
@@ -65,11 +65,11 @@ namespace Unity.Pipeline.Tests.Editor
             var method2 = testType.GetMethod("AnotherTestMethod");
 
             // Act
-            HotReloadRegistry.RegisterReloadableMethod(method1, new HotReloadWithOverridesAttribute());
-            HotReloadRegistry.RegisterReloadableMethod(method2, new HotReloadWithOverridesAttribute { Id = "CustomId" });
+            CodeReloadRegistry.RegisterReloadableMethod(method1, new CodeReloadAttribute());
+            CodeReloadRegistry.RegisterReloadableMethod(method2, new CodeReloadAttribute { Id = "CustomId" });
 
             // Assert
-            var stats = HotReloadRegistry.GetStats();
+            var stats = CodeReloadRegistry.GetStats();
             Assert.That(stats.ReloadableMethodCount, Is.EqualTo(2));
             Assert.That(stats.ReloadableMethodIds.Count, Is.EqualTo(2));
             Assert.That(stats.ReloadableMethodIds.Contains("SimpleTestClass.TestMethod"));
@@ -77,48 +77,39 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void HotReloadRegistry_TryInvokeWithoutOverride_ReturnsFalse()
+        public void CodeReloadRegistry_TryInvokeWithoutOverride_ReturnsFalse()
         {
             // Arrange
             var testType = typeof(SimpleTestClass);
             var testMethod = testType.GetMethod("TestMethod");
-            HotReloadRegistry.RegisterReloadableMethod(testMethod, new HotReloadWithOverridesAttribute());
+            CodeReloadRegistry.RegisterReloadableMethod(testMethod, new CodeReloadAttribute());
 
             var testInstance = new SimpleTestClass();
 
             // Act
-            var result = HotReloadRegistry.TryInvokeHotReload("SimpleTestClass.TestMethod", testInstance);
+            var result = CodeReloadRegistry.TryInvokeCodeReload("SimpleTestClass.TestMethod", testInstance);
 
             // Assert
             Assert.That(result, Is.False);
         }
 
         [Test]
-        public void HotReloadHelper_GenerateMethodId_CorrectFormat()
-        {
-            // This tests the private method indirectly through the IsHotReloadActive method
-            // Act & Assert
-            Assert.That(HotReloadHelper.IsHotReloadActive<SimpleTestClass>("TestMethod"), Is.False);
-            // The method ID generation is tested implicitly - if it's wrong, the registry lookup would fail
-        }
-
-        [Test]
-        public void HotReloadRegistry_ClearForTesting_RemovesAllState()
+        public void CodeReloadRegistry_ClearForTesting_RemovesAllState()
         {
             // Arrange - add some state
             var testType = typeof(SimpleTestClass);
             var testMethod = testType.GetMethod("TestMethod");
-            HotReloadRegistry.RegisterReloadableMethod(testMethod, new HotReloadWithOverridesAttribute());
+            CodeReloadRegistry.RegisterReloadableMethod(testMethod, new CodeReloadAttribute());
 
             // Verify state exists
-            var statsBefore = HotReloadRegistry.GetStats();
+            var statsBefore = CodeReloadRegistry.GetStats();
             Assert.That(statsBefore.ReloadableMethodCount, Is.EqualTo(1));
 
             // Act
-            HotReloadRegistry.ClearAllForTesting();
+            CodeReloadRegistry.ClearAllForTesting();
 
             // Assert
-            var statsAfter = HotReloadRegistry.GetStats();
+            var statsAfter = CodeReloadRegistry.GetStats();
             Assert.That(statsAfter.ReloadableMethodCount, Is.EqualTo(0));
             Assert.That(statsAfter.ActiveOverrideCount, Is.EqualTo(0));
             Assert.That(statsAfter.LoadedTypeCount, Is.EqualTo(0));

@@ -3,7 +3,7 @@ using System.IO;
 using NUnit.Framework;
 using Unity.Pipeline.Editor;
 using Unity.Pipeline.Editor.BuildProcessors;
-using Unity.Pipeline.HotReload;
+using Unity.Pipeline.CodeReload;
 using UnityEngine;
 
 namespace Unity.Pipeline.Tests.Editor
@@ -15,7 +15,7 @@ namespace Unity.Pipeline.Tests.Editor
     ///   1. Build a Development Build; the build log must show "push-signing key … (fingerprint …)".
     ///   2. Boot the player; its log must show "signed pushes only (key …, verify self-test OK)" —
     ///      a self-test failure here means the platform's RSA is unusable (file a bug, don't ship).
-    ///   3. push_reload a [HotReload] method; the edit must apply and ack "applied N method(s)".
+    ///   3. push_reload a [CodeReload] method; the edit must apply and ack "applied N method(s)".
     ///   4. Force a domain reload in the editor (edit any script), push again — the push must be
     ///      deferred briefly ("awaiting player handshake") and then apply.
     ///   5. Replay check: capture an ApplyReloadMsg with a proxy and resend it — the player log must
@@ -150,8 +150,8 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void LegacyRawPayload_MalformedAndNotAnEnvelope()
         {
-            // What a pre-signing editor sends: the bare PipelineHotReloadConnect payload.
-            var legacy = PipelineHotReloadConnect.Encode("SomeType", new[] { "M1" }, new byte[] { 1, 2, 3 });
+            // What a pre-signing editor sends: the bare PipelineCodeReloadConnect payload.
+            var legacy = PipelineCodeReloadConnect.Encode("SomeType", new[] { "M1" }, new byte[] { 1, 2, 3 });
             Assert.IsFalse(PushEnvelope.LooksLikeEnvelope(legacy));
             Assert.AreEqual(PushVerifyStatus.Malformed, Open(legacy, out _));
         }
@@ -197,8 +197,8 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void HandshakeMessage_RoundTrips()
         {
-            var data = PipelineHotReloadConnect.EncodeHandshake(PushEnvelope.ProtocolVersion, "ab12cd34ab12cd34", m_Nonce);
-            Assert.IsTrue(PipelineHotReloadConnect.TryDecodeHandshake(data, out var version, out var fp, out var nonce));
+            var data = PipelineCodeReloadConnect.EncodeHandshake(PushEnvelope.ProtocolVersion, "ab12cd34ab12cd34", m_Nonce);
+            Assert.IsTrue(PipelineCodeReloadConnect.TryDecodeHandshake(data, out var version, out var fp, out var nonce));
             Assert.AreEqual(PushEnvelope.ProtocolVersion, version);
             Assert.AreEqual("ab12cd34ab12cd34", fp);
             CollectionAssert.AreEqual(m_Nonce, nonce);
@@ -361,7 +361,7 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         private static byte[] SampleReload() =>
-            PipelineHotReloadConnect.Encode("Game.Enemy", new[] { "Tick", "OnHit" }, new byte[] { 0x2A, 0x00, 0x2B });
+            PipelineCodeReloadConnect.Encode("Game.Enemy", new[] { "Tick", "OnHit" }, new byte[] { 0x2A, 0x00, 0x2B });
 
         [Test]
         public void SignedPush_VerifiesAndRecoversTheExactReloadPayload()
@@ -371,7 +371,7 @@ namespace Unity.Pipeline.Tests.Editor
             var status = m_PlayerVerifier.Verify(envelope, out var recovered);
 
             Assert.AreEqual(PushVerifyStatus.Ok, status, "a push signed by the build machine's key must be accepted");
-            Assert.IsTrue(PipelineHotReloadConnect.TryDecode(recovered, out var type, out var methods, out var il),
+            Assert.IsTrue(PipelineCodeReloadConnect.TryDecode(recovered, out var type, out var methods, out var il),
                 "the recovered payload must decode back to the reload the editor sent");
             Assert.AreEqual("Game.Enemy", type);
             CollectionAssert.AreEqual(new[] { "Tick", "OnHit" }, methods);
