@@ -14,7 +14,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Prefabs
     /// <c>save_prefab_contents</c>; these commands are useful when a subsequent Pipeline command
     /// needs to operate in the currently open stage.
     /// </summary>
-    public static class PrefabStageCommands
+    internal static class PrefabStageCommands
     {
         [CliCommand("open_prefab_stage", "Open a prefab asset or prefab instance in Unity's Prefab Stage. Asset edits made there affect every instance after saving.")]
         public static PrefabStageResult Open(
@@ -166,7 +166,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Prefabs
     }
 
     [Serializable]
-    public sealed class PrefabStageResult
+    internal sealed class PrefabStageResult
     {
         public string Action { get; set; }
         public string AssetPath { get; set; }

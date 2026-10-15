@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 namespace Unity.Pipeline.Extensions.Editor.Commands.GameObjects
 {
     /// <summary>Typed ParticleSystem module access for the modules used by the Unity-MCP parity skills.</summary>
-    public static class ParticleSystemExtensionCommands
+    internal static class ParticleSystemExtensionCommands
     {
         [CliCommand("get_particle_system", "Read ParticleSystem runtime state and Main, Emission, Shape, and Noise module settings.", MainThreadRequired = true)]
         public static ParticleSystemDetails GetParticleSystem(

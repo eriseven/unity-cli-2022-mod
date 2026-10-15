@@ -14,7 +14,7 @@ using Object = UnityEngine.Object;
 namespace Unity.Pipeline.Extensions.Editor.Commands.GameObjects
 {
     /// <summary>Commands that complement the core GameObject authoring surface.</summary>
-    public static class CompatibilityGameObjectCommands
+    internal static class CompatibilityGameObjectCommands
     {
         private const int MaxComponentTypes = 500;
 
@@ -173,7 +173,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.GameObjects
     }
 
     [Serializable]
-    public sealed class ComponentTypeListResult
+    internal sealed class ComponentTypeListResult
     {
         [JsonProperty("items")] public string[] Items { get; set; }
         [JsonProperty("page")] public int Page { get; set; }
@@ -183,13 +183,13 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.GameObjects
     }
 
     [Serializable]
-    public sealed class DuplicateGameObjectsResult
+    internal sealed class DuplicateGameObjectsResult
     {
         [JsonProperty("result")] public CompatibilityGameObjectReference[] Result { get; set; }
     }
 
     [Serializable]
-    public sealed class CompatibilityGameObjectReference
+    internal sealed class CompatibilityGameObjectReference
     {
         [JsonProperty("instanceID")] public int InstanceId { get; set; }
         [JsonProperty("path")] public string Path { get; set; }

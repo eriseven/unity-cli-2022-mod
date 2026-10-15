@@ -5,9 +5,17 @@ are intentionally kept out of the core package: Profiler session helpers, guarde
 Prefab Stage control, isolated object capture, extra Timeline operations, and selected authoring
 utilities.
 
-The assembly depends on the public Unity.Pipeline and Unity.Pipeline.Editor APIs. Commands are
-discovered automatically by Pipeline's [CliCommand] discovery, so no registry modification or
-server fork is required.
+The Editor source is compiled into `Unity.Pipeline.Editor` through an `.asmref`, giving it access
+to that assembly's internal types. The Runtime assembly already grants internal access to this
+Editor assembly. Tests similarly join `Unity.Pipeline.Tests.Editor`. This keeps upstream 0.6's
+type visibility without adding public APIs or new friend assemblies. Commands are discovered
+automatically by Pipeline's `[CliCommand]` discovery.
+
+The extension no longer produces a separate DLL. References, platforms, and compilation options
+come from the host asmdef; this backport adds `Unity.AI.Navigation` and its package dependency to
+the host for the extension's NavMesh commands. The package's files and namespaces remain separate.
+Run its tests by fixture (`CustomCommandRegistrationTests`), not by the former extension assembly
+name. Code using this extension must reference `Unity.Pipeline.Editor` and respect its internal API.
 
 Install it as a local package:
 

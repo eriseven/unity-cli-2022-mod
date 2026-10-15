@@ -18,7 +18,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
     /// Invocation is deliberately confirmation-gated: calling arbitrary project methods can mutate
     /// scenes, assets, or external state just as surely as a purpose-built command can.
     /// </summary>
-    public static class ReflectionCommands
+    internal static class ReflectionCommands
     {
         private const BindingFlags PublicFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
         private const BindingFlags NonPublicFlags = PublicFlags | BindingFlags.NonPublic;
@@ -394,14 +394,14 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
     }
 
     [Serializable]
-    public sealed class ReflectionMethodListResult
+    internal sealed class ReflectionMethodListResult
     {
         [JsonProperty("type")] public string Type { get; set; }
         [JsonProperty("methods")] public ReflectionMethodInfo[] Methods { get; set; }
     }
 
     [Serializable]
-    public sealed class ReflectionTypeSchema
+    internal sealed class ReflectionTypeSchema
     {
         [JsonProperty("type")] public string Type { get; set; }
         [JsonProperty("baseType")] public string BaseType { get; set; }
@@ -413,7 +413,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
     }
 
     [Serializable]
-    public sealed class ReflectionMemberInfo
+    internal sealed class ReflectionMemberInfo
     {
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("type")] public string Type { get; set; }
@@ -423,7 +423,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
     }
 
     [Serializable]
-    public sealed class ReflectionMethodInfo
+    internal sealed class ReflectionMethodInfo
     {
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("signature")] public string Signature { get; set; }
@@ -434,7 +434,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
     }
 
     [Serializable]
-    public sealed class ReflectionParameterInfo
+    internal sealed class ReflectionParameterInfo
     {
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("type")] public string Type { get; set; }
@@ -442,7 +442,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
     }
 
     [Serializable]
-    public sealed class ReflectionInvocationResult
+    internal sealed class ReflectionInvocationResult
     {
         [JsonProperty("invoked")] public bool Invoked { get; set; }
         [JsonProperty("dryRun")] public bool DryRun { get; set; }
@@ -452,7 +452,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Reflection
     }
 
     [Serializable]
-    public sealed class JsonSchemaResult
+    internal sealed class JsonSchemaResult
     {
         [JsonProperty("result")] public string Result { get; set; }
     }

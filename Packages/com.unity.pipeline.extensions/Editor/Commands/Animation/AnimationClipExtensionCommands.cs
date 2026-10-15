@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
 {
     /// <summary>AnimationClip operations deliberately kept outside the core Pipeline package for Unity-MCP compatibility.</summary>
-    public static class AnimationClipExtensionCommands
+    internal static class AnimationClipExtensionCommands
     {
         [CliCommand("set_animation_clip_metadata", "Set supported AnimationClip metadata: frame rate, loop-time flag, WrapMode, and legacy flag.", MainThreadRequired = true)]
         public static AnimationClipDetails SetAnimationClipMetadata(

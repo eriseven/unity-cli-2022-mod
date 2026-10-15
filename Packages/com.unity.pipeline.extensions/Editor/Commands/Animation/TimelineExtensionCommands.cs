@@ -17,7 +17,7 @@ using Object = UnityEngine.Object;
 namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
 {
     /// <summary>Additional Timeline operations implemented through the same optional-package reflection bridge.</summary>
-    public static class TimelineExtensionCommands
+    internal static class TimelineExtensionCommands
     {
         private const string Asm = "Unity.Timeline";
         [CliCommand("set_playable_director_timeline", "Assign a TimelineAsset to a PlayableDirector in the current scene. Requires com.unity.timeline.", MainThreadRequired = true)]
@@ -631,7 +631,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineClipMutationResult
+    internal sealed class TimelineClipMutationResult
     {
         [JsonProperty("assetPath")] public string AssetPath { get; set; }
         [JsonProperty("track")] public string Track { get; set; }
@@ -641,7 +641,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineTrackMutationResult
+    internal sealed class TimelineTrackMutationResult
     {
         [JsonProperty("assetPath")] public string AssetPath { get; set; }
         [JsonProperty("track")] public string Track { get; set; }
@@ -649,7 +649,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineBindingResult
+    internal sealed class TimelineBindingResult
     {
         [JsonProperty("assetPath")] public string AssetPath { get; set; }
         [JsonProperty("track")] public string Track { get; set; }
@@ -658,7 +658,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineDirectorResult
+    internal sealed class TimelineDirectorResult
     {
         [JsonProperty("timelinePath")] public string TimelinePath { get; set; }
         [JsonProperty("director")] public AuthoringResult Director { get; set; }
@@ -668,7 +668,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineMarkerResult
+    internal sealed class TimelineMarkerResult
     {
         [JsonProperty("assetPath")] public string AssetPath { get; set; }
         [JsonProperty("track")] public string Track { get; set; }
@@ -677,7 +677,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineDetailsResult
+    internal sealed class TimelineDetailsResult
     {
         [JsonProperty("assetPath")] public string AssetPath { get; set; }
         [JsonProperty("frameRate")] public double FrameRate { get; set; }
@@ -687,7 +687,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineClipAddResult
+    internal sealed class TimelineClipAddResult
     {
         [JsonProperty("assetPath")] public string AssetPath { get; set; }
         [JsonProperty("track")] public string Track { get; set; }
@@ -701,7 +701,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineTrackDetails
+    internal sealed class TimelineTrackDetails
     {
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("trackType")] public string TrackType { get; set; }
@@ -716,7 +716,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineClipDetails
+    internal sealed class TimelineClipDetails
     {
         [JsonProperty("index")] public int Index { get; set; }
         [JsonProperty("displayName")] public string DisplayName { get; set; }
@@ -731,7 +731,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Animation
     }
 
     [Serializable]
-    public sealed class TimelineMarkerDetails
+    internal sealed class TimelineMarkerDetails
     {
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("markerType")] public string MarkerType { get; set; }

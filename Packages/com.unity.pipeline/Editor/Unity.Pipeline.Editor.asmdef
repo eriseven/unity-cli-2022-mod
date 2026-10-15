@@ -3,7 +3,9 @@
     "rootNamespace": "Unity.Pipeline.Editor",
     "references": [
         "Unity.Pipeline",
-        "Unity.Nuget.Newtonsoft-Json"
+        "Unity.Pipeline.IlInterpreter",
+        "Unity.Nuget.Newtonsoft-Json",
+        "Unity.AI.Navigation"
     ],
     "includePlatforms": [
         "Editor"

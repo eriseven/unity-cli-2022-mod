@@ -49,6 +49,17 @@ namespace Unity.Pipeline.Extensions.Tests.Editor
         }
 
         [Test]
+        public void Extensions_ShareHostAssemblies_WithoutMakingPipelineTypesPublic()
+        {
+            Assert.AreEqual(typeof(TypeCacheCommandDiscovery).Assembly,
+                typeof(ProfilerControlCommands).Assembly);
+            Assert.AreEqual("Unity.Pipeline.Tests.Editor", GetType().Assembly.GetName().Name);
+            Assert.IsFalse(typeof(Unity.Pipeline.Editor.Commands.Capture.CaptureResult).IsPublic);
+            Assert.IsFalse(typeof(Unity.Pipeline.Editor.Commands.Observability.MemoryStats).IsPublic);
+            Assert.IsFalse(typeof(Unity.Pipeline.Editor.Commands.Observability.RenderStats).IsPublic);
+        }
+
+        [Test]
         public void ListComponentTypes_ContainsTransform()
         {
             var result = CompatibilityGameObjectCommands.ListComponentTypes(search: "UnityEngine.Transform", page: 0, pageSize: 10);

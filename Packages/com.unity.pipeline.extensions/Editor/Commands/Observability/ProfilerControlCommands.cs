@@ -16,7 +16,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Observability
     /// to mirror the Profiler window's private module configuration; the enabled-module list is
     /// Pipeline session metadata that lets an agent record its intended inspection focus.
     /// </summary>
-    public static class ProfilerControlCommands
+    internal static class ProfilerControlCommands
     {
         private static readonly HashSet<string> EnabledModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -153,7 +153,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Observability
     }
 
     [Serializable]
-    public sealed class ProfilerControlResult
+    internal sealed class ProfilerControlResult
     {
         [JsonProperty("action")] public string Action { get; set; }
         [JsonProperty("recording")] public bool Recording { get; set; }
@@ -163,21 +163,21 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Observability
     }
 
     [Serializable]
-    public sealed class ProfilerModulesResult
+    internal sealed class ProfilerModulesResult
     {
         [JsonProperty("modules")] public ProfilerModuleResult[] Modules { get; set; }
         [JsonProperty("note")] public string Note { get; set; }
     }
 
     [Serializable]
-    public sealed class ProfilerModuleResult
+    internal sealed class ProfilerModuleResult
     {
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("enabled")] public bool Enabled { get; set; }
     }
 
     [Serializable]
-    public sealed class ProfilerFrameSnapshot
+    internal sealed class ProfilerFrameSnapshot
     {
         [JsonProperty("capturedAtUtc")] public string CapturedAtUtc { get; set; }
         [JsonProperty("recording")] public bool Recording { get; set; }
@@ -187,7 +187,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Observability
     }
 
     [Serializable]
-    public sealed class ProfilerScriptStats
+    internal sealed class ProfilerScriptStats
     {
         [JsonProperty("monoUsedBytes")] public long MonoUsedBytes { get; set; }
         [JsonProperty("monoHeapBytes")] public long MonoHeapBytes { get; set; }

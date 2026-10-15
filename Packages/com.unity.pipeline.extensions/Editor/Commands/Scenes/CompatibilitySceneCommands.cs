@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 namespace Unity.Pipeline.Extensions.Editor.Commands.Scenes
 {
     /// <summary>Scene lifecycle commands that require an explicit data-loss acknowledgement.</summary>
-    public static class CompatibilitySceneCommands
+    internal static class CompatibilitySceneCommands
     {
         [CliCommand("unload_scene", "Close an additively opened scene. Dirty scenes require save_before_unload=true or confirm=true to discard changes.")]
         public static UnloadSceneResult UnloadScene(
@@ -65,7 +65,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Scenes
     }
 
     [Serializable]
-    public sealed class UnloadSceneResult
+    internal sealed class UnloadSceneResult
     {
         [JsonProperty("path")] public string Path { get; set; }
         [JsonProperty("wasDirty")] public bool WasDirty { get; set; }

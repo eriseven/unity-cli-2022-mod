@@ -20,7 +20,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Capture
     /// alone (isolated) or clones of the target scene's roots (non-isolated), so capture controls
     /// never mutate the source scene, object hierarchy, layers, or lighting.
     /// </summary>
-    public static class IsolatedCaptureCommands
+    internal static class IsolatedCaptureCommands
     {
         private const int MaxDimension = 4096;
 

@@ -1,6 +1,11 @@
 # Unity Pipeline Package
 
-[![Unity Version](https://img.shields.io/badge/Unity-6.0%2B-blue.svg)](https://unity3d.com/unity/whats-new/2023.3.0)
+[![Unity Version](https://img.shields.io/badge/Unity-2022.3-blue.svg)](Documentation~/unity-2022-compatibility.md)
+
+This embedded Unity 2022.3 port is synchronized with upstream **0.6.0-exp.1**. See the
+[compatibility and validation notes](Documentation~/unity-2022-compatibility.md) for retained
+APIs, runtime migration, version-specific limitations, and test results. The installation commands
+below describe the upstream distribution; this project uses the embedded package in `Packages/`.
 
 Transform Unity Editor into a programmable automation element for CI/CD pipelines and development workflows. The package exposes a running Unity Editor (or development Player) over a local HTTP API so external tools, scripts, or agents can execute commands remotely.
 

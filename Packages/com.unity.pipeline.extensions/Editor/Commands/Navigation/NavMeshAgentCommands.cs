@@ -9,7 +9,7 @@ using UnityEngine.AI;
 namespace Unity.Pipeline.Extensions.Editor.Commands.Navigation
 {
     /// <summary>Runtime-style controls for a NavMeshAgent in Editor Play mode.</summary>
-    public static class NavMeshAgentCommands
+    internal static class NavMeshAgentCommands
     {
         [CliCommand("set_navmesh_agent_destination", "Set a NavMeshAgent destination in Editor Play mode. The agent must be on a baked NavMesh.")]
         public static object SetNavMeshAgentDestination(

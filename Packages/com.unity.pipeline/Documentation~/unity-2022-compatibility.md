@@ -1,7 +1,110 @@
 # Unity 2022.3.62f3 compatibility notes
 
 This document records the local compatibility changes made to run `com.unity.pipeline`
-`0.5.0-exp.1` in an empty Unity `2022.3.62f3` project.
+`0.6.0-exp.1` in a Unity `2022.3.62f3` project.
+
+## 0.6.0 upstream synchronization
+
+The baseline is the official Unity registry package, not a version-only change:
+
+| Package | Registry tarball SHA-1 | Upstream revision |
+| --- | --- | --- |
+| `0.5.0-exp.1` | `24975d51528a67809794e52185267762a9561e15` | `17df0ac8d6533a8c22830c89dc85a24c01f30ade` |
+| `0.6.0-exp.1` | `9bb4172c603cda2626bacac4d4c64bdb8270a3e0` | `27af91a943315a5702ac7679241399b649d6a20d` |
+
+Source: `https://packages.unity.com/com.unity.pipeline`, with tarballs from
+`https://download.packages.unity.com/com.unity.pipeline/-/com.unity.pipeline-<version>.tgz`.
+Existing local changes were merged against the official 0.5 baseline before applying 0.6.
+See [CHANGELOG](../CHANGELOG.md) for the complete upstream release notes.
+
+The update includes server-side `argv`/`commandLine` binding, compact responses, batch operations,
+`run_script`, eval usage reporting, editor analytics, runtime settings commands, automatic runtime
+bootstrap, the IL interpreter, signed player hot-reload pushes, the source watcher, and the upstream
+regression tests and documentation.
+
+Port-specific decisions:
+
+- Declare `unity: 2022.3`. Keep the already-tested Test Framework `1.4.6` dependency rather than
+  downgrading to upstream 0.6's `1.1.33`.
+- Preserve the existing Unity 2022 Roslyn DLL bundle, importer settings, checksums, and explicit
+  test-assembly references. Add the new interpreter assembly references from upstream.
+- Keep upstream 0.6 type visibility. The extensions package uses `.asmref` files to compile its
+  Editor code into `Unity.Pipeline.Editor` and tests into `Unity.Pipeline.Tests.Editor`; Runtime
+  already grants internal access to both hosts. Extension implementation types are internal too.
+  The Editor host references `Unity.AI.Navigation`, with its `1.1.7` package dependency declared
+  by this backport. Extension commands remain discoverable without widening Pipeline's public API.
+- Use `EditorAnalytics.RegisterEventWithLimit` / `SendEventWithLimit` on Unity 2022, with the same
+  event payloads and the Editor analytics enablement check. Unity 2023.2+ uses upstream's
+  `IAnalytic` transport. The compatibility interface is private to the Pipeline Editor assembly's
+  namespace, not a replacement type in Unity's namespace.
+- Keep the physics-material alias, render-queue fallback, public test-facing runtime members,
+  and descriptor watchdog recovery from the previous port.
+- Use the two-argument `LogAssert.Expect(LogType.Error, ...)` overload in new regression tests.
+- Use explicit IPv4 loopback in the test-server convenience client and live-server guard. On this
+  Windows/Mono installation, a `localhost` status probe took 2052 ms versus 3 ms on `127.0.0.1`.
+  Explicit-host connectivity tests and production server binding are unchanged.
+- Import the official IL interpreter analyzer through Unity, with the `RoslynAnalyzer` label and
+  all platform compatibility disabled. SHA-256:
+  `d2db688b33e8504c04fcd31800e3efbd26bb177ee3b67f8ef2a59a3d5dc19700`.
+- Retain `RuntimePipelineManager` and its script GUID as an obsolete compatibility shell. It does
+  not start another server or own global discovery state. Its explicit control methods forward to
+  the new bootstrap driver; old serialized fields remain available for migration but no longer
+  configure a server. Configure **Project Settings > Pipeline > Runtime** before using the runtime
+  server. The existing sample scenes retain their bindings through this shell.
+- Supply the new Pong example as `PongScript.cs` (matching its MonoBehaviour class) plus an Editor
+  menu that authors and saves `PongScene.unity` after sample import. This replaces the upstream
+  Unity 6 serialized scene, which still references the removed legacy manager. No sample scene or
+  script GUID is edited by hand.
+- Native modal-dialog observation remains guarded by upstream's `UNITY_6000_7_OR_NEWER` condition.
+  The protocol and dialog tracker are present, but Unity 2022 cannot provide native dialog events.
+- The existing Input System assembly references are retained, including the project's subsequent
+  restoration of those references. The historical removal described below is not the current state.
+
+### Assembly-reference verification on 2026-10-15
+
+Unity `2022.3.62f3` compiled the restored upstream visibility and both extension `.asmref` files.
+All 8 `CustomCommandRegistrationTests` passed, including command discovery, reflection invocation,
+GameObject duplication, profiler snapshots, and the assembly/visibility regression check.
+Unity generated the new reference metadata and removed the obsolete definition metadata.
+The prior full-suite results below predate this assembly migration.
+
+### Assembly-reference verification on 2026-10-15
+
+Unity `2022.3.62f3` compiled the restored upstream visibility and both extension `.asmref` files.
+All 8 `CustomCommandRegistrationTests` passed, including command discovery, reflection invocation,
+GameObject duplication, profiler snapshots, and the assembly/visibility regression check.
+Unity generated the new reference metadata and removed the obsolete definition metadata.
+The prior full-suite results below predate this assembly migration.
+
+### Verification on 2026-10-14
+
+Validated in the running Unity `2022.3.62f3` Editor through the Unity CLI/Pipeline:
+
+| Suite | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: |
+| Core EditMode (default, non-explicit selection) | 1161 | 0 | 2 |
+| Extensions EditMode | 7 | 0 | 0 |
+| Runtime PlayMode (Editor/Mono) | 15 | 0 | 17 |
+
+The two core skips are upstream's disabled authoring E2E and Origin-header tests. The 17 PlayMode
+skips are upstream's disabled legacy in-place hot-reload suites; they were not newly disabled by
+this port. The passing PlayMode tests include interpreter host bindings, the AOT probe corpus
+executed on Mono, and runtime-server startup/request handling. This is **not** an IL2CPP Player
+build validation; no Player build or target switch was performed.
+
+The broad self-test run crosses a domain reload and can leave the HTTP result collector reporting
+`running` after the native run has finished. `Tests/Editor/Unity2022TestReport.cs` provides an opt-in
+native Test Framework callback for authoritative NUnit XML results across that reload. Set
+`SessionState["Unity.Pipeline.Tests.XmlReportPath"]` to an absolute output filename before a run
+and erase the key afterwards. The counts above were read from these native XML reports; extension
+and PlayMode counts also agree with `test_status`.
+
+Also checked: clean script compilation with the imported analyzer, CLI argument binding,
+non-transactional batch execution, sample import, Pong scene creation/save and its PlayMode
+camera capture. Temporary sample/test assets and test-induced project settings were cleaned up;
+the Editor was returned to stopped mode with its original clean unnamed default scene.
+
+The sections below explain the original 2022 port and its retained compatibility decisions.
 
 The upstream package declares `"unity": "6000.0"` and uses several Unity 6-era API and plugin import
 assumptions. Unity 2022 can compile most of the package, but it needs explicit adjustments around
@@ -9,7 +112,8 @@ Roslyn dependencies, renamed Unity APIs, test assembly references, and optional 
 
 ## Scope
 
-The changes are limited to `Packages/com.unity.pipeline`.
+Core changes are in `Packages/com.unity.pipeline`; the extensions package dependency is updated
+to `0.6.0-exp.1` as well.
 
 The goal is compile compatibility with Unity `2022.3.62f3`, not a behavioral rewrite of the package.
 Unity Editor has confirmed the project reloads with no compile errors after these changes.
@@ -219,7 +323,7 @@ Why:
 
 ## Verification
 
-Verified in the Unity Editor:
+Historical verification of the previous **0.5.0** port (not the 0.6 results):
 
 - Unity `2022.3.62f3`
 - Embedded package reports `com.unity.pipeline` version `0.5.0-exp.1`

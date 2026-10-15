@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 namespace Unity.Pipeline.Extensions.Editor.Commands.Assets
 {
     /// <summary>Read-only access to assets stored in Unity's editor built-in resources archive.</summary>
-    public static class BuiltInAssetCommands
+    internal static class BuiltInAssetCommands
     {
         private const string BuiltInResourcesPath = "Resources/unity_builtin_extra";
         private static Object[] cachedAssets;
@@ -110,7 +110,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Assets
     }
 
     [Serializable]
-    public sealed class BuiltInAssetSearchResult
+    internal sealed class BuiltInAssetSearchResult
     {
         [JsonProperty("resourcePath")] public string ResourcePath { get; set; }
         [JsonProperty("results")] public BuiltInAssetResult[] Results { get; set; }
@@ -118,7 +118,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Assets
     }
 
     [Serializable]
-    public sealed class BuiltInAssetResult
+    internal sealed class BuiltInAssetResult
     {
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("type")] public string Type { get; set; }

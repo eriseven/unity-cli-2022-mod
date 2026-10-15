@@ -53,9 +53,9 @@ unity command run_tests --mode editor --filter MyFixture.MyTest
 ## 3. Runtime hot reload
 
 Change gameplay code in a **running** game with no domain reload. The game must be live:
-enter Editor Play Mode (`unity command editor_play`) or run a dev Player. A
-`RuntimePipelineManager` in the scene auto-discovers tagged methods on `Awake` (no manual
-registration). Mono only — Editor Play Mode and Mono desktop dev builds, not IL2CPP. The token
+enter Editor Play Mode (`unity command editor_play`) or run a dev Player. Configure the runtime server in Project Settings > Pipeline > Runtime;
+`RuntimePipelineBootstrap` creates the driver automatically when enabled (no scene component
+is required). The `reload_file` path is Mono only — Editor Play Mode and Mono desktop dev builds, not IL2CPP. The token
 is auto-injected for local requests.
 
 ### Prefer: in-place — `reload_file`

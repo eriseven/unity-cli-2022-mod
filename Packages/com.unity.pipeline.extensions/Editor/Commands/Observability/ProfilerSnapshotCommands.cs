@@ -9,7 +9,7 @@ using UnityEditor;
 namespace Unity.Pipeline.Extensions.Editor.Commands.Observability
 {
     /// <summary>Persist the structured profiler snapshots produced by <see cref="ProfilerControlCommands"/>.</summary>
-    public static class ProfilerSnapshotCommands
+    internal static class ProfilerSnapshotCommands
     {
         private const long MaxLoadBytes = 10L * 1024L * 1024L;
 
@@ -81,7 +81,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Observability
     }
 
     [Serializable]
-    public sealed class ProfilerSnapshotFileResult
+    internal sealed class ProfilerSnapshotFileResult
     {
         [JsonProperty("path")] public string Path { get; set; }
         [JsonProperty("exists")] public bool Exists { get; set; }

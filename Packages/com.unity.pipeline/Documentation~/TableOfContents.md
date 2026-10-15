@@ -7,8 +7,10 @@
   * [Runtime connection & setup](runtime-setup.md)
   * [Hot reload](hot-reload.md)
   * [Tests architecture](testing.md)
+  * [Analytics](analytics.md)
   * [Unity 2022 compatibility notes](unity-2022-compatibility.md)
 * Command reference
+  * [Batch command](commands/batch.md)
   * [Asset & file commands](commands/assets-and-files.md)
   * [Scene commands](commands/scenes.md)
   * [GameObject & component commands](commands/gameobjects-and-components.md)

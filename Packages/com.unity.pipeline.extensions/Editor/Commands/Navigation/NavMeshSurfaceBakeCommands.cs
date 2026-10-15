@@ -17,7 +17,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Navigation
     /// com.unity.pipeline owns bake_navmesh_surfaces as a v1 placeholder, and the Pipeline registry
     /// does not provide a deterministic extension-overrides-core precedence rule for duplicate names.
     /// </summary>
-    public static class NavMeshSurfaceBakeCommands
+    internal static class NavMeshSurfaceBakeCommands
     {
         [CliCommand("bake_navmesh_surfaces_compat", "Bake or clear AI Navigation NavMeshSurface data. Unlike the legacy bake_navmesh command, this uses each surface's configured collection, modifiers, and build settings.")]
         public static NavMeshSurfaceBakeResult BakeNavMeshSurfaces(
@@ -88,7 +88,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Navigation
     }
 
     [Serializable]
-    public sealed class NavMeshSurfaceBakeResult
+    internal sealed class NavMeshSurfaceBakeResult
     {
         public bool DryRun { get; set; }
         public bool Cleared { get; set; }
@@ -96,7 +96,7 @@ namespace Unity.Pipeline.Extensions.Editor.Commands.Navigation
     }
 
     [Serializable]
-    public sealed class NavMeshSurfaceBakeItem
+    internal sealed class NavMeshSurfaceBakeItem
     {
         public AuthoringResult Surface { get; set; }
         public AuthoringResult GameObject { get; set; }
