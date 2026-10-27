@@ -206,7 +206,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void TryBind_AllOptionalParameters_StillFillInDeclarationOrder()
         {
-            var findAssets = Command("find_assets",
+            var findAssets = Command("asset find",
                 Param("type", typeof(string)),
                 Param("name", typeof(string)),
                 Param("label", typeof(string)),
@@ -228,7 +228,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // `find_assets Texture2D --limit 5`: the flag takes its own slot, and the positional
             // still lands on `type` rather than being pushed along by it.
-            var findAssets = Command("find_assets",
+            var findAssets = Command("asset find",
                 Param("type", typeof(string)),
                 Param("name", typeof(string)),
                 Param("limit", typeof(int), defaultValue: 200));
@@ -310,7 +310,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // Rejects `create_folder path=Assets/Foo` (a misremembered flag syntax) while
             // leaving `eval "obj=null;"` alone -- see the eval test below.
-            var command = Command("create_folder", Param("path", typeof(string), required: true));
+            var command = Command("asset create_folder", Param("path", typeof(string), required: true));
 
             var problems = BindProblems(command, "path=Assets/Foo");
 
@@ -323,7 +323,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // THE case the bare-assignment heuristic must not break: 'obj' is not a
             // declared parameter of eval, so this is code, not a misspelled flag.
-            var eval = Command("eval",
+            var eval = Command("script eval",
                 Param("code", typeof(string), required: true),
                 Param("timeout", typeof(int)));
 
@@ -402,7 +402,7 @@ namespace Unity.Pipeline.Tests.Editor
             // Regression guard, not a driver: this already holds because the binder stores
             // strings. It is the semantic FIX over the CLI's old shape-guessing ParseValue,
             // which turned 007 into the number 7 even for a declared string parameter.
-            var command = Command("reload_file", Param("path", typeof(string), required: true));
+            var command = Command("script.methodreload reload", Param("path", typeof(string), required: true));
 
             Assert.AreEqual("007", Bind(command, "007")["path"].Value<string>());
         }
@@ -442,7 +442,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void TryBind_EnumValueTheConverterAccepts_BindsTheTokenVerbatim(
             System.Type parameterType, string token)
         {
-            var command = Command("log", Param("level", parameterType, required: true));
+            var command = Command("console write", Param("level", parameterType, required: true));
 
             // Stored as the token's own text, like every other declared type: the executor
             // re-converts from the same string, so binding and execution cannot diverge.
@@ -460,7 +460,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void TryBind_EnumValueTheConverterRejects_ReportsTypeMismatch(
             System.Type parameterType, string token, string expectedTypeName)
         {
-            var command = Command("log", Param("level", parameterType, required: true));
+            var command = Command("console write", Param("level", parameterType, required: true));
 
             var problems = BindProblems(command, token);
 
@@ -476,7 +476,7 @@ namespace Unity.Pipeline.Tests.Editor
             // The '{'-prefixed JSON re-parse guard in ConvertParameterToken must be exercised by
             // the dry run, and the dry run must NOT rewrite what we store -- the executor redoes
             // the conversion from the same string.
-            var command = Command("batch", Param("operations", typeof(JObject), required: true));
+            var command = Command("job batch", Param("operations", typeof(JObject), required: true));
 
             var bound = Bind(command, "{\"a\":1}");
 
@@ -506,7 +506,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void TryBind_ScalarForAnUntypedParameter_KeepsItsJsonType(
             string token, JTokenType expected)
         {
-            var command = Command("set_serialized_field", Param("value", typeof(JToken), required: true));
+            var command = Command("component set_field", Param("value", typeof(JToken), required: true));
 
             Assert.AreEqual(expected, Bind(command, token)["value"].Type);
         }
@@ -515,7 +515,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void TryBind_UntypedLeadingZeroInteger_ParsesWithoutRadix()
         {
             // Shape alone is not the whole contract: 07 must become 7, not 8 (octal) or "07".
-            var command = Command("set_serialized_field", Param("value", typeof(JToken), required: true));
+            var command = Command("component set_field", Param("value", typeof(JToken), required: true));
 
             Assert.AreEqual(7, Bind(command, "07")["value"].Value<int>());
         }
@@ -528,7 +528,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void TryBind_ScalarForATypedParameter_StaysAStringRegardlessOfShape(
             System.Type parameterType, string token)
         {
-            var command = Command("reload_file", Param("value", parameterType, required: true));
+            var command = Command("script.methodreload reload", Param("value", parameterType, required: true));
 
             Assert.AreEqual(JTokenType.String, Bind(command, token)["value"].Type);
         }
@@ -538,7 +538,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // The silent-drop class: ToObject returns NULL rather than throwing, so today the
             // parameter vanishes and the command runs with a default. That must be an error.
-            var command = Command("batch", Param("operations", typeof(float[]), required: true));
+            var command = Command("job batch", Param("operations", typeof(float[]), required: true));
 
             var problems = BindProblems(command, "not-json-at-all");
 
@@ -617,7 +617,7 @@ namespace Unity.Pipeline.Tests.Editor
 
         /// <summary>eval: a required code string plus an optional integer timeout.</summary>
         private static CommandInfo Eval() =>
-            Command("eval",
+            Command("script eval",
                 Param("code", typeof(string), required: true),
                 Param("timeout", typeof(int)));
 
@@ -639,7 +639,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // `create_folder path=Assets/Foo` is the case the check exists for: the token lands
             // on `path` and its own text names `path`, which is a misremembered `--path`.
-            var command = Command("create_folder", Param("path", typeof(string), required: true));
+            var command = Command("asset create_folder", Param("path", typeof(string), required: true));
 
             var problems = BindProblems(command, "path=Assets/Foo");
 
@@ -723,7 +723,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // The table above binds enums positionally; a --flag value takes a different path
             // through pass 1, so pin that it lands on the same coercion check.
-            var command = Command("log", Param("channels", typeof(Channels)));
+            var command = Command("console write", Param("channels", typeof(Channels)));
 
             Assert.IsTrue(JToken.DeepEquals(new JObject { ["channels"] = "Info,Warning" },
                 Bind(command, "--channels", "Info,Warning")));

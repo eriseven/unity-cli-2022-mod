@@ -32,7 +32,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void DynamicCommand_InvokesBoundInstanceAndSurvivesDiscoverySwap()
         {
             const string name = "port080_dynamic_probe";
-            CommandRegistry.RegisterCommand(name, "Port regression probe", new Func<int, int>(new Handler().Add));
+            CommandRegistry.RegisterCommand("global", name, "Port regression probe", new Func<int, int>(new Handler().Add));
             try
             {
                 CommandRegistry.SetDiscovery(new TypeCacheCommandDiscovery());
@@ -40,9 +40,9 @@ namespace Unity.Pipeline.Tests.Editor
                 var response = server.Execute(name, new { value = 3 });
                 Assert.IsTrue(response.IsSuccess, response.Error);
                 Assert.AreEqual(43, response.JsonResponse["result"].Value<int>());
-                Assert.Throws<InvalidOperationException>(() => CommandRegistry.RegisterCommand(name, "duplicate", new Func<int>(() => 0)));
+                Assert.Throws<InvalidOperationException>(() => CommandRegistry.RegisterCommand("global", name, "duplicate", new Func<int>(() => 0)));
             }
-            finally { CommandRegistry.UnregisterCommand(name); }
+            finally { CommandRegistry.UnregisterCommand("global", name); }
             Assert.IsFalse(CommandRegistry.DiscoverCommands().Any(c => c.Name == name));
         }
 
@@ -51,14 +51,14 @@ namespace Unity.Pipeline.Tests.Editor
         {
             Assert.AreEqual("Unity.Pipeline.Attributes", typeof(CliCommandAttribute).Assembly.GetName().Name);
             Assert.AreEqual(typeof(CliCommandAttribute).Assembly, typeof(CliArgAttribute).Assembly);
-            Assert.AreEqual(typeof(CliCommandAttribute).Assembly, typeof(Unity.Pipeline.CodeReload.CodeReloadAttribute).Assembly);
+            Assert.AreEqual(typeof(CliCommandAttribute).Assembly, typeof(Unity.Pipeline.MethodReload.MethodReloadAttribute).Assembly);
         }
 
-        [TestCase("recompile_status")]
-        [TestCase("build_status")]
-        [TestCase("lighting_bake_status")]
-        [TestCase("navmesh_bake_status")]
-        [TestCase("occlusion_bake_status")]
+        [TestCase("script recompile_status")]
+        [TestCase("build status")]
+        [TestCase("lighting bake_status")]
+        [TestCase("navmesh bake_status")]
+        [TestCase("occlusion bake_status")]
         public void StatusEndpoint_ReturnsJsonObject(string command)
         {
             using var server = new PipelineTestServer();
@@ -93,7 +93,7 @@ namespace Unity.Pipeline.Tests.Editor
             Unity.Pipeline.Console.ConsoleLogCapture.Buffer.Clear();
             EditorConsoleGroundTruth.ResetForTests();
             EditorConsoleGroundTruth.SampleForTests();
-            var result = ConsoleCommand.GetConsole(level: "error");
+            var result = ConsoleCommand.Get(level: "error");
             Assert.IsTrue(result.GroundTruth.Seeded);
             Assert.IsTrue(result.Entries.Any(e => e.Seeded && e.Message.Contains(marker)));
             Assert.AreEqual(UnityEditor.EditorUtility.scriptCompilationFailed, result.GroundTruth.CompilationFailed);

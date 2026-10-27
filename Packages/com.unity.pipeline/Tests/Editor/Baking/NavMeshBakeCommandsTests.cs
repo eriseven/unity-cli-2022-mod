@@ -30,13 +30,13 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         {
             var commands = CommandRegistry.DiscoverCommands().ToList();
 
-            Assert.IsNotNull(commands.FirstOrDefault(c => c.Name == "bake_navmesh"));
-            Assert.IsNotNull(commands.FirstOrDefault(c => c.Name == "cancel_navmesh_bake"));
-            Assert.IsNotNull(commands.FirstOrDefault(c => c.Name == "clear_navmesh"));
-            Assert.IsNotNull(commands.FirstOrDefault(c => c.Name == "get_navmesh_settings"));
-            Assert.IsNotNull(commands.FirstOrDefault(c => c.Name == "set_navmesh_settings"));
+            Assert.IsNotNull(commands.FirstOrDefault(c => c.FullName == "navmesh bake"));
+            Assert.IsNotNull(commands.FirstOrDefault(c => c.FullName == "navmesh cancel_bake"));
+            Assert.IsNotNull(commands.FirstOrDefault(c => c.FullName == "navmesh clear_bake"));
+            Assert.IsNotNull(commands.FirstOrDefault(c => c.FullName == "navmesh get_settings"));
+            Assert.IsNotNull(commands.FirstOrDefault(c => c.FullName == "navmesh set_settings"));
 
-            var status = commands.FirstOrDefault(c => c.Name == "navmesh_bake_status");
+            var status = commands.FirstOrDefault(c => c.FullName == "navmesh bake_status");
             Assert.IsNotNull(status, "Should discover navmesh_bake_status");
             Assert.IsFalse(status.MainThreadRequired, "navmesh_bake_status must be off-main-thread");
             Assert.AreEqual(0, status.Parameters.Count, "navmesh_bake_status takes no parameters");
@@ -45,7 +45,7 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         [Test]
         public void GetNavMeshSettings_ReturnsAgentFields()
         {
-            var settings = NavMeshBakeCommands.GetNavMeshSettings();
+            var settings = NavMeshBakeCommands.GetSettings();
             Assert.IsTrue(settings.Available, "Legacy NavMesh settings should be available");
             Assert.Greater(settings.AgentRadius, 0f, "agentRadius should be a sensible positive default");
             Assert.Greater(settings.AgentHeight, 0f, "agentHeight should be a sensible positive default");
@@ -54,23 +54,23 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         [Test]
         public void SetNavMeshSettings_RoundTrips_AgentRadius()
         {
-            var before = NavMeshBakeCommands.GetNavMeshSettings();
+            var before = NavMeshBakeCommands.GetSettings();
             var newRadius = before.AgentRadius >= 0.5f ? 0.35f : 0.75f;
 
-            NavMeshBakeCommands.SetNavMeshSettings(new JObject { ["agentRadius"] = newRadius });
+            NavMeshBakeCommands.SetSettings(new JObject { ["agentRadius"] = newRadius });
 
-            var after = NavMeshBakeCommands.GetNavMeshSettings();
+            var after = NavMeshBakeCommands.GetSettings();
             Assert.AreEqual(newRadius, after.AgentRadius, 0.001f, "agentRadius should round-trip");
 
             // Restore the prior value so the suite leaves no residue in the host project's settings.
-            NavMeshBakeCommands.SetNavMeshSettings(new JObject { ["agentRadius"] = before.AgentRadius });
+            NavMeshBakeCommands.SetSettings(new JObject { ["agentRadius"] = before.AgentRadius });
         }
 
         [Test]
         public void SetNavMeshSettings_ReportsUnknownKeys()
         {
             var result = JObject.FromObject(
-                NavMeshBakeCommands.SetNavMeshSettings(new JObject { ["agentRadius"] = 0.5f, ["nope"] = 1 }, dryRun: true));
+                NavMeshBakeCommands.SetSettings(new JObject { ["agentRadius"] = 0.5f, ["nope"] = 1 }, dryRun: true));
 
             var applied = result["applied"].Select(t => t.Value<string>()).ToList();
             var unknown = result["unknown"].Select(t => t.Value<string>()).ToList();
@@ -81,19 +81,19 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         [Test]
         public void SetNavMeshSettings_DryRun_DoesNotChangeAnything()
         {
-            var before = NavMeshBakeCommands.GetNavMeshSettings();
+            var before = NavMeshBakeCommands.GetSettings();
             var changed = before.AgentRadius >= 0.5f ? 0.2f : 0.9f;
 
-            NavMeshBakeCommands.SetNavMeshSettings(new JObject { ["agentRadius"] = changed }, dryRun: true);
+            NavMeshBakeCommands.SetSettings(new JObject { ["agentRadius"] = changed }, dryRun: true);
 
-            var after = NavMeshBakeCommands.GetNavMeshSettings();
+            var after = NavMeshBakeCommands.GetSettings();
             Assert.AreEqual(before.AgentRadius, after.AgentRadius, 0.001f, "dry_run must not mutate settings");
         }
 
         [Test]
         public void ClearNavMesh_WithoutConfirm_Throws()
         {
-            Assert.Throws<System.ArgumentException>(() => NavMeshBakeCommands.ClearNavMesh());
+            Assert.Throws<System.ArgumentException>(() => NavMeshBakeCommands.ClearBake());
         }
 
         [Test]
@@ -101,14 +101,14 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            var result = JObject.FromObject(NavMeshBakeCommands.BakeNavMesh());
+            var result = JObject.FromObject(NavMeshBakeCommands.Bake());
             Assert.AreEqual("no_scene", result["code"].Value<string>());
         }
 
         [Test]
         public void NavMeshBakeStatus_AlwaysHasStatusField()
         {
-            var json = NavMeshBakeCommands.NavMeshBakeStatus();
+            var json = NavMeshBakeCommands.BakeStatus();
             Assert.IsNotNull(json["status"]);
         }
 
@@ -117,7 +117,7 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         {
             // This repo does not reference com.unity.ai.navigation, so the stub should report the
             // package is absent (or, if the package is present in the host project, not_implemented).
-            var result = JObject.FromObject(NavMeshBakeCommands.BakeNavMeshSurfaces());
+            var result = JObject.FromObject(NavMeshBakeCommands.BakeSurfaces());
             var code = result["code"].Value<string>();
             Assert.That(code, Is.EqualTo("package_not_found").Or.EqualTo("not_implemented"));
         }

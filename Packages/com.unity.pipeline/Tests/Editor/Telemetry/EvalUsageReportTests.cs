@@ -179,7 +179,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             // AssetDatabase.Refresh) and never calls AssetDatabase.SaveAssets — steering an agent
             // off that eval to save_all would silently stop persisting dirty non-scene assets.
             Assert.IsTrue(EvalCoverageMap.Default.TryGetValue("AssetDatabase.SaveAssets", out var mapped));
-            Assert.AreNotEqual("save_all", mapped, "save_all is not a cover for AssetDatabase.SaveAssets");
+            Assert.AreNotEqual("editor save_all", mapped, "save_all is not a cover for AssetDatabase.SaveAssets");
             Assert.AreEqual("save_assets", mapped, "SaveAssets maps to a proposed gap command instead");
         }
 
@@ -190,8 +190,8 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             // rename would silently reclassify the fingerprint as an uncovered gap with nothing
             // failing. Pin the habit entries against the live catalog so drift breaks a test.
             CommandRegistry.SetDiscovery(new TypeCacheCommandDiscovery());
-            var available = new HashSet<string>(CommandRegistry.DiscoverCommands().Select(c => c.Name));
-            foreach (var name in new[] { "set_player_settings", "get_player_settings" })
+            var available = new HashSet<string>(CommandRegistry.DiscoverCommands().Select(c => c.FullName));
+            foreach (var name in new[] { "settings.player set", "settings.player get" })
                 Assert.IsTrue(available.Contains(name),
                     $"coverage-map habit entry '{name}' no longer exists in the catalog — update EvalCoverageMap");
         }

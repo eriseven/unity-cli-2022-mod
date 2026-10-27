@@ -8,21 +8,20 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecycle
 {
     class DialogGateTests
     {
-        sealed class DialogGateTestServer : EditorPipelineServer
+        sealed class DialogGateTestServer : IsolatedEditorServer
         {
             /// <summary>true (the default) simulates a settled server; false the post-cold-start
             /// settle window, for the settling-vs-dialog priority tests below.</summary>
             public bool Settled { get; set; } = true;
 
-            protected override bool WritesDescriptor => false;
             protected override (int basePort, int maxPort) GetPortRange() => (7850, 7899);
             protected override string GetToken() => SecurityTokenManager.GetOrCreateToken();
-            protected override bool IsSettled => Settled;
+            protected override bool? PinnedSettled => Settled;
 
             // WritesDescriptor is false, so the instance descriptor is never created; this
             // server is genuinely running once Start() returns, so /api/status's ordinary case
             // should still be "ready", not "error" — needed for the ApiStatus_* tests below.
-            protected override bool HasInstanceDescriptor => true;
+            protected override bool IsAdvertised => true;
         }
 
         DialogGateTestServer m_Server;
@@ -75,7 +74,7 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecycle
 
             m_Server.Dialogs.OnShown(7, "native", "Title", "msg", new[] { "OK" }, "Info", System.DateTime.UtcNow);
 
-            var response = await m_Client.ExecuteCommandAsync("editor_status", new { });
+            var response = await m_Client.ExecuteCommandAsync("editor status", new { });
 
             Assert.AreEqual(expectedStatusCode, response.StatusCode);
             if (snapshotTakenFirst)
@@ -90,7 +89,7 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecycle
         {
             m_Server.Dialogs.OnShown(7, "native", "Title", "msg", new[] { "OK" }, "Info", System.DateTime.UtcNow);
 
-            var response = await m_Client.ExecuteCommandAsync("recompile_status", new { });
+            var response = await m_Client.ExecuteCommandAsync("script recompile_status", new { });
 
             Assert.IsTrue(response.IsSuccess,
                 "MainThreadRequired=false commands must stay servable while a dialog is open");

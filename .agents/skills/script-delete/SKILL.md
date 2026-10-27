@@ -17,10 +17,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command delete_asset --asset Assets/Scripts/OldBehaviour.cs --dry_run true
-unity command delete_asset --asset Assets/Scripts/OldBehaviour.cs --confirm true
-unity command recompile
-unity command recompile_status
+unity command asset delete --asset Assets/Scripts/OldBehaviour.cs --dry_run true
+unity command asset delete --asset Assets/Scripts/OldBehaviour.cs --confirm true
+unity command script recompile
+unity command script recompile_status
 ```
 
 ## Notes

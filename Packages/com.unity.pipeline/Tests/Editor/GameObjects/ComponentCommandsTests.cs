@@ -91,7 +91,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         public void AddComponent_ByShortName_Adds()
         {
             var go = Track(new GameObject("AddComp_CLI192"));
-            var result = ComponentCommands.AddComponent(RefTo(go), "Rigidbody");
+            var result = ComponentCommands.Add(RefTo(go), "Rigidbody");
 
             Assert.IsNotNull(go.GetComponent<Rigidbody>(), "Rigidbody should be added");
             Assert.AreEqual("Rigidbody", result.Type);
@@ -101,7 +101,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         public void AddComponent_ByFullyQualifiedName_Adds()
         {
             var go = Track(new GameObject("AddCompFq_CLI192"));
-            ComponentCommands.AddComponent(RefTo(go), "UnityEngine.Rigidbody");
+            ComponentCommands.Add(RefTo(go), "UnityEngine.Rigidbody");
             Assert.IsNotNull(go.GetComponent<Rigidbody>());
         }
 
@@ -111,7 +111,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var go = Track(new GameObject("RemoveComp_CLI192"));
             go.AddComponent<Rigidbody>();
 
-            ComponentCommands.RemoveComponent(RefTo(go), "Rigidbody");
+            ComponentCommands.Remove(RefTo(go), "Rigidbody");
 
             Assert.IsNull(go.GetComponent<Rigidbody>(), "Rigidbody should be removed");
         }
@@ -122,12 +122,12 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var go = Track(new GameObject("PropPrim_CLI192"));
             var rb = go.AddComponent<Rigidbody>();
 
-            ComponentCommands.SetComponentProperties(RefTo(rb),
+            ComponentCommands.SetProperties(RefTo(rb),
                 new JObject { ["m_Mass"] = 12.5f });
 
             Assert.AreEqual(12.5f, rb.mass, 0.001f, "Mass should be set on the live component");
 
-            var read = ComponentCommands.GetComponentProperties(RefTo(rb));
+            var read = ComponentCommands.GetProperties(RefTo(rb));
             Assert.AreEqual(12.5, read.Properties["m_Mass"].ToObject<double>(), 0.001,
                 "get should read back the value that set wrote");
         }
@@ -139,7 +139,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var rb = go.AddComponent<Rigidbody>();
 
             // m_CollisionDetection maps to the CollisionDetectionMode enum.
-            ComponentCommands.SetComponentProperties(RefTo(rb),
+            ComponentCommands.SetProperties(RefTo(rb),
                 new JObject { ["m_CollisionDetection"] = "Continuous" });
 
             Assert.AreEqual(CollisionDetectionMode.Continuous, rb.collisionDetectionMode,
@@ -152,7 +152,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var go = Track(new GameObject("PropVec_CLI192"));
             var box = go.AddComponent<BoxCollider>();
 
-            ComponentCommands.SetComponentProperties(RefTo(box),
+            ComponentCommands.SetProperties(RefTo(box),
                 new JObject { ["m_Size"] = new JArray(2f, 3f, 4f) });
 
             Assert.AreEqual(new Vector3(2, 3, 4), box.size, "Vector3 property should be set from a JSON array");
@@ -177,7 +177,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
                 var mf = go.AddComponent<MeshFilter>();
 
                 // MeshFilter.m_Mesh is a single Mesh object reference.
-                ComponentCommands.SetComponentProperties(RefTo(mf),
+                ComponentCommands.SetProperties(RefTo(mf),
                     new JObject { ["m_Mesh"] = new JObject { ["path"] = meshPath } });
 
                 Assert.IsNotNull(mf.sharedMesh, "Object reference should be assigned from the resolved handle");
@@ -197,7 +197,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var rb = go.AddComponent<Rigidbody>();
 
             Assert.Throws<System.ArgumentException>(() =>
-                ComponentCommands.SetComponentProperties(RefTo(rb),
+                ComponentCommands.SetProperties(RefTo(rb),
                     new JObject { ["m_NoSuchProperty"] = 1 }));
         }
 
@@ -208,7 +208,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var rb = go.AddComponent<Rigidbody>();
             rb.mass = 1f;
 
-            ComponentCommands.SetComponentProperties(RefTo(rb), new JObject { ["m_Mass"] = 9f });
+            ComponentCommands.SetProperties(RefTo(rb), new JObject { ["m_Mass"] = 9f });
             Assert.AreEqual(9f, rb.mass, 0.001f);
 
             Undo.PerformUndo();
@@ -226,7 +226,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("add_component",
+                var response = server.Execute("component add",
                     new { target = new { instanceId = PipelineUtils.GetObjectId(go) }, type = "Rigidbody" });
 
                 Assert.IsTrue(response.IsSuccess, $"add_component should succeed: {response.Error}");
@@ -243,7 +243,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_component_properties", new
+                var response = server.Execute("component set_properties", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(rb) },
                     properties = new { m_Mass = 7.0 }
@@ -270,7 +270,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var go = Track(new GameObject("PropMeshInst_CLI220"));
             var mf = go.AddComponent<MeshFilter>();
 
-            ComponentCommands.SetComponentProperties(RefTo(mf),
+            ComponentCommands.SetProperties(RefTo(mf),
                 new JObject { ["m_Mesh"] = new JObject { ["instanceId"] = PipelineUtils.GetObjectId(mesh).RawValue } });
 
             Assert.AreEqual(mesh, mf.sharedMesh, "Asset reference by instanceId should be assigned");
@@ -285,7 +285,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var go = Track(new GameObject("PropMeshGuid_CLI220"));
             var mf = go.AddComponent<MeshFilter>();
 
-            ComponentCommands.SetComponentProperties(RefTo(mf),
+            ComponentCommands.SetProperties(RefTo(mf),
                 new JObject { ["m_Mesh"] = new JObject { ["guid"] = guid } });
 
             Assert.AreEqual(mesh, mf.sharedMesh, "Asset reference by guid should be assigned");
@@ -299,7 +299,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var mf = go.AddComponent<MeshFilter>();
 
             Assert.Throws<System.ArgumentException>(() =>
-                ComponentCommands.SetComponentProperties(RefTo(mf),
+                ComponentCommands.SetProperties(RefTo(mf),
                     new JObject { ["m_Mesh"] = new JObject { ["instanceId"] = 999999999 } }),
                 "An unresolvable object reference must throw, not silently succeed.");
         }
@@ -314,7 +314,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var renderer = go.AddComponent<MeshRenderer>();
 
             // MeshRenderer.m_Materials is an object-reference array (Generic+isArray).
-            ComponentCommands.SetComponentProperties(RefTo(renderer), new JObject
+            ComponentCommands.SetProperties(RefTo(renderer), new JObject
             {
                 ["m_Materials"] = new JArray(
                     new JObject { ["path"] = AssetDatabase.GetAssetPath(matA) },
@@ -336,7 +336,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var renderer = go.AddComponent<MeshRenderer>();
             renderer.sharedMaterials = new[] { matA, matB };
 
-            var read = ComponentCommands.GetComponentProperties(RefTo(renderer));
+            var read = ComponentCommands.GetProperties(RefTo(renderer));
             var materials = read.Properties["m_Materials"] as JArray;
 
             Assert.IsNotNull(materials, "Array property should read back as a JSON array");
@@ -354,7 +354,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_component_properties", new
+                var response = server.Execute("component set_properties", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(mf) },
                     properties = new { m_Mesh = new { instanceID = PipelineUtils.GetObjectId(mesh) } }
@@ -375,7 +375,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_component_properties", new
+                var response = server.Execute("component set_properties", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(renderer) },
                     properties = new

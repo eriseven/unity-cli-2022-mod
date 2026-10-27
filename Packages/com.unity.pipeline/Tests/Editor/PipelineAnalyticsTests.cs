@@ -59,7 +59,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void RecordCommandExecuted_OnFirstCommand_SendsSessionStartedFirst()
         {
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor_status")));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor status")));
 
             Assert.AreEqual(2, m_Sent.Count, "The first command should send the session start and the command");
             Assert.IsInstanceOf<PipelineAnalytics.SessionStartedAnalytic>(m_Sent[0],
@@ -70,11 +70,11 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void RecordCommandExecuted_OnLaterCommands_DoesNotReopenTheSession()
         {
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor_status")));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor status")));
             m_Sent.Clear();
 
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("recompile")));
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("console")));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("script recompile")));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("console get")));
 
             Assert.AreEqual(2, m_Sent.Count, "Two commands should send two events and nothing else");
             CollectionAssert.AllItemsAreInstancesOfType(m_Sent, typeof(PipelineAnalytics.CommandExecutedAnalytic),
@@ -84,7 +84,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void RecordCommandExecuted_OutlivesADomainReload_ViaTheSessionStateLatch()
         {
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor_status")));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor status")));
             var latchAfterFirstCommand = PipelineAnalytics.SessionLatch;
             m_Sent.Clear();
 
@@ -93,7 +93,7 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.IsTrue(latchAfterFirstCommand.started, "The latch must be persisted, not held in a static");
             Assert.Greater(latchAfterFirstCommand.startTicks, 0, "The session start time must be persisted too");
 
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("recompile")));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("script recompile")));
 
             Assert.AreEqual(1, m_Sent.Count, "A reload must not start a second session");
             Assert.IsInstanceOf<PipelineAnalytics.CommandExecutedAnalytic>(m_Sent[0]);
@@ -119,12 +119,12 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void RecordCommandExecuted_ReportsNameTagsSuccessAndDuration()
         {
-            var command = Command("create_asset", new[] { "assets/import", "assets" });
+            var command = Command("asset create", new[] { "assets/import", "assets" });
 
             PipelineAnalytics.RecordCommandExecuted(new CommandExecutionInfo("{}", "{}", command, true, 42));
 
             var data = CommandData();
-            Assert.AreEqual("create_asset", data.commandName);
+            Assert.AreEqual("asset create", data.commandName);
             CollectionAssert.AreEqual(new[] { "assets/import", "assets" }, data.commandTags,
                 "Tags are reported in declaration order, as the registry exposes them");
             Assert.IsTrue(data.commandSuccess);
@@ -143,7 +143,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void RecordCommandExecuted_WithFailedExecution_ReportsFailure()
         {
-            PipelineAnalytics.RecordCommandExecuted(new CommandExecutionInfo("{}", "{}", Command("build"), false, 7));
+            PipelineAnalytics.RecordCommandExecuted(new CommandExecutionInfo("{}", "{}", Command("build run"), false, 7));
 
             Assert.IsFalse(CommandData().commandSuccess);
         }
@@ -151,7 +151,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void RecordCommandExecuted_WithEvalTaggedCommand_ReportsIsEval()
         {
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("eval", new[] { "scripts/eval" })));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("script eval", new[] { "scripts/eval" })));
 
             Assert.IsTrue(CommandData().isEval, "A command tagged scripts/eval is a code evaluation");
         }
@@ -203,7 +203,7 @@ namespace Unity.Pipeline.Tests.Editor
                 ["entry_point"] = "Run",
             };
             PipelineAnalytics.RecordCommandExecuted(new CommandExecutionInfo(
-                "{}", "{}", Command("run_script", new[] { "scripts/eval" }), true, 1, parameters));
+                "{}", "{}", Command("script run", new[] { "scripts/eval" }), true, 1, parameters.ToObject<System.Collections.Generic.Dictionary<string, object>>()));
 
             var data = CommandData();
             Assert.IsTrue(data.isEval, "run_script is tagged scripts/eval");
@@ -214,7 +214,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void RecordCommandExecuted_WithNoParameters_ReportsNotAvoidable()
         {
             // A detached job reports no parameters; there is no body to judge.
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("eval", new[] { "scripts/eval" })));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("script eval", new[] { "scripts/eval" })));
 
             Assert.IsFalse(CommandData().isEvalWithExistingCommandAvailable);
         }
@@ -229,14 +229,14 @@ namespace Unity.Pipeline.Tests.Editor
             };
 
             Assert.IsFalse(PipelineAnalytics.EvalCoversAnExistingCommand(
-                Command("write_text_file", new[] { "assets" }), parameters),
+                Command("asset write_text", new[] { "assets" }), parameters.ToObject<System.Collections.Generic.Dictionary<string, object>>()),
                 "Only a scripts/eval-tagged command evaluates a snippet");
         }
 
         [Test]
         public void RecordCommandExecuted_WithOrdinaryCommand_ReportsNotEval()
         {
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("build", new[] { "build" })));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("build run", new[] { "build run" })));
 
             Assert.IsFalse(CommandData().isEval);
         }
@@ -276,10 +276,10 @@ namespace Unity.Pipeline.Tests.Editor
         public void RecordCommandExecuted_WithPackageCommand_ReportsTheRealNameAndTags()
         {
             PipelineAnalytics.RecordCommandExecuted(InfoFor(Command(
-                "create_asset", new[] { "assets/import", "assets" }, package: "Unity.Pipeline.Editor")));
+                "asset create", new[] { "assets/import", "assets" }, package: "Unity.Pipeline.Editor")));
 
             var data = CommandData();
-            Assert.AreEqual("create_asset", data.commandName,
+            Assert.AreEqual("asset create", data.commandName,
                 "Redaction must not swallow the shipped command names the data is for");
             CollectionAssert.AreEqual(new[] { "assets/import", "assets" }, data.commandTags,
                 "...nor their tags");
@@ -310,7 +310,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void SendSessionStoppedIfStarted_AfterASession_ReportsADuration()
         {
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor_status")));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor status")));
             m_Sent.Clear();
 
             PipelineAnalytics.SendSessionStoppedIfStarted();
@@ -323,7 +323,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void SendSessionStoppedIfStarted_CalledTwice_ReportsOnce()
         {
-            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor_status")));
+            PipelineAnalytics.RecordCommandExecuted(InfoFor(Command("editor status")));
             m_Sent.Clear();
 
             PipelineAnalytics.SendSessionStoppedIfStarted();
@@ -341,14 +341,14 @@ namespace Unity.Pipeline.Tests.Editor
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("editor_status", null);
+                var response = server.Execute("editor status", null);
                 Assert.IsTrue(response.IsSuccess, $"editor_status should succeed: {response.Error}");
 
                 Assert.AreEqual(1, server.Reported.Count, "One request should report exactly once");
                 var info = server.Reported[0];
-                Assert.IsNotNull(info.Command, "An executed command must be reported");
-                Assert.AreEqual("editor_status", info.Command.Name);
-                Assert.IsTrue(info.Success);
+                Assert.IsNull(info.Command, "HTTP transactions are separate from executor completion in 0.9.");
+                Assert.AreEqual("editor status", server.ReportedOnMainThread.Single().Command.FullName);
+                Assert.IsTrue(server.ReportedOnMainThread.Single().Success);
                 Assert.IsNotNull(info.RequestJson, "An /api/exec call is also a transaction");
                 Assert.IsNotNull(info.ResponseJson);
                 Assert.GreaterOrEqual(info.DurationMs, 0);
@@ -360,12 +360,12 @@ namespace Unity.Pipeline.Tests.Editor
         {
             using (var server = new PipelineTestServer())
             {
-                server.Execute("editor_status", null);
+                server.Execute("editor status", null);
 
                 // Analytics runs from here, so a command that never crosses over is never reported.
                 Assert.AreEqual(1, server.ReportedOnMainThread.Count,
                     "An executed command must be queued and drained to the main thread");
-                Assert.AreEqual("editor_status", server.ReportedOnMainThread[0].Command.Name);
+                Assert.AreEqual("editor status", server.ReportedOnMainThread[0].Command.FullName);
             }
         }
 
@@ -398,7 +398,7 @@ namespace Unity.Pipeline.Tests.Editor
                 // eval reports a compile failure by RETURNING a failed EvalResponse rather than
                 // throwing, so nothing classifies it as an error and the outer envelope reports
                 // success. The reported info must not inherit that.
-                var response = server.Execute("eval", new { code = "return 2 +;", timeout = 5000 });
+                var response = server.Execute("script eval", new { code = "return 2 +;", timeout = 5000 });
                 Assert.IsTrue(response.IsSuccess, "The exec envelope itself succeeds: nothing threw");
                 Assert.IsFalse(response.GetTypedResponse<EvalResponse>().Success,
                     "...while the command's own result reports the compile failure");
@@ -420,8 +420,8 @@ namespace Unity.Pipeline.Tests.Editor
 
         static CommandExecutionInfo EvalInfo(string code)
         {
-            return new CommandExecutionInfo("{}", "{}", Command("eval", new[] { "scripts/eval" }), true, 1,
-                new JObject { ["code"] = code });
+            return new CommandExecutionInfo("{}", "{}", Command("script eval", new[] { "scripts/eval" }), true, 1,
+                new System.Collections.Generic.Dictionary<string, object> { ["code"] = code });
         }
 
         static CommandInfo Command(string name, string[] tags = null, string package = "Unity.Pipeline.Editor")

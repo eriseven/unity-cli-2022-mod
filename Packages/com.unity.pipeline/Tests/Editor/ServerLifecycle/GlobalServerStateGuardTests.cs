@@ -44,7 +44,7 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecyle
             // shared descriptor (what new EditorPipelineServer().Start()/Stop() does on the live port).
             PipelineServerStartup.StopServer();
             var projectRoot = Path.GetDirectoryName(Application.dataPath);
-            Assert.IsNull(InstanceDescriptor.ReadFromProjectRoot(projectRoot),
+            Assert.IsNull(EditorInstanceDescriptor.ReadFromProjectRoot(projectRoot),
                 "Sanity: descriptor should be gone after the live server stopped");
 
             // Act
@@ -55,7 +55,7 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecyle
             Assert.IsNotNull(server, "Restore() must leave a live server running");
             Assert.IsTrue(server.IsRunning, "Restore() must leave the live server running");
 
-            var descriptor = InstanceDescriptor.ReadFromProjectRoot(projectRoot);
+            var descriptor = EditorInstanceDescriptor.ReadFromProjectRoot(projectRoot);
             Assert.IsNotNull(descriptor, "Restore() must leave a discovery descriptor");
             Assert.AreEqual(server.Port, descriptor.Port,
                 "Descriptor port must match the running server's port");

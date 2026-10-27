@@ -1,7 +1,60 @@
 # Unity 2022.3.62f3 compatibility notes
 
-This embedded port is synchronized with official Unity Pipeline **0.8.0-exp.1** and retains
+This embedded port is synchronized with official Unity Pipeline **0.9.1-exp.1** and retains
 Unity **2022.3** as its minimum version. The Unity Editor itself was not upgraded.
+
+## 0.9.1 upstream synchronization — 2026-10-27
+
+Source: [Unity package registry](https://packages.unity.com/com.unity.pipeline), whose `latest`
+tag was `0.9.1-exp.1` at the time of this upgrade. The official tarball SHA-1 is
+`363b8bb9e91d34dcfcd1c8b60373422d978b6d57`; upstream revision is
+`5857811f46dead8df0e98fb813c46a71c5cab2b5`. Changes were merged against the official
+`0.8.0-exp.1` tarball, retaining the port's Unity 2022 compatibility changes.
+
+### API and workflow changes
+
+- Core commands use groups, for example `editor status`, `script recompile`, `test run`,
+  `scene get_hierarchy`, and `script.methodreload reload`. Old flat names report migration
+  guidance. The optional extensions retain their existing names in the `global` group.
+- `[MethodReload]` replaces `[CodeReload]`; `[OnMethodReloaded]` replaces `[OnCodeReload]`.
+  The namespace is `Unity.Pipeline.MethodReload`. Existing project code using the old attributes
+  must migrate, as in the included regression suite.
+- Command timeout arguments use **seconds**. Internal operations use `TimeSpan`; HTTP request
+  envelope timeouts remain milliseconds. Detached commands validate their arguments before enqueueing.
+- Dotted command attributes, inferred command names, grouped dynamic registration, the execution
+  queue/executor architecture, descriptor endpoint publication, independent heartbeat, and
+  PlayMode background execution controls are synchronized with upstream.
+- Runtime inclusion uses separate development and release build symbols. The legacy
+  `enableInBuilds` and `requestTimeoutMs` runtime configuration fields are retired. The upstream
+  settings migration remains enabled. `RuntimePipelineManager` remains an inert serialized
+  compatibility shell, preserving existing scene bindings.
+- Build Profile commands retain upstream's feature detection and return `feature_unavailable`
+  on Unity 2022. The non-Standalone build subtarget fix is included; no Player build or target
+  switch is required for the compatibility tests.
+
+### Retained port adjustments
+
+- Keep Unity 2022.3, Test Framework 1.4.6, AI Navigation 1.1.7, extension `.asmref` integration,
+  Unity 2022 analytics transport, Console reflection fallback, physics-material alias, and
+  material render-queue fallback.
+- Keep the validated Roslyn 3.11 bundle and checksum manifest. Source uses unprefixed Roslyn
+  namespaces, so this port still does not provide upstream's compiler namespace isolation.
+  PluginImporter build constraints now match the 0.9 runtime assembly's development/release
+  gates; Editor/desktop compiler availability and interpreter support-library availability are retained.
+- Import the official 0.9.1 interpreter analyzer through Unity. Move renamed scripts/directories
+  through AssetDatabase, preserving the port's GUIDs; Unity generates metadata for new sources.
+- Retain the Unity 2022 synchronous test-cancellation repair. Descriptor heartbeat/recovery is now
+  owned by upstream `LiveDescriptorFile`; the old server watchdog heartbeat hook is removed.
+- Explicitly migrate legacy method-reload repush JSON keys when loading editor settings. Unity 2022's
+  `JsonUtility` does not apply `FormerlySerializedAs` here; existing disabled values must stay disabled.
+- Migrate the retained regression suite to grouped command names, the executor/queue test seams,
+  current runtime settings, and the new timeout and response contracts. Tests for the retired
+  `dialogsDuringExecution` field now verify its absence. Update local agent command examples.
+
+Validation: Unity 2022.3.62f3 compiles successfully. The full EditMode run passes 1140 tests with
+0 failures and 2 existing skips; all 15 PlayMode tests pass. Script creation uses a dedicated compilation fixture and verifies
+the generated `MonoScript` resolves to its compiled type after domain reload. Detailed counts,
+report hashes, GUID checks, and validation boundaries are recorded in `validation-0.9.1.json`.
 
 ## 0.8.0 upstream synchronization — 2026-10-15
 

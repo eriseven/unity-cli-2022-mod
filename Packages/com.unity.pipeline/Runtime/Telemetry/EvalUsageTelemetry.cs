@@ -4,6 +4,9 @@ using System.IO;
 using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
+#if UNITY_6000_5_OR_NEWER
+using Unity.Scripting.LifecycleManagement;
+#endif
 
 #if UNITY_EDITOR
 using System.Threading.Tasks;
@@ -22,7 +25,7 @@ namespace Unity.Pipeline.Telemetry
         [JsonProperty("time")]
         public string Time { get; set; }
 
-        /// <summary>The command that ran the source: "eval" or "eval_file".</summary>
+        /// <summary>The command that ran the source, as a user types it: "script eval" or "script eval_file".</summary>
         [JsonProperty("command")]
         public string Command { get; set; }
 
@@ -86,6 +89,9 @@ namespace Unity.Pipeline.Telemetry
     /// rotation rather than reset per session; <see cref="ReadRecords"/> merges the rotated ".old"
     /// file back in, bounding readable history to roughly 2× <see cref="MaxFileBytes"/>.
     /// </summary>
+#if UNITY_6000_5_OR_NEWER
+    [NoAutoStaticsCleanup]
+#endif
     static class EvalUsageTelemetry
     {
         /// <summary>
@@ -205,16 +211,17 @@ namespace Unity.Pipeline.Telemetry
 
         /// <summary>
         /// Block until every background record queued by <see cref="RecordInBackground"/> has been
-        /// flushed, or <paramref name="timeoutMs"/> elapses (returns false on timeout). Recording is
+        /// flushed, or <paramref name="timeout"/> (default 5 s) elapses (returns false on timeout). Recording is
         /// fire-and-forget, so tests (and teardown paths that delete the storage directory) drain the
         /// queue with this before asserting on / removing the JSONL.
         /// </summary>
-        public static bool WaitForPendingRecords(int timeoutMs = 5000)
+        public static bool WaitForPendingRecords(TimeSpan? timeout = null)
         {
+            var limit = timeout ?? TimeSpan.FromSeconds(5);
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             while (Volatile.Read(ref s_PendingRecords) > 0)
             {
-                if (stopwatch.ElapsedMilliseconds >= timeoutMs)
+                if (stopwatch.Elapsed >= limit)
                     return false;
                 Thread.Sleep(1);
             }

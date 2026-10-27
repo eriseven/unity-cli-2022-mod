@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_scene_hierarchy
-unity command get_scene_hierarchy --path Assets/Scenes/Main.unity
+unity command scene get_hierarchy
+unity command scene get_hierarchy --path Assets/Scenes/Main.unity
 ```
 
 ## Notes

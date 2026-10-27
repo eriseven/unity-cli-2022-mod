@@ -17,10 +17,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command find_assets --type TimelineAsset --search_in Timelines --limit 200
+unity command asset find --type TimelineAsset --search_in Timelines --limit 200
 ```
 
 ## Notes
 
-Require `com.unity.timeline`. Inspect an individual result with `get_timeline`.
+Require `com.unity.timeline`. Inspect an individual result with `animation.timeline get`.
 

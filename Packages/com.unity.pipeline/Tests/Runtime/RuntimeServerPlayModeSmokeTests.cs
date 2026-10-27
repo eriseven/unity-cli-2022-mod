@@ -20,7 +20,7 @@ namespace Unity.Pipeline.Tests.Runtime
         public IEnumerator AutoStart_StartsServer_AndServesRequest()
         {
             var config = ScriptableObject.CreateInstance<Unity.Pipeline.Config.RuntimePipelineConfig>();
-            config.enableInBuilds = true;
+
             config.autoStart = true;
 
             var go = new GameObject("SmokeRuntimeDriver");
@@ -45,7 +45,7 @@ namespace Unity.Pipeline.Tests.Runtime
         {
             using (var client = new PipelineClient($"http://127.0.0.1:{port}", token))
             {
-                var response = await client.ExecuteCommandAsync("runtime_status", null);
+                var response = await client.ExecuteCommandAsync("runtime status", null);
                 return response.IsSuccess;
             }
         }
@@ -55,7 +55,7 @@ namespace Unity.Pipeline.Tests.Runtime
         {
             // QuitApplication uses DontDestroyOnLoad, which is play-mode only. Application.Quit is a
             // no-op in the editor, but destroy the scheduler anyway so nothing lingers.
-            var result = RuntimeApplicationCommand.QuitApplication(0);
+            var result = RuntimeApplicationCommand.Quit(0);
             Assert.That(result, Does.Contain("Application quit scheduled with exit code 0"));
 
             foreach (var go in PipelineUtils.FindObjectsByType<GameObject>())

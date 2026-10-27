@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_serialized_field --target Assets/Data/GameConfig.asset --field difficulty --value 2
-unity command set_serialized_field --target '{"hierarchyPath":"/Player"}' --component PlayerController --field speed --value 6
+unity command component set_field --target Assets/Data/GameConfig.asset --field difficulty --value 2
+unity command component set_field --target '{"hierarchyPath":"/Player"}' --component PlayerController --field speed --value 6
 ```
 
 ## Notes

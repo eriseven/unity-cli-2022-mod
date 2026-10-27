@@ -27,7 +27,7 @@ namespace Unity.Pipeline.Tests.Editor.Observability
             LogAssert.Expect(LogType.Warning, new Regex(".*" + Marker + ".*"));
             Debug.LogWarning(Marker);
 
-            var result = ConsoleCommand.GetConsole(tail: 50, level: "warn");
+            var result = ConsoleCommand.Get(tail: 50, level: "warn");
             var logs = result.Entries;
 
             var match = logs.FirstOrDefault(e => e.Message != null && e.Message.Contains(Marker));
@@ -38,7 +38,7 @@ namespace Unity.Pipeline.Tests.Editor.Observability
         [Test]
         public void GetPerformanceStats_ReturnsMemory()
         {
-            var stats = PerformanceCommands.GetPerformanceStats();
+            var stats = PerformanceCommands.GetPerformance();
 
             Assert.IsNotNull(stats, "Performance stats should not be null");
             Assert.IsNotNull(stats.Memory, "Memory stats should be present");
@@ -57,14 +57,14 @@ namespace Unity.Pipeline.Tests.Editor.Observability
             var marker = "CLI198_CLEAR_marker_" + System.Guid.NewGuid().ToString("N");
             Debug.Log(marker);
 
-            var beforeClear = ConsoleCommand.GetConsole().Entries;
+            var beforeClear = ConsoleCommand.Get().Entries;
             Assert.IsTrue(beforeClear.Any(e => e.Message != null && e.Message.Contains(marker)),
                 "Seeded marker should be present in the buffer before clear");
 
-            var result = ConsoleCommand.ClearConsole();
+            var result = ConsoleCommand.Clear();
 
             Assert.IsNotNull(result);
-            var afterClear = ConsoleCommand.GetConsole().Entries;
+            var afterClear = ConsoleCommand.Get().Entries;
             Assert.IsFalse(afterClear.Any(e => e.Message != null && e.Message.Contains(marker)),
                 "Seeded marker should no longer be in the buffer after clear_console");
         }
@@ -78,7 +78,7 @@ namespace Unity.Pipeline.Tests.Editor.Observability
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("console", new { level = "log", tail = 10 });
+                var response = server.Execute("console get", new { level = "console write", tail = 10 });
 
                 Assert.IsTrue(response.IsSuccess, $"console should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");
@@ -91,7 +91,7 @@ namespace Unity.Pipeline.Tests.Editor.Observability
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("get_performance_stats", null);
+                var response = server.Execute("diagnostics get_performance", null);
 
                 Assert.IsTrue(response.IsSuccess, $"get_performance_stats should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");
@@ -104,7 +104,7 @@ namespace Unity.Pipeline.Tests.Editor.Observability
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("clear_console");
+                var response = server.Execute("console clear");
 
                 Assert.IsTrue(response.IsSuccess, $"clear_console should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");

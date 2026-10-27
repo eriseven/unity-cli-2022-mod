@@ -7,7 +7,7 @@ namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
     /// Tests for the "-automated" detection (UUM-149977) and the corrective guidance it drives on
-    /// the instance descriptor's <see cref="InstanceDescriptor.Info"/> field.
+    /// the instance descriptor's <see cref="EditorInstanceDescriptor.Info"/> field.
     /// </summary>
     class EditorAutomationModeTests
     {
@@ -24,13 +24,13 @@ namespace Unity.Pipeline.Tests.Editor
         [TestCaseSource(nameof(DetectAutomatedModeCases))]
         public void DetectAutomatedMode_MatchesExactFlag(string[] args, bool expected)
         {
-            Assert.AreEqual(expected, EditorPipelineServer.DetectAutomatedMode(args));
+            Assert.AreEqual(expected, EditorProcessInfo.IsAutomated(args));
         }
 
         [Test]
         public void CreateCurrent_Automated_HasNoInfo()
         {
-            var descriptor = InstanceDescriptor.CreateCurrent(port: 7800, automated: true);
+            var descriptor = EditorInstanceDescriptor.CreateCurrent(port: 7800, automated: true);
 
             Assert.IsNull(descriptor.Info, "An automated instance has nothing to warn about");
         }
@@ -39,7 +39,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void CreateCurrent_NotAutomated_InteractiveEditor_HasInfo()
         {
             // Info only applies to an interactive Editor (batchmode can't show modals regardless —
-            // see InstanceDescriptor.CreateCurrent). CI runs this suite via UTR in -batchmode, so
+            // see EditorInstanceDescriptor.CreateCurrent). CI runs this suite via UTR in -batchmode, so
             // self-ignore there rather than assert on the wrong branch of that condition.
             if (Application.isBatchMode)
             {
@@ -47,7 +47,7 @@ namespace Unity.Pipeline.Tests.Editor
                 return;
             }
 
-            var descriptor = InstanceDescriptor.CreateCurrent(port: 7800, automated: false);
+            var descriptor = EditorInstanceDescriptor.CreateCurrent(port: 7800, automated: false);
 
             Assert.IsNotNull(descriptor.Info, "A non-automated, interactive instance should carry corrective guidance");
             StringAssert.Contains("modal dialogs", descriptor.Info);

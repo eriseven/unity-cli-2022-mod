@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command add_timeline_track --timeline Assets/Timelines/Intro.playable --trackType Animation --name Character
-unity command add_timeline_track --timeline Assets/Timelines/Intro.playable --trackType Audio --name Music --parentTrack Group
+unity command animation.timeline add_track --timeline Assets/Timelines/Intro.playable --trackType Animation --name Character
+unity command animation.timeline add_track --timeline Assets/Timelines/Intro.playable --trackType Audio --name Music --parentTrack Group
 ```
 
 ## Notes

@@ -168,7 +168,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("list_shaders", new { filter = "Lit", limit = 20 });
+                var response = server.Execute("material list_shaders", new { filter = "Lit", limit = 20 });
                 Assert.IsTrue(response.IsSuccess, $"list_shaders should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "response should be valid JSON");
             }

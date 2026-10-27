@@ -41,7 +41,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void CreateAnimationClip_SetsFrameRateAndLoop()
         {
             var path = Root + "/Clips/Walk.anim";
-            var result = AnimationClipCommands.CreateAnimationClip(path, frameRate: 30f, loop: true);
+            var result = AnimationClipCommands.Create(path, frameRate: 30f, loop: true);
 
             Assert.AreEqual(path, result.AssetPath);
 
@@ -49,7 +49,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
             Assert.IsNotNull(loaded, "Clip should exist on disk");
             Assert.AreEqual(30f, loaded.frameRate, 0.001f);
 
-            var info = AnimationClipCommands.GetAnimationClip(PathRef(path));
+            var info = AnimationClipCommands.Get(PathRef(path));
             Assert.AreEqual(30f, info.FrameRate, 0.001f);
             Assert.IsTrue(info.Loop, "loop should be reflected by get_animation_clip");
         }
@@ -58,24 +58,24 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void CreateAnimationClip_OverwriteWithoutConfirm_Throws()
         {
             var path = Root + "/Clips/Dup.anim";
-            AnimationClipCommands.CreateAnimationClip(path);
+            AnimationClipCommands.Create(path);
 
-            Assert.Throws<System.ArgumentException>(() => AnimationClipCommands.CreateAnimationClip(path));
-            Assert.DoesNotThrow(() => AnimationClipCommands.CreateAnimationClip(path, confirm: true));
+            Assert.Throws<System.ArgumentException>(() => AnimationClipCommands.Create(path));
+            Assert.DoesNotThrow(() => AnimationClipCommands.Create(path, confirm: true));
         }
 
         [Test]
         public void CreateAnimationClip_OutOfProject_Throws()
         {
-            Assert.Throws<System.ArgumentException>(() => AnimationClipCommands.CreateAnimationClip("../Outside.anim"));
-            Assert.Throws<System.ArgumentException>(() => AnimationClipCommands.CreateAnimationClip("Assets/../Outside.anim"));
+            Assert.Throws<System.ArgumentException>(() => AnimationClipCommands.Create("../Outside.anim"));
+            Assert.Throws<System.ArgumentException>(() => AnimationClipCommands.Create("Assets/../Outside.anim"));
         }
 
         [Test]
         public void CreateAnimationClip_DryRun_WritesNothing()
         {
             var path = Root + "/Clips/DryRun.anim";
-            var result = AnimationClipCommands.CreateAnimationClip(path, dryRun: true);
+            var result = AnimationClipCommands.Create(path, dryRun: true);
 
             Assert.AreEqual(path, result.AssetPath);
             Assert.IsNull(AssetDatabase.LoadMainAssetAtPath(path), "dry_run must not write a clip");
@@ -85,15 +85,15 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void SetAnimationCurve_AddsCurveWithKeys()
         {
             var path = Root + "/Clips/Curve.anim";
-            AnimationClipCommands.CreateAnimationClip(path);
+            AnimationClipCommands.Create(path);
 
-            var result = AnimationClipCommands.SetAnimationCurve(
+            var result = AnimationClipCommands.SetCurve(
                 PathRef(path), path: "", type: "Transform", property: "m_LocalPosition.x", keys: TwoKeys());
 
             Assert.AreEqual(2, result.KeyCount);
             Assert.AreEqual("m_LocalPosition.x", result.Binding.Property);
 
-            var info = AnimationClipCommands.GetAnimationClip(PathRef(path), includeKeys: true);
+            var info = AnimationClipCommands.Get(PathRef(path), includeKeys: true);
             Assert.AreEqual(1, info.Bindings.Count);
             var binding = info.Bindings[0];
             Assert.AreEqual("Transform", binding.Type);
@@ -109,9 +109,9 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void SetAnimationCurve_ReplaceExisting_Overwrites()
         {
             var path = Root + "/Clips/Replace.anim";
-            AnimationClipCommands.CreateAnimationClip(path);
+            AnimationClipCommands.Create(path);
 
-            AnimationClipCommands.SetAnimationCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", TwoKeys());
+            AnimationClipCommands.SetCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", TwoKeys());
 
             var threeKeys = new JArray
             {
@@ -119,10 +119,10 @@ namespace Unity.Pipeline.Tests.Editor.Animation
                 new JObject { ["time"] = 0.5f, ["value"] = 2f },
                 new JObject { ["time"] = 1f, ["value"] = 4f }
             };
-            var result = AnimationClipCommands.SetAnimationCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", threeKeys);
+            var result = AnimationClipCommands.SetCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", threeKeys);
             Assert.AreEqual(3, result.KeyCount);
 
-            var info = AnimationClipCommands.GetAnimationClip(PathRef(path));
+            var info = AnimationClipCommands.Get(PathRef(path));
             // Same binding => not duplicated; the single binding now has 3 keys.
             Assert.AreEqual(1, info.Bindings.Count, "Replacing a binding must not duplicate it");
             Assert.AreEqual(3, info.Bindings[0].KeyCount);
@@ -132,13 +132,13 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void SetAnimationCurve_DryRun_WritesNothing()
         {
             var path = Root + "/Clips/DryCurve.anim";
-            AnimationClipCommands.CreateAnimationClip(path);
+            AnimationClipCommands.Create(path);
 
-            var result = AnimationClipCommands.SetAnimationCurve(
+            var result = AnimationClipCommands.SetCurve(
                 PathRef(path), "", "Transform", "m_LocalPosition.x", TwoKeys(), dryRun: true);
             Assert.AreEqual(2, result.KeyCount);
 
-            var info = AnimationClipCommands.GetAnimationClip(PathRef(path));
+            var info = AnimationClipCommands.Get(PathRef(path));
             Assert.AreEqual(0, info.Bindings.Count, "dry_run must not write a curve");
         }
 
@@ -146,14 +146,14 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void RemoveAnimationCurve_WithoutConfirm_Throws()
         {
             var path = Root + "/Clips/Remove.anim";
-            AnimationClipCommands.CreateAnimationClip(path);
-            AnimationClipCommands.SetAnimationCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", TwoKeys());
+            AnimationClipCommands.Create(path);
+            AnimationClipCommands.SetCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", TwoKeys());
 
             Assert.Throws<System.ArgumentException>(
-                () => AnimationClipCommands.RemoveAnimationCurve(PathRef(path), "", "Transform", "m_LocalPosition.x"),
+                () => AnimationClipCommands.RemoveCurve(PathRef(path), "", "Transform", "m_LocalPosition.x"),
                 "remove without confirm should be rejected");
 
-            var info = AnimationClipCommands.GetAnimationClip(PathRef(path));
+            var info = AnimationClipCommands.Get(PathRef(path));
             Assert.AreEqual(1, info.Bindings.Count, "binding should survive a refused remove");
         }
 
@@ -161,12 +161,12 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void RemoveAnimationCurve_WithConfirm_Removes()
         {
             var path = Root + "/Clips/Remove2.anim";
-            AnimationClipCommands.CreateAnimationClip(path);
-            AnimationClipCommands.SetAnimationCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", TwoKeys());
+            AnimationClipCommands.Create(path);
+            AnimationClipCommands.SetCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", TwoKeys());
 
-            AnimationClipCommands.RemoveAnimationCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", confirm: true);
+            AnimationClipCommands.RemoveCurve(PathRef(path), "", "Transform", "m_LocalPosition.x", confirm: true);
 
-            var info = AnimationClipCommands.GetAnimationClip(PathRef(path));
+            var info = AnimationClipCommands.Get(PathRef(path));
             Assert.AreEqual(0, info.Bindings.Count, "binding should be gone after a confirmed remove");
         }
 
@@ -174,21 +174,21 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void SetAnimationCurve_UnknownType_Throws()
         {
             var path = Root + "/Clips/BadType.anim";
-            AnimationClipCommands.CreateAnimationClip(path);
+            AnimationClipCommands.Create(path);
 
             Assert.Throws<System.ArgumentException>(
-                () => AnimationClipCommands.SetAnimationCurve(PathRef(path), "", "NotARealComponent__CLI214", "m_X", TwoKeys()));
+                () => AnimationClipCommands.SetCurve(PathRef(path), "", "NotARealComponent__CLI214", "m_X", TwoKeys()));
         }
 
         [Test]
         public void SetAnimationCurve_ViaClient_Succeeds()
         {
             var path = Root + "/ViaClient/Curve.anim";
-            AnimationClipCommands.CreateAnimationClip(path);
+            AnimationClipCommands.Create(path);
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_animation_curve", new
+                var response = server.Execute("animation.clip set_curve", new
                 {
                     clip = new { path },
                     type = "Transform",
@@ -203,7 +203,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
                 Assert.IsTrue(response.IsSuccess, $"set_animation_curve should succeed: {response.Error}");
             }
 
-            var info = AnimationClipCommands.GetAnimationClip(PathRef(path));
+            var info = AnimationClipCommands.Get(PathRef(path));
             Assert.AreEqual(1, info.Bindings.Count);
             Assert.AreEqual(2, info.Bindings[0].KeyCount);
         }

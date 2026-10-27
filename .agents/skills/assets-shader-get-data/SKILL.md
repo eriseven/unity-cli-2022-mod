@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_shader_properties --shader "Universal Render Pipeline/Lit"
-unity command get_shader_properties --material Assets/Materials/Wall.mat
+unity command material get_shader_properties --shader "Universal Render Pipeline/Lit"
+unity command material get_shader_properties --material Assets/Materials/Wall.mat
 ```
 
 ## Notes

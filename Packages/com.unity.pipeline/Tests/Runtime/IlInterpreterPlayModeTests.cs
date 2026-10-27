@@ -50,7 +50,7 @@ public static class Probe {{ public static object Run() {{ {body} }} }}";
         public IEnumerator Interpreter_WorksWhileManagerTicks()
         {
             var config = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-            config.enableInBuilds = true;
+
             config.autoStart = false; // no server needed; we only need the MonoBehaviour lifecycle ticking
 
             var go = new GameObject("IlInterpreterRuntimeManager");

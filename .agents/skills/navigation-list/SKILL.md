@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command find_gameobjects --type UnityEngine.AI.NavMeshAgent
-unity command find_gameobjects --type Unity.AI.Navigation.NavMeshSurface
+unity command gameobject find --type UnityEngine.AI.NavMeshAgent
+unity command gameobject find --type Unity.AI.Navigation.NavMeshSurface
 ```
 
 ## Notes

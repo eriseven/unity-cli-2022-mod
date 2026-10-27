@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_scene --path Scenes/Level1 --template default
-unity command create_scene --path Scenes/AdditiveLevel --additive true --template empty
+unity command scene create --path Scenes/Level1 --template default
+unity command scene create --path Scenes/AdditiveLevel --additive true --template empty
 ```
 
 ## Notes

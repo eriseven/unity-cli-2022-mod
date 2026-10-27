@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_prefab --source '{"hierarchyPath":"/Enemy"}' --path Prefabs/Enemy.prefab
+unity command prefab create --source '{"hierarchyPath":"/Enemy"}' --path Prefabs/Enemy.prefab
 ```
 
 ## Notes

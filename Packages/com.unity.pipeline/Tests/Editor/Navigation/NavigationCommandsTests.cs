@@ -121,7 +121,7 @@ namespace Unity.Pipeline.Tests.Editor.Navigation
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("get_selection");
+                var response = server.Execute("gameobject get_selection");
 
                 Assert.IsTrue(response.IsSuccess, $"get_selection should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");
@@ -134,7 +134,7 @@ namespace Unity.Pipeline.Tests.Editor.Navigation
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("search", new { query = "t:DefaultAsset", limit = 5 });
+                var response = server.Execute("editor search", new { query = "t:DefaultAsset", limit = 5 });
 
                 Assert.IsTrue(response.IsSuccess, $"search should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");

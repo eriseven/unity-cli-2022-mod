@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_parent --target '{"hierarchyPath":"/Player/Weapon"}' --parent '{"hierarchyPath":"/Player/Hand"}' --world_position_stays true
+unity command gameobject set_parent --target '{"hierarchyPath":"/Player/Weapon"}' --parent '{"hierarchyPath":"/Player/Hand"}' --world_position_stays true
 ```
 
 ## Notes

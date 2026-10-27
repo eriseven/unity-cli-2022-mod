@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_serialized_field --target Assets/Data/GameConfig.asset --field difficulty --value 2
-unity command set_import_settings --asset Assets/Textures/Icon.png --settings '{"isReadable":true}' --dry_run true
+unity command component set_field --target Assets/Data/GameConfig.asset --field difficulty --value 2
+unity command asset set_import_settings --asset Assets/Textures/Icon.png --settings '{"isReadable":true}' --dry_run true
 ```
 
 ## Notes

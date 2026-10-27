@@ -46,7 +46,7 @@ namespace Unity.Pipeline.Tests.Editor
             Add(LogType.Log, "two");
             Add(LogType.Log, "three");
 
-            var response = ConsoleCommand.GetConsole();
+            var response = ConsoleCommand.Get();
 
             CollectionAssert.AreEqual(new[] { "one", "two", "three" }, MineInOrder(response));
         }
@@ -59,7 +59,7 @@ namespace Unity.Pipeline.Tests.Editor
             Add(LogType.Error, "broken");
             Add(LogType.Exception, "threw");
 
-            var response = ConsoleCommand.GetConsole(level: "error");
+            var response = ConsoleCommand.Get(level: "error");
 
             CollectionAssert.AreEqual(new[] { "broken", "threw" }, MineInOrder(response));
         }
@@ -71,7 +71,7 @@ namespace Unity.Pipeline.Tests.Editor
             Add(LogType.Warning, "careful");
             Add(LogType.Error, "broken");
 
-            var response = ConsoleCommand.GetConsole(level: "warn");
+            var response = ConsoleCommand.Get(level: "warn");
 
             CollectionAssert.AreEqual(new[] { "careful", "broken" }, MineInOrder(response));
         }
@@ -80,10 +80,10 @@ namespace Unity.Pipeline.Tests.Editor
         public void GetConsole_Since_ReturnsOnlyNewerEntries()
         {
             Add(LogType.Log, "before");
-            long cursor = ConsoleCommand.GetConsole().Cursor;
+            long cursor = ConsoleCommand.Get().Cursor;
             Add(LogType.Log, "after");
 
-            var response = ConsoleCommand.GetConsole(since: cursor);
+            var response = ConsoleCommand.Get(since: cursor);
 
             CollectionAssert.AreEqual(new[] { "after" }, MineInOrder(response));
         }
@@ -95,7 +95,7 @@ namespace Unity.Pipeline.Tests.Editor
             Add(LogType.Log, "b");
 
             // tail <= 0 must not mean "unlimited"; it falls back to the default and still returns ours.
-            var response = ConsoleCommand.GetConsole(tail: 0);
+            var response = ConsoleCommand.Get(tail: 0);
 
             Assert.LessOrEqual(response.Returned, ConsoleCommand.DefaultTail);
             CollectionAssert.AreEqual(new[] { "a", "b" }, MineInOrder(response));
@@ -105,7 +105,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void Console_IsDiscoverableWithExpectedArgs()
         {
             CommandRegistry.SetDiscovery(new TypeCacheCommandDiscovery());
-            var command = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.Name == "console");
+            var command = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.FullName == "console get");
 
             Assert.IsNotNull(command, "console should be discoverable");
             Assert.IsFalse(command.MainThreadRequired, "console reads the buffer only; no main thread needed");

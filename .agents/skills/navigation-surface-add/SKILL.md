@@ -17,11 +17,11 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command add_component --target '{"hierarchyPath":"/Navigation"}' --type Unity.AI.Navigation.NavMeshSurface
-unity command get_component_properties --target '{"hierarchyPath":"/Navigation"}' --type Unity.AI.Navigation.NavMeshSurface
+unity command component add --target '{"hierarchyPath":"/Navigation"}' --type Unity.AI.Navigation.NavMeshSurface
+unity command component get_properties --target '{"hierarchyPath":"/Navigation"}' --type Unity.AI.Navigation.NavMeshSurface
 ```
 
 ## Notes
 
-Require `com.unity.ai.navigation`. Read supported properties before configuring them, then bake through `bake_navmesh_surfaces`.
+Require `com.unity.ai.navigation`. Read supported properties before configuring them, then bake through `navmesh bake_surfaces`.
 

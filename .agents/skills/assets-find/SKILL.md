@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command find_assets --type Material --name Stone --search_in Materials --limit 50
+unity command asset find --type Material --name Stone --search_in Materials --limit 50
 ```
 
 ## Notes

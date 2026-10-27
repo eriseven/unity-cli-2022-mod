@@ -9,16 +9,16 @@ namespace Unity.Pipeline.Tests.Editor
     /// <summary>
     /// Tests for the hot-reload watcher's applied-files journal: the SessionState-backed record of
     /// files whose overrides were applied in-editor, used to re-apply them after the domain reload
-    /// that entering play mode triggers (which wipes CodeReloadRegistry's in-memory overrides).
+    /// that entering play mode triggers (which wipes MethodReloadRegistry's in-memory overrides).
     /// </summary>
-    class EditorCodeReloadWatcherJournalTests
+    class EditorMethodReloadWatcherJournalTests
     {
         private string m_TempDir;
 
         [SetUp]
         public void SetUp()
         {
-            EditorCodeReloadWatcher.ClearAppliedFilesJournal();
+            EditorMethodReloadWatcher.ClearAppliedFilesJournal();
             m_TempDir = FileUtil.GetUniqueTempPathInProject();
             Directory.CreateDirectory(m_TempDir);
         }
@@ -26,7 +26,7 @@ namespace Unity.Pipeline.Tests.Editor
         [TearDown]
         public void TearDown()
         {
-            EditorCodeReloadWatcher.ClearAppliedFilesJournal();
+            EditorMethodReloadWatcher.ClearAppliedFilesJournal();
             if (Directory.Exists(m_TempDir))
                 Directory.Delete(m_TempDir, recursive: true);
         }
@@ -44,10 +44,10 @@ namespace Unity.Pipeline.Tests.Editor
             var a = CreateTempScript("A.cs");
             var b = CreateTempScript("B.cs");
 
-            EditorCodeReloadWatcher.JournalAppliedFile(a);
-            EditorCodeReloadWatcher.JournalAppliedFile(b);
+            EditorMethodReloadWatcher.JournalAppliedFile(a);
+            EditorMethodReloadWatcher.JournalAppliedFile(b);
 
-            var journaled = EditorCodeReloadWatcher.GetJournaledAppliedFiles();
+            var journaled = EditorMethodReloadWatcher.GetJournaledAppliedFiles();
             CollectionAssert.AreEquivalent(new[] { a, b }, journaled);
         }
 
@@ -56,20 +56,20 @@ namespace Unity.Pipeline.Tests.Editor
         {
             var a = CreateTempScript("A.cs");
 
-            EditorCodeReloadWatcher.JournalAppliedFile(a);
-            EditorCodeReloadWatcher.JournalAppliedFile(a);
+            EditorMethodReloadWatcher.JournalAppliedFile(a);
+            EditorMethodReloadWatcher.JournalAppliedFile(a);
 
-            Assert.AreEqual(1, EditorCodeReloadWatcher.GetJournaledAppliedFiles().Length);
+            Assert.AreEqual(1, EditorMethodReloadWatcher.GetJournaledAppliedFiles().Length);
         }
 
         [Test]
         public void ClearJournal_RemovesAllEntries()
         {
-            EditorCodeReloadWatcher.JournalAppliedFile(CreateTempScript("A.cs"));
+            EditorMethodReloadWatcher.JournalAppliedFile(CreateTempScript("A.cs"));
 
-            EditorCodeReloadWatcher.ClearAppliedFilesJournal();
+            EditorMethodReloadWatcher.ClearAppliedFilesJournal();
 
-            Assert.IsEmpty(EditorCodeReloadWatcher.GetJournaledAppliedFiles());
+            Assert.IsEmpty(EditorMethodReloadWatcher.GetJournaledAppliedFiles());
         }
 
         [Test]
@@ -79,7 +79,7 @@ namespace Unity.Pipeline.Tests.Editor
             // already matches disk — nothing must be re-applied.
             var a = CreateTempScript("A.cs");
 
-            var reapplies = EditorCodeReloadWatcher.ComputeResumeReapplies(
+            var reapplies = EditorMethodReloadWatcher.ComputeResumeReapplies(
                 isPlaying: false, journaledFiles: new[] { a });
 
             Assert.IsEmpty(reapplies);
@@ -92,7 +92,7 @@ namespace Unity.Pipeline.Tests.Editor
             var deleted = CreateTempScript("B.cs");
             File.Delete(deleted);
 
-            var reapplies = EditorCodeReloadWatcher.ComputeResumeReapplies(
+            var reapplies = EditorMethodReloadWatcher.ComputeResumeReapplies(
                 isPlaying: true, journaledFiles: new[] { existing, deleted });
 
             Assert.AreEqual(new[] { existing }, reapplies.ToArray());

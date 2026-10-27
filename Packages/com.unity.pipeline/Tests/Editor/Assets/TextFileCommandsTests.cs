@@ -33,10 +33,10 @@ namespace Unity.Pipeline.Tests.Editor.Assets
             var path = Root + "/Notes/hello.txt";
             const string content = "hello cli-191";
 
-            var write = TextFileCommands.WriteTextFile(path, content);
+            var write = TextFileCommands.WriteText(path, content);
             Assert.AreEqual(path, write.AssetPath);
 
-            var read = TextFileCommands.ReadTextFile(path);
+            var read = TextFileCommands.ReadText(path);
             Assert.AreEqual(content, read.Contents);
             Assert.AreEqual(System.Text.Encoding.UTF8.GetByteCount(content), read.Bytes);
         }
@@ -45,28 +45,28 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         public void WriteTextFile_OverwriteWithoutConfirm_Throws()
         {
             var path = Root + "/Notes/dup.txt";
-            TextFileCommands.WriteTextFile(path, "first");
+            TextFileCommands.WriteText(path, "first");
 
             Assert.Throws<System.ArgumentException>(
-                () => TextFileCommands.WriteTextFile(path, "second"),
+                () => TextFileCommands.WriteText(path, "second"),
                 "Overwriting an existing file without confirm should be rejected");
 
-            var ok = TextFileCommands.WriteTextFile(path, "second", confirm: true);
+            var ok = TextFileCommands.WriteText(path, "second", confirm: true);
             Assert.AreEqual(path, ok.AssetPath);
-            Assert.AreEqual("second", TextFileCommands.ReadTextFile(path).Contents);
+            Assert.AreEqual("second", TextFileCommands.ReadText(path).Contents);
         }
 
         [Test]
         public void WriteTextFile_OutOfProject_Throws()
         {
-            Assert.Throws<System.ArgumentException>(() => TextFileCommands.WriteTextFile("../escape.txt", "x"));
-            Assert.Throws<System.ArgumentException>(() => TextFileCommands.WriteTextFile("Assets/../escape.txt", "x"));
+            Assert.Throws<System.ArgumentException>(() => TextFileCommands.WriteText("../escape.txt", "x"));
+            Assert.Throws<System.ArgumentException>(() => TextFileCommands.WriteText("Assets/../escape.txt", "x"));
         }
 
         [Test]
         public void ReadTextFile_Missing_Throws()
         {
-            Assert.Throws<System.ArgumentException>(() => TextFileCommands.ReadTextFile(Root + "/does-not-exist.txt"));
+            Assert.Throws<System.ArgumentException>(() => TextFileCommands.ReadText(Root + "/does-not-exist.txt"));
         }
 
         #endregion
@@ -79,11 +79,11 @@ namespace Unity.Pipeline.Tests.Editor.Assets
             using (var server = new PipelineTestServer())
             {
                 var path = Root + "/ViaClient/wire.txt";
-                var response = server.Execute("write_text_file", new { path, contents = "over the wire" });
+                var response = server.Execute("asset write_text", new { path, contents = "over the wire" });
 
                 Assert.IsTrue(response.IsSuccess, $"write_text_file should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");
-                Assert.AreEqual("over the wire", TextFileCommands.ReadTextFile(path).Contents);
+                Assert.AreEqual("over the wire", TextFileCommands.ReadText(path).Contents);
             }
         }
 
@@ -91,11 +91,11 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         public void ReadTextFile_ViaClient_Succeeds()
         {
             var path = Root + "/ViaClient/readable.txt";
-            TextFileCommands.WriteTextFile(path, "readable content");
+            TextFileCommands.WriteText(path, "readable content");
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("read_text_file", new { path });
+                var response = server.Execute("asset read_text", new { path });
 
                 Assert.IsTrue(response.IsSuccess, $"read_text_file should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");

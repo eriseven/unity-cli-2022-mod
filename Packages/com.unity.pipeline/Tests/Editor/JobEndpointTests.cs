@@ -45,7 +45,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             m_Server = new TestEditorPipelineServer();
             m_Server.Start();
-            m_Server.JobRegistry.Reset();
+
             m_Server.Progress.Clear();
 
             m_PipelineClient = new Unity.Pipeline.Tests.Runtime.PipelineClient(m_Server);
@@ -57,7 +57,7 @@ namespace Unity.Pipeline.Tests.Editor
             m_ReleaseJobCommand.Set();
             m_ReleaseDelayedProgressCommand.Set();
             m_PipelineClient?.Dispose();
-            m_Server?.JobRegistry.Reset();
+
             m_Server?.Progress.Clear();
             m_Server?.Stop();
         }
@@ -329,10 +329,10 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task Eval_AcceptsTimeoutAboveThirtySeconds()
         {
             // CLI-335: the server-side eval cap was a hard 30000ms; long timeouts are now legal.
-            var response = await m_PipelineClient.ExecuteCommandAsync("eval", new
+            var response = await m_PipelineClient.ExecuteCommandAsync("script eval", new
             {
                 code = "return 21 * 2;",
-                timeout = 120000
+                timeout = 120
             });
             Assert.IsTrue(response.IsSuccess, $"eval with a 120s timeout should be accepted: {response.Error}");
         }
@@ -340,24 +340,22 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public async Task DetachedJob_UnconvertibleParameter_KeepsParameterValidationCategory()
         {
+            LogAssert.Expect(LogType.Error,
+                new Regex("^ExecuteCommandByName: Parameter conversion failed: Parameter 'tail'"));
             // The job path must classify an unconvertible argument the same way the synchronous
             // /api/exec path does; RunJobDetached's generic catch would say "Command Execution
             // Failed" instead. See the ArgumentException arm there.
             var response = await m_PipelineClient.PostJsonAsync("/api/exec", new
             {
-                command = "console",
+                command = "console get",
                 parameters = new { tail = "not-a-number" },
                 job = true
             });
 
-            Assert.IsTrue(response.IsSuccess, $"Job submission should succeed: {response.Error}");
+            Assert.IsFalse(response.IsSuccess, "Invalid detached jobs are rejected before enqueueing in 0.9.");
             var jobId = response.JsonResponse["result"]?["jobId"]?.ToString();
-            Assert.IsNotNull(jobId, "Submission must return a job id immediately");
-
-            LogAssert.Expect(LogType.Error,
-                new Regex("^ExecuteCommandByName: Parameter conversion failed: Parameter 'tail'"));
-
-            var failed = await WaitForStateAsync(jobId, "failed");
+            Assert.IsNull(jobId, "No job should be created for invalid parameters");
+            var failed = response.JsonResponse;
             Assert.AreEqual("Parameter Validation Failed", failed["error"]?.ToString(),
                 "Job path must keep the parameter-validation category rather than reporting a command execution failure");
             Assert.That(failed["errorDetails"]?.ToString(), Contains.Substring("tail"),

@@ -27,9 +27,7 @@ namespace Unity.Pipeline.Tests.Editor
             try
             {
                 Assert.IsNotNull(config);
-                Assert.IsFalse(config.enableInBuilds);
                 Assert.AreEqual(0, config.port);
-                Assert.AreEqual(30000, config.requestTimeoutMs);
                 Assert.IsTrue(config.enableAuditLogging);
                 Assert.IsTrue(config.autoStart);
                 Assert.AreEqual(10, config.maxWorkItemsPerFrame);

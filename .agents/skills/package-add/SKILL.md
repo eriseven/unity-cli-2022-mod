@@ -17,13 +17,13 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command package_add --identifier com.unity.timeline@1.8.7 --dry_run true
-unity command package_add --identifier com.unity.timeline@1.8.7 --confirm true
-unity command package_status
-unity command recompile_status
+unity command package add --identifier com.unity.timeline@1.8.7 --dry_run true
+unity command package add --identifier com.unity.timeline@1.8.7 --confirm true
+unity command package status
+unity command script recompile_status
 ```
 
 ## Notes
 
-Package changes are asynchronous by default and cause a domain reload. Poll `package_status`, then `recompile_status`; tolerate temporary connection errors during reload.
+Package changes are asynchronous by default and cause a domain reload. Poll `package status`, then `script recompile_status`; tolerate temporary connection errors during reload.
 

@@ -25,23 +25,23 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void AllSettingsGroups_ExposeGetAndSetCommands()
         {
-            var names = CommandRegistry.DiscoverCommands().Select(c => c.Name).ToList();
+            var names = CommandRegistry.DiscoverCommands().Select(c => c.FullName).ToList();
 
             foreach (var group in new[] { "player", "quality", "graphics", "physics", "time", "input", "audio" })
             {
-                Assert.Contains($"get_{group}_settings", names, $"missing get for {group}");
-                Assert.Contains($"set_{group}_settings", names, $"missing set for {group}");
+                Assert.Contains($"settings.{group} get", names, $"missing get for {group}");
+                Assert.Contains($"settings.{group} set", names, $"missing set for {group}");
             }
 
             // Tags & layers uses its own (non "_settings") naming.
-            Assert.Contains("get_tags_layers", names);
-            Assert.Contains("set_tags_layers", names);
+            Assert.Contains("settings.tags_layers get", names);
+            Assert.Contains("settings.tags_layers set", names);
         }
 
         [Test]
         public void SetPlayerSettings_ExposesNestedObjectSchema_WithGateArgs()
         {
-            var command = CommandRegistry.DiscoverCommands().First(c => c.Name == "set_player_settings");
+            var command = CommandRegistry.DiscoverCommands().First(c => c.FullName == "settings.player set");
             var schema = JObject.Parse(JsonSchemaGenerator.GenerateCommandSchema(command));
             var properties = (JObject)schema["properties"];
 

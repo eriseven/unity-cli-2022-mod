@@ -23,7 +23,7 @@ namespace Unity.Pipeline.Tests.Editor.ProjectAudit
         {
             var commands = CommandRegistry.DiscoverCommands().ToList();
 
-            var audit = commands.FirstOrDefault(c => c.Name == "audit");
+            var audit = commands.FirstOrDefault(c => c.FullName == "diagnostics run_audit");
             Assert.IsNotNull(audit, "Should discover the audit command");
             Assert.IsFalse(audit.MainThreadRequired,
                 "audit must not require the main thread (it only enqueues; the scan runs on a later tick)");
@@ -31,7 +31,7 @@ namespace Unity.Pipeline.Tests.Editor.ProjectAudit
                 audit.Parameters.Select(p => p.Name).ToList());
             Assert.IsTrue(audit.Parameters.All(p => !p.Required), "audit parameters should be optional");
 
-            var status = commands.FirstOrDefault(c => c.Name == "audit_status");
+            var status = commands.FirstOrDefault(c => c.FullName == "diagnostics audit_status");
             Assert.IsNotNull(status, "Should discover the audit_status command");
             Assert.IsFalse(status.MainThreadRequired,
                 "audit_status must be off-main-thread so it answers while a scan holds the main thread");

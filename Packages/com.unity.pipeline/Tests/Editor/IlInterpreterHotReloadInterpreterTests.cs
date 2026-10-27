@@ -2,7 +2,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Unity.Pipeline.Compilation;
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 using Unity.Pipeline.Runtime.Commands;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
-    /// Top-level probe with a woven [CodeReload] method, reloaded through the <b>interpreter</b> backend.
+    /// Top-level probe with a woven [MethodReload] method, reloaded through the <b>interpreter</b> backend.
     /// Top-level (not nested) so the generated static override can name it from a separate assembly.
     /// </summary>
     public class IlInterpreterReloadProbe
@@ -18,7 +18,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int baseline;
         public int hotValue;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             baseline = 1; // original body
@@ -26,7 +26,7 @@ namespace Unity.Pipeline.Tests.Editor
     }
 
     /// <summary>
-    /// Probe with a PRIVATE field, reloaded through the interpreter. Verifies that a [CodeReload] body can
+    /// Probe with a PRIVATE field, reloaded through the interpreter. Verifies that a [MethodReload] body can
     /// read/write private state now that the override is compiled with access checks disabled and the host
     /// binding registers non-public instance members. A public getter exposes the private field for asserts.
     /// </summary>
@@ -35,7 +35,7 @@ namespace Unity.Pipeline.Tests.Editor
         private int m_Secret;
         public int Secret => m_Secret;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             m_Secret = 1; // original body
@@ -53,7 +53,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int result;
         private int Helper(int x) => x * 3;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             result = 0; // original body
@@ -61,7 +61,7 @@ namespace Unity.Pipeline.Tests.Editor
     }
 
     /// <summary>
-    /// Probe with a PRIVATE nested enum field switched on in a [CodeReload] body — the TankAI pattern
+    /// Probe with a PRIVATE nested enum field switched on in a [MethodReload] body — the TankAI pattern
     /// (Update switches on a private <c>enum State</c>). The interpreter classified enum host fields as O
     /// (boxed), so the switch matched no case and the method silently no-op'd; enum fields must read as
     /// their underlying int.
@@ -72,7 +72,7 @@ namespace Unity.Pipeline.Tests.Editor
         private Mode m_Mode = Mode.Run;
         public int picked = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute() { picked = -1; } // original body
     }
 
@@ -86,9 +86,9 @@ namespace Unity.Pipeline.Tests.Editor
     {
         public int result;
         public int innerRan;
-        [CodeReload]
+        [MethodReload]
         public void Inner() { innerRan = -1; }  // original body
-        [CodeReload]
+        [MethodReload]
         public void Compute() { result = -1; }  // original body
     }
 
@@ -101,7 +101,7 @@ namespace Unity.Pipeline.Tests.Editor
     {
         public int made = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             made = -1; // original body
@@ -119,7 +119,7 @@ namespace Unity.Pipeline.Tests.Editor
     {
         public int marker = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             marker = 0; // original body
@@ -135,7 +135,7 @@ namespace Unity.Pipeline.Tests.Editor
     {
         public int made = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             made = 0; // original body
@@ -157,7 +157,7 @@ namespace Unity.Pipeline.Tests.Editor
         public float sum;
         public int result = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             result = 0; // original body
@@ -173,7 +173,7 @@ namespace Unity.Pipeline.Tests.Editor
     {
         public int made = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             made = 0; // original body
@@ -187,7 +187,7 @@ namespace Unity.Pipeline.Tests.Editor
     {
         public int computedValue;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             computedValue = 42; // original body
@@ -211,7 +211,7 @@ namespace Unity.Pipeline.Tests.Editor
             return acc + x / 2;
         }
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             result = -1; // original body
@@ -229,7 +229,7 @@ namespace Unity.Pipeline.Tests.Editor
         public event System.Action Clicked;
         public void Fire() => Clicked?.Invoke();
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             clicks = -1; // original body
@@ -237,14 +237,14 @@ namespace Unity.Pipeline.Tests.Editor
     }
 
     /// <summary>
-    /// Probe for a reload that adds a NEW [CodeReload]-tagged method: the new method can't register
+    /// Probe for a reload that adds a NEW [MethodReload]-tagged method: the new method can't register
     /// (no woven prologue exists for it) but must not poison the rest of the file's overrides.
     /// </summary>
     public class IlInterpreterNewTaggedProbe
     {
         public int result;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             result = -1; // original body
@@ -253,28 +253,28 @@ namespace Unity.Pipeline.Tests.Editor
 
     /// <summary>
     /// End-to-end interpreter hot reload: the same reload_file pipeline as the Assembly.Load path but
-    /// via <c>reload_file_editor_interpreter</c>, so the edited [CodeReload] body is dispatched through the
-    /// IlInterpreter VM (<c>InterpreterCodeReloadExecutor</c>) rather than reflection. Mirrors
-    /// <see cref="CodeReloadInPlaceTests"/>'s end-to-end test with the interpreter backend selected.
+    /// via <c>reload_file_editor_interpreter</c>, so the edited [MethodReload] body is dispatched through the
+    /// IlInterpreter VM (<c>InterpreterMethodReloadExecutor</c>) rather than reflection. Mirrors
+    /// <see cref="MethodReloadInPlaceTests"/>'s end-to-end test with the interpreter backend selected.
     /// </summary>
-    class IlInterpreterCodeReloadInterpreterTests
+    class IlInterpreterMethodReloadInterpreterTests
     {
         [SetUp]
-        public void Setup() => CodeReloadRegistry.ClearAllForTesting();
+        public void Setup() => MethodReloadRegistry.ClearAllForTesting();
 
         [TearDown]
-        public void TearDown() => CodeReloadRegistry.ClearAllForTesting();
+        public void TearDown() => MethodReloadRegistry.ClearAllForTesting();
 
         [Test]
         public void ReloadFileInterpreter_EditedBody_AppliesViaInterpreterDispatch()
         {
             // Auto-discovery does this at play start; register the target explicitly for the test.
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterReloadProbe).GetMethod(nameof(IlInterpreterReloadProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterReloadProbe
@@ -282,7 +282,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int baseline;
         public int hotValue;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             hotValue = 99;
@@ -294,7 +294,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed. Error: {response.ErrorDetails}");
 
@@ -302,7 +302,7 @@ namespace Unity.Pipeline.Tests.Editor
                 probe.Compute();
 
                 Assert.AreEqual(99, probe.hotValue,
-                    "Edited [CodeReload] body should run via the interpreter dispatch");
+                    "Edited [MethodReload] body should run via the interpreter dispatch");
                 Assert.AreEqual(0, probe.baseline,
                     "Original compiled body should be skipped when the interpreter override runs");
             }
@@ -315,22 +315,22 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_RandomStatics_DispatchViaInterpreter()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterRandomProbe).GetMethod(nameof(IlInterpreterRandomProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // rotationUniform is a static property returning a flat struct (Quaternion); value is
             // a static float property. A unit quaternion's squared magnitude is 1, so made == 2
             // proves both statics dispatched with real values (a fallback leaves made == 0).
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterRandomProbe
     {
         public int made = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             made = 0;
@@ -347,7 +347,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success, $"reload should succeed. Error: {response.ErrorDetails}");
 
                 var probe = new IlInterpreterRandomProbe();
@@ -365,22 +365,22 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_EmptyBody_AppliesNoOpOverride()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterEmptyBodyProbe).GetMethod(nameof(IlInterpreterEmptyBodyProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
-            // Emptying a [CodeReload] body is a legitimate edit (e.g. deleting a Debug.Log): the
-            // reload must bind a no-op override, not fail with "No [CodeReload] methods found"
+            // Emptying a [MethodReload] body is a legitimate edit (e.g. deleting a Debug.Log): the
+            // reload must bind a no-op override, not fail with "No [MethodReload] methods found"
             // (which would leave the previous override live).
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterEmptyBodyProbe
     {
         public int computedValue;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
         }
@@ -391,9 +391,9 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
-                    $"reload of an emptied [CodeReload] body should succeed. Error: {response.ErrorDetails}");
+                    $"reload of an emptied [MethodReload] body should succeed. Error: {response.ErrorDetails}");
 
                 var probe = new IlInterpreterEmptyBodyProbe();
                 probe.Compute();
@@ -410,12 +410,12 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_PrivateFieldAccess_AppliesViaInterpreterDispatch()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterPrivateReloadProbe).GetMethod(nameof(IlInterpreterPrivateReloadProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterPrivateReloadProbe
@@ -423,7 +423,7 @@ namespace Unity.Pipeline.Tests.Editor
         private int m_Secret;
         public int Secret => m_Secret;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             m_Secret = 77;
@@ -435,7 +435,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed for private field access. Error: {response.ErrorDetails}");
 
@@ -443,7 +443,7 @@ namespace Unity.Pipeline.Tests.Editor
                 probe.Compute();
 
                 Assert.AreEqual(77, probe.Secret,
-                    "Edited [CodeReload] body should write the private field via the interpreter dispatch");
+                    "Edited [MethodReload] body should write the private field via the interpreter dispatch");
             }
             finally
             {
@@ -454,14 +454,14 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_PrivateMethodCall_AppliesViaInterpreterDispatch()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterPrivateMethodProbe).GetMethod(nameof(IlInterpreterPrivateMethodProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // If the interpreter can't resolve the private Helper it throws "Host method not registered"
             // and falls back (result stays 0); result==39 proves the private call dispatched.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterPrivateMethodProbe
@@ -469,7 +469,7 @@ namespace Unity.Pipeline.Tests.Editor
         public int result;
         private int Helper(int x) => x * 3;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             result = Helper(13);
@@ -481,7 +481,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed for a private method call. Error: {response.ErrorDetails}");
 
@@ -500,14 +500,14 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_EnumFieldSwitch_DispatchesViaInterpreter()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterEnumSwitchProbe).GetMethod(nameof(IlInterpreterEnumSwitchProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // m_Mode==Run, so case Run must set picked=20. If the enum field reads as a boxed
             // enum (the bug), no case matches and picked stays -1.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterEnumSwitchProbe
@@ -516,7 +516,7 @@ namespace Unity.Pipeline.Tests.Editor
         private Mode m_Mode = Mode.Run;
         public int picked = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             switch (m_Mode)
@@ -532,7 +532,7 @@ namespace Unity.Pipeline.Tests.Editor
             File.WriteAllText(path, editedSource);
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success, $"reload should succeed. Error: {response.ErrorDetails}");
                 var probe = new IlInterpreterEnumSwitchProbe();
                 probe.Compute();
@@ -545,27 +545,27 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_ReentrantCall_PreservesCallerFrame()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterReentrancyProbe).GetMethod(nameof(IlInterpreterReentrancyProbe.Compute)),
-                new CodeReloadAttribute());
-            CodeReloadRegistry.RegisterReloadableMethod(
+                new MethodReloadAttribute());
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterReentrancyProbe).GetMethod(nameof(IlInterpreterReentrancyProbe.Inner)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // Compute keeps locals a/b live across a call to Inner (itself an interpreter override, invoked
             // reentrantly via the host/woven dispatch). Inner uses its own locals; if the reentrant call ran
             // at frame base 0 it would clobber a/b and result != 11.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterReentrancyProbe
     {
         public int result;
         public int innerRan;
-        [Unity.Pipeline.CodeReload.CodeReload]
+        [Unity.Pipeline.MethodReload.MethodReload]
         public void Inner() { int x = 99; int y = x + 1; innerRan = y; }
-        [Unity.Pipeline.CodeReload.CodeReload]
+        [Unity.Pipeline.MethodReload.MethodReload]
         public void Compute() { int a = 5; int b = 6; Inner(); result = a + b; }
     }
 }";
@@ -573,7 +573,7 @@ namespace Unity.Pipeline.Tests.Editor
             File.WriteAllText(path, editedSource);
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success, $"reload should succeed. Error: {response.ErrorDetails}");
                 var probe = new IlInterpreterReentrancyProbe();
                 probe.Compute();
@@ -587,23 +587,23 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_NewobjHostType_AppliesViaInterpreterDispatch()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterNewobjReloadProbe).GetMethod(nameof(IlInterpreterNewobjReloadProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // NavMeshPath is not in the standard binding, so the newobj token only resolves if the
             // interpreter registers referenced engine types (AllowReferencedTypes). If newobj or the
             // instance call fails, the override falls back and `made` stays -1; made==1 proves the
             // host-type construction dispatched.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterNewobjReloadProbe
     {
         public int made = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             var p = new UnityEngine.AI.NavMeshPath();
@@ -617,7 +617,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed for `new NavMeshPath()`. Error: {response.ErrorDetails}");
 
@@ -636,15 +636,15 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_NullableMembers_DispatchViaIntrinsics()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterNullableProbe).GetMethod(nameof(IlInterpreterNullableProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // Exercises every Nullable<T> shape the intrinsics model: HasValue, Value (local and
             // field receivers), `??` (GetValueOrDefault), a lifted null comparison, GetValueOrDefault
             // with and without a fallback, and a T→T? conversion (Nullable ctor via ldloca+call).
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterNullableProbe
@@ -656,7 +656,7 @@ namespace Unity.Pipeline.Tests.Editor
         public float sum;
         public int result = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             float total = 0f;
@@ -677,7 +677,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success, $"reload should succeed. Error: {response.ErrorDetails}");
 
                 var probe = new IlInterpreterNullableProbe();
@@ -697,23 +697,23 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_RuntimeError_ReportsSourceLineAndFile()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterLineInfoProbe).GetMethod(nameof(IlInterpreterLineInfoProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // The edited body dereferences a null host object on LINE 13 of this source (the
             // `made = p.corners.Length;` statement — line 1 is the empty line after the opening
             // quote). The interpreter's error must carry that line and the file name, resolved
             // from the embedded PDB whose #line directives map the body to the pushed file.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterLineInfoProbe
     {
         public int made = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             UnityEngine.AI.NavMeshPath p = null;
@@ -726,14 +726,14 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success, $"reload should succeed. Error: {response.ErrorDetails}");
 
                 // The dispatch logs the interpreter error and falls back to the original body.
                 LogAssert.Expect(LogType.Error, new Regex(
-                    @"CodeReload: Error invoking override for 'IlInterpreterLineInfoProbe\.Compute':.*" +
+                    @"MethodReload: Error invoking override for 'IlInterpreterLineInfoProbe\.Compute':.*" +
                     @"NullReferenceException.* at line 13 \(IlInterpreterLineInfoProbe_edit\.cs\)"));
-                LogAssert.Expect(LogType.Error, new Regex("CodeReload: Stack trace:"));
+                LogAssert.Expect(LogType.Error, new Regex("MethodReload: Stack trace:"));
 
                 var probe = new IlInterpreterLineInfoProbe();
                 probe.Compute();
@@ -750,21 +750,21 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_RuntimeError_WithLineInfoDisabled_ReportsIlOffset()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterLineInfoProbe).GetMethod(nameof(IlInterpreterLineInfoProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // Same failing body as the line-info test, but with the "Error Line Info" setting off:
             // no embedded PDB is shipped, so the error falls back to the raw IL offset.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterLineInfoProbe
     {
         public int made = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             UnityEngine.AI.NavMeshPath p = null;
@@ -775,17 +775,17 @@ namespace Unity.Pipeline.Tests.Editor
             var path = Path.Combine(Application.temporaryCachePath, "IlInterpreterLineInfoProbe_noinfo_edit.cs");
             File.WriteAllText(path, editedSource);
 
-            var previous = CodeReloadCompiler.EmitSourceLineInfo;
-            CodeReloadCompiler.EmitSourceLineInfo = false;
+            var previous = MethodReloadCompiler.EmitSourceLineInfo;
+            MethodReloadCompiler.EmitSourceLineInfo = false;
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success, $"reload should succeed. Error: {response.ErrorDetails}");
 
                 LogAssert.Expect(LogType.Error, new Regex(
-                    @"CodeReload: Error invoking override for 'IlInterpreterLineInfoProbe\.Compute':.*" +
+                    @"MethodReload: Error invoking override for 'IlInterpreterLineInfoProbe\.Compute':.*" +
                     @"NullReferenceException.* at IL\+0x"));
-                LogAssert.Expect(LogType.Error, new Regex("CodeReload: Stack trace:"));
+                LogAssert.Expect(LogType.Error, new Regex("MethodReload: Stack trace:"));
 
                 var probe = new IlInterpreterLineInfoProbe();
                 probe.Compute();
@@ -795,7 +795,7 @@ namespace Unity.Pipeline.Tests.Editor
             }
             finally
             {
-                CodeReloadCompiler.EmitSourceLineInfo = previous;
+                MethodReloadCompiler.EmitSourceLineInfo = previous;
                 if (File.Exists(path)) File.Delete(path);
             }
         }
@@ -803,19 +803,19 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_OverrideThrows_PropagatesOriginalException()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterExitGuiProbe).GetMethod(nameof(IlInterpreterExitGuiProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterExitGuiProbe
     {
         public int marker = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             marker = 42;
@@ -828,7 +828,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success, $"reload should succeed. Error: {response.ErrorDetails}");
 
                 var probe = new IlInterpreterExitGuiProbe();
@@ -849,15 +849,15 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_NewHelperMethod_MatchesCompiledTwin()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterNewMethodProbe).GetMethod(nameof(IlInterpreterNewMethodProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // LiveHelper does not exist on the compiled type: the transform must co-emit it into
             // the override class so the changed Compute reaches it via call_script. Same body text
             // as CompiledHelper, so the compiled twin's output is the oracle.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterNewMethodProbe
@@ -872,7 +872,7 @@ namespace Unity.Pipeline.Tests.Editor
             return acc + x / 2;
         }
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             result = LiveHelper(9);
@@ -892,7 +892,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
                     $"reload with a live-added helper should succeed. Error: {response.ErrorDetails}");
 
@@ -911,15 +911,15 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_NewClickMethodWiredToCallback_Fires()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterClickProbe).GetMethod(nameof(IlInterpreterClickProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // Click does not exist compiled; the reloaded body subscribes it as a method group.
             // The transform wraps it in a lambda over the co-emitted static, and the interpreter
             // creates a real Action that re-enters the VM when the host fires it.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterClickProbe
@@ -928,7 +928,7 @@ namespace Unity.Pipeline.Tests.Editor
         public event System.Action Clicked;
         public void Fire() => Clicked?.Invoke();
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             clicks = 0;
@@ -946,7 +946,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
                     $"reload wiring a live-added Click method should succeed. Error: {response.ErrorDetails}");
 
@@ -967,27 +967,27 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_NewTaggedMethod_DoesNotPoisonFile()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterNewTaggedProbe).GetMethod(nameof(IlInterpreterNewTaggedProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
-            // `Added` is a NEW [CodeReload] method, declared FIRST so it is names[0] at registration.
+            // `Added` is a NEW [MethodReload] method, declared FIRST so it is names[0] at registration.
             // It has no woven prologue and can't register — but Compute's override must still apply.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterNewTaggedProbe
     {
         public int result;
 
-        [CodeReload]
+        [MethodReload]
         public void Added()
         {
             result = 1000;
         }
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             result = 7;
@@ -999,7 +999,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
                     $"reload should succeed with the new method skipped, not poison the file. Error: {response.ErrorDetails}");
 
@@ -1018,22 +1018,22 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInterpreter_HostValueTypeArray_AppliesViaInterpreterDispatch()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(IlInterpreterNewobjReloadProbe).GetMethod(nameof(IlInterpreterNewobjReloadProbe.Compute)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             // NavMeshPath.corners is a Vector3[] — a host-returned VALUE-TYPE array (not the interpreter's
             // object?[]). Reading .Length exercises ldlen over a real typed array, which used to throw
             // InvalidCastException (the (object?[]) cast fails for value-type arrays). An empty path → 0.
             var editedSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class IlInterpreterNewobjReloadProbe
     {
         public int made = -1;
 
-        [CodeReload]
+        [MethodReload]
         public void Compute()
         {
             var p = new UnityEngine.AI.NavMeshPath();
@@ -1046,7 +1046,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = CodeReloadCommands.ReloadFileEditorInterpreter(path);
+                var response = MethodReloadCommands.ReloadEditor(path);
                 Assert.IsTrue(response.Success,
                     $"reload_file_editor_interpreter should succeed for a host Vector3[] read. Error: {response.ErrorDetails}");
 

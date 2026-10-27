@@ -17,10 +17,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_asset --path Materials/Wall.mat --type UnityEngine.Material --shader "Universal Render Pipeline/Lit"
+unity command asset create --path Materials/Wall.mat --type UnityEngine.Material --shader "Universal Render Pipeline/Lit"
 ```
 
 ## Notes
 
-Use `list_shaders` first when the shader name is uncertain. Add `--confirm true` only to overwrite an existing material.
+Use `material list_shaders` first when the shader name is uncertain. Add `--confirm true` only to overwrite an existing material.
 

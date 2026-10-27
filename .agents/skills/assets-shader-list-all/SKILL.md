@@ -17,10 +17,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command list_shaders --filter Lit --includeBuiltin true --limit 200
+unity command material list_shaders --filter Lit --includeBuiltin true --limit 200
 ```
 
 ## Notes
 
-Check `isSupported` and retain the exact shader name for `create_asset` or `set_material_properties`.
+Check `isSupported` and retain the exact shader name for `asset create` or `material set_properties`.
 

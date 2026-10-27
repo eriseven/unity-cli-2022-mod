@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+#if UNITY_6000_5_OR_NEWER
+using Unity.Scripting.LifecycleManagement;
+#endif
 
 namespace Unity.Pipeline.Editor.Console
 {
@@ -17,6 +20,9 @@ namespace Unity.Pipeline.Editor.Console
     /// Reflection rather than a direct reference, because LogEntries is internal. Any failure
     /// disables this permanently for the session and callers report the console as unseeded.
     /// </summary>
+#if UNITY_6000_5_OR_NEWER
+    [NoAutoStaticsCleanup]
+#endif
     static class EditorConsoleEntries
     {
         // ConsoleMode bits from Unity's native EditorMonoConsole (mirrored by the internal

@@ -35,7 +35,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             var commands = CommandRegistry.DiscoverCommands().ToList();
 
-            var recompile = commands.FirstOrDefault(c => c.Name == "recompile");
+            var recompile = commands.FirstOrDefault(c => c.FullName == "script recompile");
             Assert.IsNotNull(recompile, "Should discover recompile");
             CollectionAssert.AreEquivalent(
                 new[] { "focus" },
@@ -44,7 +44,7 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.IsFalse(recompile.Parameters.Single(p => p.Name == "focus").Required,
                 "'focus' must be optional");
 
-            var status = commands.FirstOrDefault(c => c.Name == "recompile_status");
+            var status = commands.FirstOrDefault(c => c.FullName == "script recompile_status");
             Assert.IsNotNull(status, "Should discover recompile_status");
             Assert.AreEqual(0, status.Parameters.Count, "recompile_status takes no parameters");
         }

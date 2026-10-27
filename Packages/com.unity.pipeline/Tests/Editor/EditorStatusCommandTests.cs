@@ -15,7 +15,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void GetEditorStatus_ReturnsValidData()
         {
-            var status = EditorStatusCommand.GetEditorStatus();
+            var status = EditorStatusCommand.Status();
 
             Assert.IsNotNull(status);
             Assert.IsNotEmpty(status.Status, "Should report an overall status");
@@ -27,7 +27,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void GetEditorStatus_NotPlaying_ReportsStopped()
         {
             // This suite runs in EditMode (not play mode).
-            var status = EditorStatusCommand.GetEditorStatus();
+            var status = EditorStatusCommand.Status();
             Assert.AreEqual("stopped", status.PlayMode);
         }
 
@@ -40,7 +40,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("editor_status", null);
+                var response = server.Execute("editor status", null);
 
                 Assert.IsTrue(response.IsSuccess, $"editor_status should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");

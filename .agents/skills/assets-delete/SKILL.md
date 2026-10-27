@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command delete_asset --asset Assets/Materials/Old.mat --dry_run true
-unity command delete_asset --asset Assets/Materials/Old.mat --confirm true
+unity command asset delete --asset Assets/Materials/Old.mat --dry_run true
+unity command asset delete --asset Assets/Materials/Old.mat --confirm true
 ```
 
 ## Notes

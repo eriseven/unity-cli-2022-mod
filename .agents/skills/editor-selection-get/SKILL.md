@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_selection
+unity command gameobject get_selection
 ```
 
 ## Notes

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json.Linq;
 using Unity.Pipeline.Commands;
 using Unity.Pipeline.Telemetry;
 using UnityEditor;
@@ -46,13 +45,6 @@ namespace Unity.Pipeline.Editor
 
         private const string SessionStartedKey = "Unity.Pipeline.Analytics.SessionStarted";
         private const string SessionStartTicksKey = "Unity.Pipeline.Analytics.SessionStartTicks";
-
-        /// <summary>
-        /// Assemblies whose commands ship with the package. Anything else carrying [CliCommand] was
-        /// written by the project, which is what isUserDefinedCommand reports.
-        /// </summary>
-        private static readonly HashSet<string> PackageAssemblies =
-            new HashSet<string> { "Unity.Pipeline", "Unity.Pipeline.Editor" };
 
         /// <summary>
         /// The tag every code-evaluation command carries (eval, eval_file, run_script). Matching the
@@ -131,13 +123,16 @@ namespace Unity.Pipeline.Editor
                 {
                     // Only a command that shipped with the package describes itself; a
                     // project-declared one reports the placeholder and no tags.
-                    commandName = userDefined ? RedactedCommandName : command.Name,
+                    commandName = userDefined ? RedactedCommandName : command.FullName,
                     commandTags = userDefined ? Array.Empty<string>() : ToArray(command.Tags),
                     commandSuccess = info.Success,
                     commandDuration = info.DurationMs,
                     isUserDefinedCommand = userDefined,
                     isEval = IsEvalCommand(command.Tags),
                     isEvalWithExistingCommandAvailable = EvalCoversAnExistingCommand(command, info.Parameters),
+                    commandId = info.CommandId,
+                    clientSource = info.ClientSource ?? "",
+                    clientName = info.ClientName ?? "",
                 }));
             }
             catch (Exception ex)
@@ -192,12 +187,12 @@ namespace Unity.Pipeline.Editor
             s_Send(new SessionStartedAnalytic(new SessionStartedData
             {
                 batchmode = Application.isBatchMode,
-                automated = EditorPipelineServer.DetectAutomatedMode(Environment.GetCommandLineArgs()),
+                automated = EditorProcessInfo.IsAutomated(Environment.GetCommandLineArgs()),
                 // Both fall back to what the server starts with when no settings are authored:
                 // browser clients refused, port auto-assigned from the range.
                 browserAllowed = server?.AllowSandboxedBrowserClients ?? false,
                 dynamicPortAssignation = server?.PortAutoAssigned ?? true,
-                hotReloadWatcherEnabled = EditorCodeReloadWatcher.IsWatching,
+                hotReloadWatcherEnabled = EditorMethodReloadWatcher.IsWatching,
             }));
         }
 
@@ -208,7 +203,7 @@ namespace Unity.Pipeline.Editor
         /// </summary>
         internal static bool IsUserDefinedCommand(string package)
         {
-            return !string.IsNullOrEmpty(package) && !PackageAssemblies.Contains(package);
+            return !string.IsNullOrEmpty(package) && !CommandRegistry.IsPackageAssembly(package);
         }
 
         /// <summary>
@@ -226,12 +221,12 @@ namespace Unity.Pipeline.Editor
         /// with a named entry point rather than a snippet, and the fingerprinter parses script-kind
         /// bodies, so it is not fingerprinted and reports false.
         /// </summary>
-        internal static bool EvalCoversAnExistingCommand(CommandInfo command, JObject parameters)
+        internal static bool EvalCoversAnExistingCommand(CommandInfo command, IReadOnlyDictionary<string, object> parameters)
         {
             if (parameters == null || !IsEvalCommand(command.Tags))
                 return false;
 
-            var code = ReadEvalBody(command.Name, parameters);
+            var code = ReadEvalBody(command.FullName, parameters);
             if (string.IsNullOrWhiteSpace(code))
                 return false;
 
@@ -239,7 +234,7 @@ namespace Unity.Pipeline.Editor
             if (fingerprints == null || fingerprints.Count == 0)
                 return false;
 
-            var available = new HashSet<string>(CommandRegistry.DiscoverCommands().Select(c => c.Name));
+            var available = new HashSet<string>(CommandRegistry.DiscoverCommands().Select(c => c.FullName));
             foreach (var fingerprint in fingerprints)
             {
                 if (EvalCoverageMap.Default.TryGetValue(fingerprint, out var mapped) && available.Contains(mapped))
@@ -253,18 +248,18 @@ namespace Unity.Pipeline.Editor
         /// The evaluated body, from the parameters the command was invoked with. Returns null for a
         /// command whose body is not reachable that way.
         /// </summary>
-        private static string ReadEvalBody(string commandName, JObject parameters)
+        private static string ReadEvalBody(string commandName, IReadOnlyDictionary<string, object> parameters)
         {
             switch (commandName)
             {
-                case "eval":
-                    return parameters["code"]?.ToString();
+                case CommandNames.ScriptEval:
+                    return parameters.TryGetValue("code", out var code) ? code?.ToString() : null;
 
-                case "eval_file":
+                case CommandNames.ScriptEvalFile:
                     // The command read this file moments ago; re-reading it costs one small read and
                     // keeps eval_file from reporting a permanent false that would be indistinguishable
                     // from a genuine "nothing covers this".
-                    var file = parameters["file"]?.ToString();
+                    var file = parameters.TryGetValue("file", out var path) ? path?.ToString() : null;
                     if (string.IsNullOrEmpty(file) || !System.IO.File.Exists(file))
                         return null;
                     try
@@ -310,7 +305,7 @@ namespace Unity.Pipeline.Editor
             public bool automated;
             public bool browserAllowed;
             public bool dynamicPortAssignation;
-            // Keeps the registered analytics schema's field name from before the code-reload rename.
+            // Keeps the registered analytics schema's field name from before the method-reload rename.
             public bool hotReloadWatcherEnabled;
         }
 
@@ -324,6 +319,9 @@ namespace Unity.Pipeline.Editor
             public bool isUserDefinedCommand;
             public bool isEval;
             public bool isEvalWithExistingCommandAvailable;
+            public long commandId;
+            public string clientSource;
+            public string clientName;
         }
 
         [Serializable]

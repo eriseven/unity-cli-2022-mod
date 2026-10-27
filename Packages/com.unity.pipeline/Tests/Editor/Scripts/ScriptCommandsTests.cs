@@ -13,35 +13,9 @@ using Unity.Pipeline;
 
 namespace Unity.Pipeline.Tests.Editor.Scripts
 {
-    /// <summary>
-    /// Tests for the CLI-195 script-management / reference-linking commands, exercised both directly
-    /// (calling the static command method) and ViaClient (over HTTP through <see cref="PipelineTestServer"/>).
-    ///
-    /// create_script's own domain reload IS exercised in-test — see
-    /// <see cref="CreateScript_WritesFileAndReturnsAssetIdentity"/>, which forces and survives it
-    /// (UUM-148802). What still can't complete inside a single test is attach_script against the type
-    /// that reload just compiled: no local state survives a real domain reload, so there is nothing
-    /// left in-process afterward to hand to attach_script. We therefore cover:
-    ///   * set_serialized_field -> get_serialized_fields round-trips (primitive, enum, vector),
-    ///   * wiring a [SerializeField] object reference and reading it back as a handle,
-    ///   * the recoverable "attach before compile" error path (attaching a type name that isn't
-    ///     compiled), which is exactly what an agent hits if it skips the recompile step.
-    /// The happy-path attach is validated against an ALREADY-COMPILED test component
-    /// (<see cref="ScriptCommandTestBehaviour"/>) so the type exists without a reload. Attaching a
-    /// type from a script create_script just wrote must still be verified in a live Editor (see PR notes).
-    /// </summary>
+    /// <summary>Script authoring and serialized-field command coverage.</summary>
     class ScriptCommandsTests
     {
-        // Shared with CreateScript_WritesFileAndReturnsAssetIdentity, whose own try/finally spans a
-        // real domain reload (WaitForDomainReload) and isn't reliably run when the test fails or is
-        // resumed across that reload — a leftover folder then fails the *next* run too (the script
-        // file it writes already exists). TearDown always runs, reload or not, so clean up there.
-        private const string k_CreateScriptTestFolder = "Assets/__CLI195Test";
-
-        // SessionState survives the domain reload below, unlike a field, so TearDown can tell "this test
-        // created the folder" apart from "it already existed" and only ever delete the one it owns.
-        private const string k_CreateScriptTestFolderOwnedKey = "Pipeline.Tests.CLI195TestFolderOwned";
-
         private GameObject m_Go;
         private GameObject m_RefTarget;
 
@@ -61,15 +35,6 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             m_RefTarget = null;
             ProjectPaths.ResetAuthoringRoot();
 
-            if (SessionState.GetBool(k_CreateScriptTestFolderOwnedKey, false))
-            {
-                SessionState.EraseBool(k_CreateScriptTestFolderOwnedKey);
-                if (AssetDatabase.IsValidFolder(k_CreateScriptTestFolder))
-                {
-                    AssetDatabase.DeleteAsset(k_CreateScriptTestFolder);
-                    AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-                }
-            }
         }
 
         private static ObjectRef ById(Object o) => new ObjectRef { InstanceId = PipelineUtils.GetObjectId(o) };
@@ -81,13 +46,13 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         {
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
 
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Speed",
+            SerializedFieldCommands.SetField(ById(comp), "m_Speed",
                 Newtonsoft.Json.Linq.JToken.FromObject(42));
 
             Assert.AreEqual(42, comp.Speed, "Direct field value should reflect the set");
 
             // Read it back through the command and confirm the reported value matches.
-            var read = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Speed");
+            var read = SerializedFieldCommands.GetFields(ById(comp), "m_Speed");
             var json = Newtonsoft.Json.Linq.JObject.FromObject(read);
             Assert.AreEqual(42, (int)json["fields"][0]["value"]);
         }
@@ -97,12 +62,12 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         {
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
 
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Mode",
+            SerializedFieldCommands.SetField(ById(comp), "m_Mode",
                 Newtonsoft.Json.Linq.JToken.FromObject("Aggressive"));
 
             Assert.AreEqual(ScriptCommandTestBehaviour.EnemyMode.Aggressive, comp.Mode);
 
-            var read = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Mode");
+            var read = SerializedFieldCommands.GetFields(ById(comp), "m_Mode");
             var json = Newtonsoft.Json.Linq.JObject.FromObject(read);
             Assert.AreEqual("Aggressive", (string)json["fields"][0]["value"]);
         }
@@ -112,7 +77,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         {
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
 
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Offset",
+            SerializedFieldCommands.SetField(ById(comp), "m_Offset",
                 Newtonsoft.Json.Linq.JToken.FromObject(new { x = 1f, y = 2f, z = 3f }));
 
             Assert.AreEqual(new Vector3(1, 2, 3), comp.Offset);
@@ -128,13 +93,13 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
 
             // Wire the [SerializeField] GameObject reference to another scene object by instanceId.
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Target",
+            SerializedFieldCommands.SetField(ById(comp), "m_Target",
                 Newtonsoft.Json.Linq.JToken.FromObject(new { instanceId = PipelineUtils.GetObjectId(m_RefTarget) }));
 
             Assert.AreSame(m_RefTarget, comp.Target, "The reference should point at the wired object");
 
             // Reading it back should describe the referenced object as a re-usable handle.
-            var read = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Target");
+            var read = SerializedFieldCommands.GetFields(ById(comp), "m_Target");
             var json = Newtonsoft.Json.Linq.JObject.FromObject(read);
             var value = json["fields"][0]["value"];
             Assert.AreEqual(PipelineUtils.GetObjectId(m_RefTarget), value["instanceId"].ToObject<ObjectId>());
@@ -146,22 +111,22 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
 
             // Grow the array to one element via the native 'Array.size' path...
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Waypoints.Array.size",
+            SerializedFieldCommands.SetField(ById(comp), "m_Waypoints.Array.size",
                 Newtonsoft.Json.Linq.JToken.FromObject(1));
             Assert.AreEqual(1, comp.Waypoints.Length, "Array.size should resize the backing array");
 
             // ...then wire element [0] to a scene object via the 'Array.data[i]' path.
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Waypoints.Array.data[0]",
+            SerializedFieldCommands.SetField(ById(comp), "m_Waypoints.Array.data[0]",
                 Newtonsoft.Json.Linq.JToken.FromObject(new { instanceId = PipelineUtils.GetObjectId(m_RefTarget) }));
             Assert.AreSame(m_RefTarget, comp.Waypoints[0], "Array element should point at the wired object");
 
             // The whole array reads back as an object reporting its length...
-            var arr = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Waypoints");
+            var arr = SerializedFieldCommands.GetFields(ById(comp), "m_Waypoints");
             var arrJson = Newtonsoft.Json.Linq.JObject.FromObject(arr);
             Assert.AreEqual(1, (int)arrJson["fields"][0]["arrayLength"]);
 
             // ...and the element reads back as a re-usable handle to the referenced object.
-            var elem = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Waypoints.Array.data[0]");
+            var elem = SerializedFieldCommands.GetFields(ById(comp), "m_Waypoints.Array.data[0]");
             var elemJson = Newtonsoft.Json.Linq.JObject.FromObject(elem);
             Assert.AreEqual(PipelineUtils.GetObjectId(m_RefTarget), elemJson["fields"][0]["value"]["instanceId"].ToObject<ObjectId>());
         }
@@ -173,7 +138,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         [Test]
         public void AttachScript_CompiledType_AddsComponent()
         {
-            var result = AttachScriptCommand.AttachScript(ById(m_Go), nameof(ScriptCommandTestBehaviour));
+            var result = AttachScriptCommand.Attach(ById(m_Go), nameof(ScriptCommandTestBehaviour));
 
             Assert.IsNotNull(m_Go.GetComponent<ScriptCommandTestBehaviour>(), "Component should be attached");
             Assert.AreEqual(nameof(ScriptCommandTestBehaviour), result.Type);
@@ -183,7 +148,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         [Test]
         public void AttachScript_ByType_NamedArg_AddsComponent()
         {
-            var result = AttachScriptCommand.AttachScript(
+            var result = AttachScriptCommand.Attach(
                 ById(m_Go), type: nameof(ScriptCommandTestBehaviour), script: null);
 
             Assert.IsNotNull(m_Go.GetComponent<ScriptCommandTestBehaviour>(), "Component should be attached by type");
@@ -199,7 +164,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         {
             var scriptPath = FixtureScriptPath();
 
-            var result = AttachScriptCommand.AttachScript(ById(m_Go), type: null, script: scriptPath);
+            var result = AttachScriptCommand.Attach(ById(m_Go), type: null, script: scriptPath);
 
             Assert.IsNotNull(m_Go.GetComponent<AttachByPathFixture>(),
                 "The fixture component should be attached by resolving its script asset path");
@@ -212,7 +177,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         {
             var scriptPath = FixtureScriptPath();
             var ex = Assert.Throws<ArgumentException>(() =>
-                AttachScriptCommand.AttachScript(
+                AttachScriptCommand.Attach(
                     ById(m_Go), type: nameof(ScriptCommandTestBehaviour), script: scriptPath));
             StringAssert.Contains("not both", ex.Message);
             Assert.IsNull(m_Go.GetComponent<ScriptCommandTestBehaviour>(), "Nothing should attach on a bad-arg call");
@@ -223,7 +188,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         public void AttachScript_NeitherTypeNorScript_Throws()
         {
             var ex = Assert.Throws<ArgumentException>(() =>
-                AttachScriptCommand.AttachScript(ById(m_Go), type: null, script: null));
+                AttachScriptCommand.Attach(ById(m_Go), type: null, script: null));
             StringAssert.Contains("Provide either", ex.Message);
         }
 
@@ -233,7 +198,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             // A path that resolves to no MonoScript asset is a caller input mistake (parameter
             // validation), not a recompile-recoverable failure — so it surfaces as ArgumentException.
             var ex = Assert.Throws<ArgumentException>(() =>
-                AttachScriptCommand.AttachScript(
+                AttachScriptCommand.Attach(
                     ById(m_Go), type: null, script: "Assets/__NoSuch__/Missing.cs"));
             StringAssert.Contains("No MonoScript", ex.Message);
         }
@@ -269,10 +234,10 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         {
             // Simulate the create-before-compile case: a type name that no loaded assembly knows.
             var ex = Assert.Throws<InvalidOperationException>(() =>
-                AttachScriptCommand.AttachScript(ById(m_Go), "ThisTypeWasJustCreatedAndNotCompiledYet"));
+                AttachScriptCommand.Attach(ById(m_Go), "ThisTypeWasJustCreatedAndNotCompiledYet"));
 
             // The message must be recoverable: it should point the agent at the recompile flow.
-            StringAssert.Contains("recompile", ex.Message.ToLowerInvariant());
+            StringAssert.Contains("script recompile", ex.Message.ToLowerInvariant());
             Assert.IsNull(m_Go.GetComponent("ThisTypeWasJustCreatedAndNotCompiledYet"),
                 "Nothing should be attached when the type is unknown");
         }
@@ -283,51 +248,8 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             // A component target is fine (we read its gameObject), but a non-MonoBehaviour type is not.
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
             var ex = Assert.Throws<InvalidOperationException>(() =>
-                AttachScriptCommand.AttachScript(ById(comp), nameof(System.String)));
+                AttachScriptCommand.Attach(ById(comp), nameof(System.String)));
             StringAssert.Contains("MonoBehaviour", ex.Message);
-        }
-
-        #endregion
-
-        #region Direct — create_script (file write, survives its own domain reload)
-
-        [UnityTest]
-        public IEnumerator CreateScript_WritesFileAndReturnsAssetIdentity()
-        {
-            const string expectedAssetPath = k_CreateScriptTestFolder + "/CLI195Generated.cs";
-
-            if (!AssetDatabase.IsValidFolder(k_CreateScriptTestFolder))
-            {
-                AssetDatabase.CreateFolder("Assets", "__CLI195Test");
-                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-                SessionState.SetBool(k_CreateScriptTestFolderOwnedKey, true);
-            }
-
-            var result = CreateScriptCommand.CreateScript("CLI195Generated", k_CreateScriptTestFolder, "Game.Generated");
-            Assert.AreEqual(expectedAssetPath, result.AssetPath);
-
-            // create_script deliberately doesn't recompile (callers batch writes before paying
-            // that cost once, see CreateScriptCommand's doc comment) — so importing the real .cs
-            // file above just left Unity owing a compile pass. Left alone, that debt gets paid
-            // off whenever Unity next decides it's safe to check — empirically, the next Play
-            // Mode transition — landing mid-coroutine on an unrelated [UnityTest] elsewhere in
-            // the suite and hanging it to its timeout (UUM-148802). Force and wait out the reload
-            // right here instead, before anything else in the suite can be caught by it.
-            EditorUtility.RequestScriptReload();
-            yield return new WaitForDomainReload();
-
-            // Local state doesn't survive a real domain reload — the Test Runner resumes this
-            // coroutine at the right point, but every captured local (even a plain string, not
-            // just `result` itself) resets to its default. Re-derive what we check from the
-            // (const) inputs rather than anything captured before the yield.
-            Assert.IsTrue(System.IO.File.Exists(
-                System.IO.Path.Combine(ProjectPaths.ProjectRoot, expectedAssetPath)),
-                "The .cs file should be written to disk");
-
-            // Cleanup lives in TearDown, not a local try/finally: a finally wrapping this yield
-            // isn't reliably run when the test fails or is resumed across the real domain reload
-            // above, and a leftover folder then fails the next run too (CreateScript refuses to
-            // overwrite an existing file).
         }
 
         #endregion
@@ -344,7 +266,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("get_serialized_fields", new
+                var response = server.Execute("component get_fields", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(comp) },
                     field = "m_Target",
@@ -365,7 +287,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
             using (var server = new PipelineTestServer())
             {
-                var setResponse = server.Execute("set_serialized_field", new
+                var setResponse = server.Execute("component set_field", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(comp) },
                     field = "m_Speed",
@@ -374,7 +296,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
                 Assert.IsTrue(setResponse.IsSuccess, $"set should succeed: {setResponse.Error} / {setResponse.RawResponse}");
                 Assert.AreEqual(7, comp.Speed);
 
-                var getResponse = server.Execute("get_serialized_fields", new
+                var getResponse = server.Execute("component get_fields", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(comp) },
                     field = "m_Speed"
@@ -396,7 +318,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
                 UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
                     new System.Text.RegularExpressions.Regex("was not found in any loaded assembly"));
 
-                var response = server.Execute("attach_script", new
+                var response = server.Execute("script attach", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(m_Go) },
                     type = "DefinitelyNotCompiledYetComponent"
@@ -404,7 +326,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
 
                 // The recoverable error is surfaced as a command failure (HTTP 400), not a crash.
                 Assert.IsFalse(response.IsSuccess, "Attaching an uncompiled type should fail at the command level");
-                StringAssert.Contains("recompile", response.RawResponse.ToLowerInvariant(),
+                StringAssert.Contains("script recompile", response.RawResponse.ToLowerInvariant(),
                     "The error should tell the agent to recompile and retry");
             }
         }
@@ -416,7 +338,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var scriptPath = FixtureScriptPath();
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("attach_script", new
+                var response = server.Execute("script attach", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(m_Go) },
                     script = scriptPath
@@ -438,7 +360,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var rb = m_Go.AddComponent<Rigidbody>();
 
             // Address the component via the GameObject handle + a component type name.
-            var read = SerializedFieldCommands.GetSerializedFields(ById(m_Go), field: "m_Mass", component: "Rigidbody");
+            var read = SerializedFieldCommands.GetFields(ById(m_Go), field: "m_Mass", component: "Rigidbody");
             var json = Newtonsoft.Json.Linq.JObject.FromObject(read);
 
             Assert.AreEqual("Rigidbody", (string)json["type"], "Resolved object should be the Rigidbody, not the GameObject");
@@ -451,12 +373,12 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         {
             var rb = m_Go.AddComponent<Rigidbody>();
 
-            SerializedFieldCommands.SetSerializedField(ById(m_Go), "m_Mass",
+            SerializedFieldCommands.SetField(ById(m_Go), "m_Mass",
                 Newtonsoft.Json.Linq.JToken.FromObject(13.5), component: "Rigidbody");
 
             Assert.AreEqual(13.5f, rb.mass, 0.001f, "Mass should be set on the GO's Rigidbody");
 
-            var read = SerializedFieldCommands.GetSerializedFields(ById(m_Go), field: "m_Mass", component: "Rigidbody");
+            var read = SerializedFieldCommands.GetFields(ById(m_Go), field: "m_Mass", component: "Rigidbody");
             var json = Newtonsoft.Json.Linq.JObject.FromObject(read);
             Assert.AreEqual(13.5, (double)json["fields"][0]["value"], 0.001, "Read-back should reflect the set value");
         }
@@ -470,7 +392,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var second = m_Go.AddComponent<ScriptCommandTestBehaviour>();
 
             var ex = Assert.Throws<ArgumentException>(() =>
-                SerializedFieldCommands.GetSerializedFields(
+                SerializedFieldCommands.GetFields(
                     ById(m_Go), component: nameof(ScriptCommandTestBehaviour)));
 
             // The error must list EACH instanceId so the agent can re-address unambiguously.
@@ -488,7 +410,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             try
             {
                 var ex = Assert.Throws<ArgumentException>(() =>
-                    SerializedFieldCommands.GetSerializedFields(ById(so), component: "Rigidbody"));
+                    SerializedFieldCommands.GetFields(ById(so), component: "Rigidbody"));
                 StringAssert.Contains("asset", ex.Message.ToLowerInvariant(),
                     "The error should explain that an asset has no components");
             }
@@ -502,7 +424,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         public void GetSerializedFields_GameObjectWithoutComponent_ErrorMentionsComponentOption()
         {
             var ex = Assert.Throws<ArgumentException>(() =>
-                SerializedFieldCommands.GetSerializedFields(ById(m_Go)));
+                SerializedFieldCommands.GetFields(ById(m_Go)));
 
             StringAssert.Contains("--component", ex.Message,
                 "The GameObject-without-component error should point at the new --component option");
@@ -514,11 +436,11 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             // The original addressing form (a component handle, no 'component' arg) must keep working.
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
 
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Speed",
+            SerializedFieldCommands.SetField(ById(comp), "m_Speed",
                 Newtonsoft.Json.Linq.JToken.FromObject(5));
             Assert.AreEqual(5, comp.Speed);
 
-            var read = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Speed");
+            var read = SerializedFieldCommands.GetFields(ById(comp), "m_Speed");
             var json = Newtonsoft.Json.Linq.JObject.FromObject(read);
             Assert.AreEqual(5, (int)json["fields"][0]["value"]);
         }
@@ -529,7 +451,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var rb = m_Go.AddComponent<Rigidbody>();
             using (var server = new PipelineTestServer())
             {
-                var setResponse = server.Execute("set_serialized_field", new
+                var setResponse = server.Execute("component set_field", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(m_Go) },
                     component = "Rigidbody",
@@ -539,7 +461,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
                 Assert.IsTrue(setResponse.IsSuccess, $"set by GO+component should succeed: {setResponse.Error} / {setResponse.RawResponse}");
                 Assert.AreEqual(8.25f, rb.mass, 0.001f);
 
-                var getResponse = server.Execute("get_serialized_fields", new
+                var getResponse = server.Execute("component get_fields", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(m_Go) },
                     component = "Rigidbody",
@@ -561,7 +483,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             var b = new GameObject("WP_B");
             try
             {
-                SerializedFieldCommands.SetSerializedField(ById(comp), "m_Waypoints",
+                SerializedFieldCommands.SetField(ById(comp), "m_Waypoints",
                     new Newtonsoft.Json.Linq.JArray(
                         Newtonsoft.Json.Linq.JToken.FromObject(new { instanceId = PipelineUtils.GetObjectId(a) }),
                         Newtonsoft.Json.Linq.JToken.FromObject(new { instanceId = PipelineUtils.GetObjectId(b) })));
@@ -570,7 +492,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
                 Assert.AreSame(a, comp.Waypoints[0]);
                 Assert.AreSame(b, comp.Waypoints[1]);
 
-                var read = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Waypoints");
+                var read = SerializedFieldCommands.GetFields(ById(comp), "m_Waypoints");
                 var json = Newtonsoft.Json.Linq.JObject.FromObject(read);
                 Assert.AreEqual(2, (int)json["fields"][0]["arrayLength"], "get should report the array length");
             }
@@ -587,7 +509,7 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
             // Previously an unresolved handle was silently dropped (no-op success); it must now throw.
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
             Assert.Throws<ArgumentException>(() =>
-                SerializedFieldCommands.SetSerializedField(ById(comp), "m_Target",
+                SerializedFieldCommands.SetField(ById(comp), "m_Target",
                     Newtonsoft.Json.Linq.JToken.FromObject(new { instanceId = 999999999 })));
         }
 
@@ -599,11 +521,11 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         public void GetSerializedFields_FormatValue_SingleField_ReturnsRawValue()
         {
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Speed",
+            SerializedFieldCommands.SetField(ById(comp), "m_Speed",
                 Newtonsoft.Json.Linq.JToken.FromObject(9));
 
             // format=value returns the scalar directly rather than a { type, fields:[{...}] } descriptor.
-            var read = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Speed", format: "value");
+            var read = SerializedFieldCommands.GetFields(ById(comp), "m_Speed", format: "value");
 
             Assert.IsFalse(read is System.Collections.Generic.Dictionary<string, object>,
                 "A single-field value read should return the raw value, not a map");
@@ -614,10 +536,10 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         public void GetSerializedFields_FormatValue_AllFields_ReturnsNameValueMap()
         {
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Speed",
+            SerializedFieldCommands.SetField(ById(comp), "m_Speed",
                 Newtonsoft.Json.Linq.JToken.FromObject(3));
 
-            var read = SerializedFieldCommands.GetSerializedFields(ById(comp), format: "value");
+            var read = SerializedFieldCommands.GetFields(ById(comp), format: "value");
 
             var map = read as System.Collections.Generic.Dictionary<string, object>;
             Assert.IsNotNull(map, "value mode over all fields should return a name->value map");
@@ -630,10 +552,10 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         {
             // Back-compat: with no format arg the full per-field descriptor is unchanged.
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
-            SerializedFieldCommands.SetSerializedField(ById(comp), "m_Speed",
+            SerializedFieldCommands.SetField(ById(comp), "m_Speed",
                 Newtonsoft.Json.Linq.JToken.FromObject(4));
 
-            var read = SerializedFieldCommands.GetSerializedFields(ById(comp), "m_Speed");
+            var read = SerializedFieldCommands.GetFields(ById(comp), "m_Speed");
             var json = Newtonsoft.Json.Linq.JObject.FromObject(read);
 
             Assert.AreEqual("m_Speed", (string)json["fields"][0]["name"], "Descriptor should carry the field name");
@@ -678,4 +600,46 @@ namespace Unity.Pipeline.Tests.Editor.Scripts
         [SerializeField] private int m_Value;
         public int Value => m_Value;
     }
+
+    // Keep compilation in a dedicated fixture's UnitySetUp/UnityTearDown. Test Framework 1.4
+    // restores coroutine program counters across domain reloads; the body must not share
+    // that state with the ordinary script-command fixture after earlier PlayMode tests.
+    class CreateScriptCommandTests
+    {
+        const string Folder = "Assets/__CLI195Test";
+        const string AssetPath = Folder + "/CLI195Generated.cs";
+        const string OwnedKey = "Pipeline.Tests.CLI195TestFolderOwned";
+
+        [UnitySetUp]
+        public IEnumerator CreateAndCompile()
+        {
+            Assert.IsFalse(AssetDatabase.IsValidFolder(Folder), "Test folder must not already exist");
+            AssetDatabase.CreateFolder("Assets", "__CLI195Test");
+            SessionState.SetBool(OwnedKey, true);
+            var result = CreateScriptCommand.Create("CLI195Generated", Folder, "Game.Generated");
+            Assert.AreEqual(AssetPath, result.AssetPath);
+            Assert.IsTrue(System.IO.File.Exists(AssetPath));
+            yield return new RecompileScripts();
+        }
+
+        [Test]
+        public void CreateScript_WritesFileAndReturnsAssetIdentity()
+        {
+            Assert.IsTrue(System.IO.File.Exists(AssetPath));
+            var script = AssetDatabase.LoadAssetAtPath<MonoScript>(AssetPath);
+            Assert.IsNotNull(script);
+            Assert.IsNotNull(script.GetClass(), "The generated script must compile to an attachable type");
+            Assert.AreEqual("Game.Generated.CLI195Generated", script.GetClass().FullName);
+        }
+
+        [UnityTearDown]
+        public IEnumerator DeleteAndRecompile()
+        {
+            if (!SessionState.GetBool(OwnedKey, false)) yield break;
+            SessionState.EraseBool(OwnedKey);
+            AssetDatabase.DeleteAsset(Folder);
+            yield return new RecompileScripts();
+        }
+    }
+
 }

@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 using Unity.Pipeline.Runtime.Commands;
 using UnityEngine;
 
 namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
-    /// Probe for the baseline-aware in-place reload tests: two independent [CodeReload] methods so
+    /// Probe for the baseline-aware in-place reload tests: two independent [MethodReload] methods so
     /// a reload of one can be asserted to leave the other running compiled.
     /// </summary>
     public class BaselineReloadProbe
@@ -16,13 +16,13 @@ namespace Unity.Pipeline.Tests.Editor
         public int first;
         public int second;
 
-        [CodeReload]
+        [MethodReload]
         public void First()
         {
             first = 1; // original body
         }
 
-        [CodeReload]
+        [MethodReload]
         public void Second()
         {
             second = 1; // original body
@@ -30,16 +30,16 @@ namespace Unity.Pipeline.Tests.Editor
     }
 
     /// <summary>
-    /// Tests for <see cref="CodeReloadBaseline"/> — the per-method snapshot that lets a reload skip
+    /// Tests for <see cref="MethodReloadBaseline"/> — the per-method snapshot that lets a reload skip
     /// methods still matching the compiled code — and for its use by InPlaceReloadProcessor
     /// (skip unchanged, unregister reverted).
     /// </summary>
-    class CodeReloadBaselineTests
+    class MethodReloadBaselineTests
     {
         private const string FakePath = "Assets/FakeBaselineProbe.cs";
 
         private const string BaselineSource = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 namespace Unity.Pipeline.Tests.Editor
 {
     public class BaselineReloadProbe
@@ -47,13 +47,13 @@ namespace Unity.Pipeline.Tests.Editor
         public int first;
         public int second;
 
-        [CodeReload]
+        [MethodReload]
         public void First()
         {
             first = 1; // original body
         }
 
-        [CodeReload]
+        [MethodReload]
         public void Second()
         {
             second = 1; // original body
@@ -64,9 +64,9 @@ namespace Unity.Pipeline.Tests.Editor
         [TearDown]
         public void TearDown()
         {
-            CodeReloadBaseline.Clear();
-            CodeReloadRegistry.UnregisterMethodOverride("BaselineReloadProbe.First");
-            CodeReloadRegistry.UnregisterMethodOverride("BaselineReloadProbe.Second");
+            MethodReloadBaseline.Clear();
+            MethodReloadRegistry.UnregisterMethodOverride("BaselineReloadProbe.First");
+            MethodReloadRegistry.UnregisterMethodOverride("BaselineReloadProbe.Second");
         }
 
         // -------- classification --------
@@ -74,56 +74,56 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void NoBaseline_ClassifiesNothing()
         {
-            Assert.IsNull(CodeReloadBaseline.GetUnchangedMethods(FakePath, BaselineSource),
+            Assert.IsNull(MethodReloadBaseline.GetUnchangedMethods(FakePath, BaselineSource),
                 "Without a captured baseline every method must be treated as changed.");
-            Assert.IsFalse(CodeReloadBaseline.IsFileUpToDate(FakePath, BaselineSource));
+            Assert.IsFalse(MethodReloadBaseline.IsFileUpToDate(FakePath, BaselineSource));
         }
 
         [Test]
         public void IdenticalSource_AllMethodsUnchanged()
         {
-            Assert.IsTrue(CodeReloadBaseline.CaptureFromSource(FakePath, BaselineSource));
+            Assert.IsTrue(MethodReloadBaseline.CaptureFromSource(FakePath, BaselineSource));
 
-            var unchanged = CodeReloadBaseline.GetUnchangedMethods(FakePath, BaselineSource);
+            var unchanged = MethodReloadBaseline.GetUnchangedMethods(FakePath, BaselineSource);
             Assert.IsNotNull(unchanged);
             CollectionAssert.AreEquivalent(new[] { "First", "Second" }, unchanged);
-            Assert.IsTrue(CodeReloadBaseline.IsFileUpToDate(FakePath, BaselineSource));
+            Assert.IsTrue(MethodReloadBaseline.IsFileUpToDate(FakePath, BaselineSource));
         }
 
         [Test]
         public void WhitespaceAndCommentEdits_DoNotCountAsChanges()
         {
-            CodeReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
+            MethodReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
 
             var reformatted = BaselineSource
                 .Replace("first = 1; // original body", "first =\n                1; /* reflowed, comment changed */")
                 .Replace("public void Second()", "public   void   Second()");
 
-            var unchanged = CodeReloadBaseline.GetUnchangedMethods(FakePath, reformatted);
+            var unchanged = MethodReloadBaseline.GetUnchangedMethods(FakePath, reformatted);
             CollectionAssert.AreEquivalent(new[] { "First", "Second" }, unchanged);
-            Assert.IsTrue(CodeReloadBaseline.IsFileUpToDate(FakePath, reformatted));
+            Assert.IsTrue(MethodReloadBaseline.IsFileUpToDate(FakePath, reformatted));
         }
 
         [Test]
         public void BodyEdit_MarksOnlyThatMethodChanged()
         {
-            CodeReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
+            MethodReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
 
             var edited = BaselineSource.Replace("second = 1;", "second = 99;");
-            var unchanged = CodeReloadBaseline.GetUnchangedMethods(FakePath, edited);
+            var unchanged = MethodReloadBaseline.GetUnchangedMethods(FakePath, edited);
 
             CollectionAssert.AreEquivalent(new[] { "First" }, unchanged);
-            Assert.IsFalse(CodeReloadBaseline.IsFileUpToDate(FakePath, edited));
+            Assert.IsFalse(MethodReloadBaseline.IsFileUpToDate(FakePath, edited));
         }
 
         [Test]
         public void SignatureEdit_MarksMethodChanged()
         {
-            CodeReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
+            MethodReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
 
             // Renaming a parameterless method's parameter list is not possible; add a default arg.
             var edited = BaselineSource.Replace("public void Second()", "public void Second(int times = 1)");
-            var unchanged = CodeReloadBaseline.GetUnchangedMethods(FakePath, edited);
+            var unchanged = MethodReloadBaseline.GetUnchangedMethods(FakePath, edited);
 
             // The signature change also changes the class context (the signature is context), so
             // conservatively nothing is skippable.
@@ -133,12 +133,12 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void FieldEdit_ChangesContext_NothingSkippable()
         {
-            CodeReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
+            MethodReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
 
             // An untouched body can read this field; the override compiles against the current
             // file, so a declaration change conservatively invalidates every method.
             var edited = BaselineSource.Replace("public int second;", "public int second = 5;");
-            var unchanged = CodeReloadBaseline.GetUnchangedMethods(FakePath, edited);
+            var unchanged = MethodReloadBaseline.GetUnchangedMethods(FakePath, edited);
 
             Assert.IsNotNull(unchanged);
             Assert.AreEqual(0, unchanged.Count);
@@ -150,14 +150,14 @@ namespace Unity.Pipeline.Tests.Editor
             var withHelper = BaselineSource.Replace(
                 "public int first;",
                 "public int first;\n        private int Helper() { return 3; }\n        private int Arrow => 4;");
-            CodeReloadBaseline.CaptureFromSource(FakePath, withHelper);
+            MethodReloadBaseline.CaptureFromSource(FakePath, withHelper);
 
             // Overrides call helpers through the compiled host either way, so a helper body edit
             // can't change what an override does — it must not mark reloadable methods changed.
             var edited = withHelper
                 .Replace("return 3;", "return 30;")
                 .Replace("Arrow => 4;", "Arrow => 40;");
-            var unchanged = CodeReloadBaseline.GetUnchangedMethods(FakePath, edited);
+            var unchanged = MethodReloadBaseline.GetUnchangedMethods(FakePath, edited);
 
             CollectionAssert.AreEquivalent(new[] { "First", "Second" }, unchanged);
         }
@@ -165,27 +165,27 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void MustReloadMethods_BlockUpToDateShortCircuit()
         {
-            CodeReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
+            MethodReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
 
             // A device already running an override for Second can't unregister it remotely — the
             // file must not be reported up to date even though the source matches the baseline.
             var pushed = new HashSet<string> { "Second" };
-            Assert.IsFalse(CodeReloadBaseline.IsFileUpToDate(FakePath, BaselineSource, null, pushed));
+            Assert.IsFalse(MethodReloadBaseline.IsFileUpToDate(FakePath, BaselineSource, null, pushed));
         }
 
         [Test]
         public void SerializeRestore_RoundTripsClassification()
         {
-            CodeReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
-            var serialized = CodeReloadBaseline.Serialize();
+            MethodReloadBaseline.CaptureFromSource(FakePath, BaselineSource);
+            var serialized = MethodReloadBaseline.Serialize();
 
-            CodeReloadBaseline.Clear();
-            Assert.IsNull(CodeReloadBaseline.GetUnchangedMethods(FakePath, BaselineSource));
+            MethodReloadBaseline.Clear();
+            Assert.IsNull(MethodReloadBaseline.GetUnchangedMethods(FakePath, BaselineSource));
 
-            CodeReloadBaseline.Restore(serialized);
+            MethodReloadBaseline.Restore(serialized);
             var edited = BaselineSource.Replace("second = 1;", "second = 99;");
             CollectionAssert.AreEquivalent(new[] { "First" },
-                CodeReloadBaseline.GetUnchangedMethods(FakePath, edited));
+                MethodReloadBaseline.GetUnchangedMethods(FakePath, edited));
         }
 
         // -------- processor integration --------
@@ -193,18 +193,18 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void Reload_SkipsUnchangedMethods_AndUnregistersReverted()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(BaselineReloadProbe).GetMethod(nameof(BaselineReloadProbe.First)),
-                new CodeReloadAttribute());
-            CodeReloadRegistry.RegisterReloadableMethod(
+                new MethodReloadAttribute());
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(BaselineReloadProbe).GetMethod(nameof(BaselineReloadProbe.Second)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             var path = Path.Combine(Application.temporaryCachePath, "BaselineReloadProbe_edit.cs");
             try
             {
                 // Watch start: disk matches the compiled probe.
-                CodeReloadBaseline.CaptureFromSource(path, BaselineSource);
+                MethodReloadBaseline.CaptureFromSource(path, BaselineSource);
 
                 // Save 1: untouched file → nothing compiles, nothing registers.
                 File.WriteAllText(path, BaselineSource);
@@ -213,7 +213,7 @@ namespace Unity.Pipeline.Tests.Editor
                 Assert.IsTrue(result.AllUpToDate);
                 CollectionAssert.IsEmpty(result.RegisteredMethods);
                 CollectionAssert.AreEquivalent(new[] { "First", "Second" }, result.UpToDateMethods);
-                Assert.IsFalse(CodeReloadRegistry.HasOverride("BaselineReloadProbe.Second"));
+                Assert.IsFalse(MethodReloadRegistry.HasOverride("BaselineReloadProbe.Second"));
 
                 // Save 2: only Second edited → First stays compiled, Second gets an override.
                 File.WriteAllText(path, BaselineSource.Replace("second = 1;", "second = 99;"));
@@ -221,7 +221,7 @@ namespace Unity.Pipeline.Tests.Editor
                 Assert.IsTrue(result.Success, result.ErrorMessage);
                 CollectionAssert.AreEquivalent(new[] { "BaselineReloadProbe.Second" }, result.RegisteredMethods);
                 CollectionAssert.AreEquivalent(new[] { "First" }, result.UpToDateMethods);
-                Assert.IsFalse(CodeReloadRegistry.HasOverride("BaselineReloadProbe.First"));
+                Assert.IsFalse(MethodReloadRegistry.HasOverride("BaselineReloadProbe.First"));
 
                 var probe = new BaselineReloadProbe();
                 probe.Second();
@@ -235,7 +235,7 @@ namespace Unity.Pipeline.Tests.Editor
                 Assert.IsTrue(result.Success, result.ErrorMessage);
                 Assert.IsTrue(result.AllUpToDate);
                 CollectionAssert.AreEquivalent(new[] { "BaselineReloadProbe.Second" }, result.RevertedMethods);
-                Assert.IsFalse(CodeReloadRegistry.HasOverride("BaselineReloadProbe.Second"));
+                Assert.IsFalse(MethodReloadRegistry.HasOverride("BaselineReloadProbe.Second"));
 
                 var reverted = new BaselineReloadProbe();
                 reverted.Second();
@@ -252,32 +252,32 @@ namespace Unity.Pipeline.Tests.Editor
                // overrides it reverts are reported, not silently unregistered.
         public void ReloadFileCommand_UpToDate_ReportsUpToDateAndReverted()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(BaselineReloadProbe).GetMethod(nameof(BaselineReloadProbe.First)),
-                new CodeReloadAttribute());
-            CodeReloadRegistry.RegisterReloadableMethod(
+                new MethodReloadAttribute());
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(BaselineReloadProbe).GetMethod(nameof(BaselineReloadProbe.Second)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             var path = Path.Combine(Application.temporaryCachePath, "BaselineReloadProbe_cmd.cs");
             try
             {
-                CodeReloadBaseline.CaptureFromSource(path, BaselineSource);
+                MethodReloadBaseline.CaptureFromSource(path, BaselineSource);
 
                 // Edit Second → a normal reload that registers one override.
                 File.WriteAllText(path, BaselineSource.Replace("second = 1;", "second = 99;"));
-                var edited = CodeReloadCommands.ReloadFile(path);
+                var edited = MethodReloadCommands.Reload(path);
                 Assert.IsTrue(edited.Success, edited.Message);
                 StringAssert.Contains("1 methods", edited.Message);
 
                 // Undo the edit → explicit up-to-date success that names the reverted override.
                 File.WriteAllText(path, BaselineSource);
-                var upToDate = CodeReloadCommands.ReloadFile(path);
+                var upToDate = MethodReloadCommands.Reload(path);
                 Assert.IsTrue(upToDate.Success, upToDate.Message);
                 StringAssert.Contains("Up to date", upToDate.Message);
                 StringAssert.Contains("reverted 1 stale override(s): BaselineReloadProbe.Second", upToDate.Message);
                 StringAssert.DoesNotContain("0 methods", upToDate.Message);
-                Assert.IsFalse(CodeReloadRegistry.HasOverride("BaselineReloadProbe.Second"));
+                Assert.IsFalse(MethodReloadRegistry.HasOverride("BaselineReloadProbe.Second"));
             }
             finally
             {
@@ -288,12 +288,12 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void Reload_WithoutBaseline_ReloadsEverything()
         {
-            CodeReloadRegistry.RegisterReloadableMethod(
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(BaselineReloadProbe).GetMethod(nameof(BaselineReloadProbe.First)),
-                new CodeReloadAttribute());
-            CodeReloadRegistry.RegisterReloadableMethod(
+                new MethodReloadAttribute());
+            MethodReloadRegistry.RegisterReloadableMethod(
                 typeof(BaselineReloadProbe).GetMethod(nameof(BaselineReloadProbe.Second)),
-                new CodeReloadAttribute());
+                new MethodReloadAttribute());
 
             var path = Path.Combine(Application.temporaryCachePath, "BaselineReloadProbe_nobaseline.cs");
             try

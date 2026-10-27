@@ -17,11 +17,11 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_navmesh_settings
-unity command get_component_properties --target '{"hierarchyPath":"/Enemy"}' --type UnityEngine.AI.NavMeshAgent
+unity command navmesh get_settings
+unity command component get_properties --target '{"hierarchyPath":"/Enemy"}' --type UnityEngine.AI.NavMeshAgent
 ```
 
 ## Notes
 
-Use `get_navmesh_settings` for legacy bake settings and component inspection for agent/surface/link configuration.
+Use `navmesh get_settings` for legacy bake settings and component inspection for agent/surface/link configuration.
 

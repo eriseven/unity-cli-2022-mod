@@ -69,7 +69,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_transform", new
+                var response = server.Execute("gameobject set_transform", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(go) },
                     position = new[] { 1f, 2f, 3f },
@@ -94,7 +94,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_transform", new
+                var response = server.Execute("gameobject set_transform", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(go) },
                     position = "[1,2,3]",
@@ -123,7 +123,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_transform", new
+                var response = server.Execute("gameobject set_transform", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(child) },
                     position = "[4,5,6]"
@@ -146,7 +146,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var go = Track(new GameObject("Props220_Direct"));
             var rb = go.AddComponent<Rigidbody>();
 
-            ComponentCommands.SetComponentProperties(RefTo(rb), new JObject { ["m_Mass"] = 0.17f });
+            ComponentCommands.SetProperties(RefTo(rb), new JObject { ["m_Mass"] = 0.17f });
 
             Assert.AreEqual(0.17f, rb.mass, 0.0001f, "Real JObject properties must still apply");
         }
@@ -162,7 +162,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_component_properties", new
+                var response = server.Execute("component set_properties", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(rb) },
                     type = "Rigidbody",
@@ -184,7 +184,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         public void CreateGameObjects_Direct_CountOne_ReturnsSingleIdentity()
         {
             // Regression: count=1 keeps the bare name (no "1" suffix) and returns exactly one item.
-            var result = GameObjectCommands.CreateGameObjects(name: "Batch223_One", primitive: "cube", count: 1);
+            var result = GameObjectCommands.CreateMany(name: "Batch223_One", primitive: "cube", count: 1);
 
             Assert.AreEqual(1, result.Count);
             Assert.AreEqual(1, result.GameObjects.Count);
@@ -206,7 +206,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
                 new[] { 2f, 0f, 0f },
             };
 
-            var result = GameObjectCommands.CreateGameObjects(
+            var result = GameObjectCommands.CreateMany(
                 name: "Batch223_Pos", primitive: "sphere", count: 3, positions: positions);
 
             Assert.AreEqual(3, result.Count);
@@ -223,7 +223,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         [Test]
         public void CreateGameObjects_Direct_CountN_NoPositions_StackedAtOrigin()
         {
-            var result = GameObjectCommands.CreateGameObjects(name: "Batch223_Origin", count: 4);
+            var result = GameObjectCommands.CreateMany(name: "Batch223_Origin", count: 4);
 
             Assert.AreEqual(4, result.Count);
             foreach (var item in result.GameObjects)
@@ -246,7 +246,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             };
 
             Assert.Throws<System.ArgumentException>(() =>
-                GameObjectCommands.CreateGameObjects(name: "Batch223_Bad", count: 3, positions: positions));
+                GameObjectCommands.CreateMany(name: "Batch223_Bad", count: 3, positions: positions));
         }
 
         [Test]
@@ -263,11 +263,11 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             };
 
             var ex = Assert.Throws<System.ArgumentException>(() =>
-                GameObjectCommands.CreateGameObjects(name: "Batch223_NullEntry", count: 3, positions: positions));
+                GameObjectCommands.CreateMany(name: "Batch223_NullEntry", count: 3, positions: positions));
             StringAssert.Contains("positions[1]", ex.Message, "The error should name the offending index");
 
             // Validation runs before creation, so nothing should have been spawned.
-            var leaked = GameObjectCommands.FindGameObjects(name: "Batch223_NullEntry1");
+            var leaked = GameObjectCommands.Find(name: "Batch223_NullEntry1");
             Assert.AreEqual(0, leaked.Count, "A rejected batch must create nothing");
         }
 
@@ -278,7 +278,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             // re-parses string-encoded nested arrays), and each object takes its per-index position.
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("create_gameobjects", new
+                var response = server.Execute("gameobject create_many", new
                 {
                     name = "Batch223_Via",
                     primitive = "cube",
@@ -313,7 +313,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("create_gameobjects", new { name = "Batch223_ViaOne", count = 1 });
+                var response = server.Execute("gameobject create_many", new { name = "Batch223_ViaOne", count = 1 });
 
                 Assert.IsTrue(response.IsSuccess, $"create_gameobjects should succeed: {response.Error}");
                 var count = response.JsonResponse["result"]?["count"]?.ToObject<int>();
@@ -340,7 +340,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("rename_gameobject", new
+                var response = server.Execute("gameobject rename", new
                 {
                     target = new { instanceId = PipelineUtils.GetObjectId(go) },
                     name = "Guard_New"
@@ -360,7 +360,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_active", new
+                var response = server.Execute("gameobject set_active", new
                 {
                     target = "/Guard_HandleTarget",
                     active = false

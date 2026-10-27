@@ -44,7 +44,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void Screenshot_IsDiscovered_WithExpectedSchema()
         {
             var commands = CommandRegistry.DiscoverCommands();
-            var cmd = commands.FirstOrDefault(c => c.Name == "screenshot");
+            var cmd = commands.FirstOrDefault(c => c.FullName == "capture screenshot");
 
             Assert.IsNotNull(cmd, "Should discover the screenshot command");
             Assert.IsTrue(cmd.MainThreadRequired, "screenshot renders Unity APIs and must run on the main thread");
@@ -60,7 +60,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void Screenshot_InvalidView_ReturnsFailureWithoutRendering()
         {
             // Validation happens before any camera lookup or rendering, so this is graphics-agnostic.
-            var result = ScreenshotCommand.CaptureScreenshot(view: "panorama");
+            var result = ScreenshotCommand.Screenshot(view: "panorama");
 
             Assert.IsFalse(result.Success, "An unknown view should fail");
             StringAssert.Contains("Invalid view", result.Message);
@@ -70,7 +70,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void Screenshot_NegativeDimensions_ReturnFailure()
         {
-            var result = ScreenshotCommand.CaptureScreenshot(view: "game", width: -10, height: 100);
+            var result = ScreenshotCommand.Screenshot(view: "game", width: -10, height: 100);
 
             Assert.IsFalse(result.Success);
             StringAssert.Contains(">= 0", result.Message);
@@ -88,7 +88,7 @@ namespace Unity.Pipeline.Tests.Editor
                 go.AddComponent<Camera>();
                 var outputPath = Path.Combine(m_TempDir, "game.png");
 
-                var result = ScreenshotCommand.CaptureScreenshot(
+                var result = ScreenshotCommand.Screenshot(
                     view: "game", output: outputPath, width: 320, height: 240);
 
                 Assert.IsTrue(result.Success, $"Capture should succeed. Message: {result.Message}");
@@ -118,7 +118,7 @@ namespace Unity.Pipeline.Tests.Editor
             if (Camera.main != null || Camera.allCamerasCount > 0)
                 Assert.Ignore("A camera is present in the test scene; cannot exercise the no-camera path.");
 
-            var result = ScreenshotCommand.CaptureScreenshot(view: "game");
+            var result = ScreenshotCommand.Screenshot(view: "game");
 
             Assert.IsFalse(result.Success);
             StringAssert.Contains("No camera", result.Message);
@@ -140,7 +140,7 @@ namespace Unity.Pipeline.Tests.Editor
 
                 using (var server = new PipelineTestServer())
                 {
-                    var response = server.Execute("screenshot",
+                    var response = server.Execute("capture screenshot",
                         new { view = "game", output = outputPath, width = 256, height = 256 });
                     Assert.IsTrue(response.IsSuccess, response.Error);
 

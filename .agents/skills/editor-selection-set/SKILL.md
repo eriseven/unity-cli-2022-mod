@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_selection --paths '["Assets/Prefabs/Enemy.prefab"]'
-unity command set_selection --instance_ids '[12345,12346]'
+unity command gameobject set_selection --paths '["Assets/Prefabs/Enemy.prefab"]'
+unity command gameobject set_selection --instance_ids '[12345,12346]'
 ```
 
 ## Notes

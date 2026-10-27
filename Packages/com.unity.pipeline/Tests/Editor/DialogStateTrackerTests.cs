@@ -73,7 +73,7 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void EventsSince_IncludesDismissedDialogsOpenedAtOrAfterTimestamp()
+        public void CurrentlyOpen_ExcludesDismissedDialogs()
         {
             var tracker = new DialogStateTracker();
             var beforeCommand = DateTime.UtcNow;
@@ -81,11 +81,7 @@ namespace Unity.Pipeline.Tests.Editor
             tracker.OnShown(1, "native", "Title", "Message", new[] { "OK" }, "Info", openedAt);
             tracker.OnDismissed(1, openedAt.AddMilliseconds(5));
 
-            var events = tracker.EventsSince(beforeCommand);
-
-            var found = events.Single();
-            Assert.AreEqual(1, found.Id);
-            Assert.IsTrue(found.DismissedAtUtc.HasValue);
+            Assert.IsEmpty(tracker.CurrentlyOpen);
         }
 
         [Test]
@@ -96,7 +92,7 @@ namespace Unity.Pipeline.Tests.Editor
             tracker.OnShown(1, "native", "Title", "Message", new[] { "OK" }, "Info", openedAt);
             tracker.OnDismissed(1, openedAt.AddMilliseconds(5));
 
-            var events = tracker.EventsSince(openedAt.AddSeconds(1));
+            var events = tracker.CurrentlyOpen;
 
             Assert.IsEmpty(events);
         }
@@ -108,7 +104,7 @@ namespace Unity.Pipeline.Tests.Editor
             var beforeCommand = DateTime.UtcNow;
             tracker.OnShown(1, "native", "Title", "Message", new[] { "OK" }, "Info", beforeCommand.AddMilliseconds(5));
 
-            var events = tracker.EventsSince(beforeCommand);
+            var events = tracker.CurrentlyOpen;
 
             var found = events.Single();
             Assert.AreEqual(1, found.Id);

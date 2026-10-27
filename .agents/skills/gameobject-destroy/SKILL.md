@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command delete_gameobject --target '{"hierarchyPath":"/Environment/OldProp"}'
+unity command gameobject delete --target '{"hierarchyPath":"/Environment/OldProp"}'
 ```
 
 ## Notes

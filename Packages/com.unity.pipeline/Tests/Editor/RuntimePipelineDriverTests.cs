@@ -59,7 +59,6 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ServerLifecycle_EnabledInBuilds_CanStartAndStop()
         {
-            m_Config.enableInBuilds = true;
 
             m_Driver.StartServer();
 
@@ -76,7 +75,6 @@ namespace Unity.Pipeline.Tests.Editor
         public void ServerLifecycle_StartStop_RestoresRunInBackground()
         {
             Application.runInBackground = false;
-            m_Config.enableInBuilds = true;
 
             m_Driver.StartServer();
 
@@ -91,7 +89,6 @@ namespace Unity.Pipeline.Tests.Editor
         public void ServerLifecycle_StoppedExternallyBeforeStopServerCalled_StillRestoresRunInBackground()
         {
             Application.runInBackground = false;
-            m_Config.enableInBuilds = true;
 
             m_Driver.StartServer();
             Assert.IsTrue(Application.runInBackground, "Precondition: starting the server should force runInBackground on");
@@ -110,7 +107,7 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void ServerStart_AlreadyOverriddenByCodeReloadPush_DoesNotClobberSavedValue()
+        public void ServerStart_AlreadyOverriddenByMethodReloadPush_DoesNotClobberSavedValue()
         {
             // Simulates a hot-reload push arriving over PlayerConnection (which needs no HTTP
             // server) before StartServer ever ran, so DrainPendingReloads already forced
@@ -119,7 +116,6 @@ namespace Unity.Pipeline.Tests.Editor
             SetRunInBackgroundOverrideState(m_Driver, previousValue: false, overridden: true);
             Application.runInBackground = true;
 
-            m_Config.enableInBuilds = true;
             m_Driver.StartServer();
 
             Assert.IsTrue(Application.runInBackground, "Precondition: still forced on while the server starts");
@@ -134,7 +130,6 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void Configuration_ValidSettings_PassesValidation()
         {
-            m_Config.enableInBuilds = true;
 
             var result = m_Driver.ValidateConfiguration();
 
@@ -157,7 +152,6 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ServerStart_DisabledInBuilds_DoesNotStart()
         {
-            m_Config.enableInBuilds = false;
 
             m_Driver.StartServer();
 
@@ -167,7 +161,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ServerStart_AlreadyStarted_DoesNotStartAgain()
         {
-            m_Config.enableInBuilds = true;
+
             m_Driver.StartServer();
 
             var firstPort = m_Driver.ActualPort;

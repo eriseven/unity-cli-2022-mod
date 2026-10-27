@@ -1,0 +1,201 @@
+{
+  "date": "2026-10-27",
+  "unity": "2022.3.62f3",
+  "pipeline": "0.9.1-exp.1",
+  "upstreamTarballSha1": "363b8bb9e91d34dcfcd1c8b60373422d978b6d57",
+  "upstreamRevision": "5857811f46dead8df0e98fb813c46a71c5cab2b5",
+  "compilationFailed": false,
+  "reports": {
+    "editmode": {
+      "total": 1142,
+      "passed": 1140,
+      "failed": 0,
+      "skipped": 2,
+      "nativeXmlSha256": "864537ca8cb0e03389e63b797be5af87f757b96878ae87d615bb220927694311",
+      "nonPassingCases": [
+        {
+          "name": "Unity.Pipeline.Tests.Editor.E2E.AgentAuthoringE2ETests.FullAuthoringLoop_CreatesAssetsSceneAndPrefab_AndSerializedReferenceReadsBack",
+          "result": "Skipped",
+          "message": "CLI-196 blocked on CLI-191..195: authoring commands not yet implemented"
+        },
+        {
+          "name": "Unity.Pipeline.Tests.Editor.ServerAuthTests.Request_WithOriginHeader_Returns403",
+          "result": "Skipped",
+          "message": "6.0 Issues"
+        }
+      ],
+      "portRegressionCasesPassed": [
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.Attributes_AreInUnconstrainedAssembly",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.ConsoleGroundTruth_UsesNativeCountsAndBackfillsLostEntry",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.DynamicCommand_InvokesBoundInstanceAndSurvivesDiscoverySwap",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.Interpreter080Features_ExecuteWithUnity2022Compiler(\"class Probe { public int Add(int n) => n + 2; public static object Run() { System.Func<int,int> add = new Probe().Add; return add(40); } }\",42)",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.Interpreter080Features_ExecuteWithUnity2022Compiler(\"class Probe { public static object Run() { return new string(new char[] { 'o', 'k' }); } }\",\"ok\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"script recompile_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"build status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"lighting bake_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"navmesh bake_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.StatusEndpoint_ReturnsJsonObject(\"occlusion bake_status\")",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline080Tests.WaitCondition_ReadsEditorStateAndRejectsUnknownMember",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.BuildProfiles_ReportUnavailableOnUnity2022",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.BuildSymbols_KeepDevelopmentAndReleaseIndependent",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.CompilerPlugins_UseSameBuildGatesAsRuntimeAssembly",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.DottedAndInferredCommands_AreDiscoveredAndInvoked",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.EditorConfig_PreservesDisabledRepushFromCodeReloadSetting",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.GroupedDynamicCommand_CanBeRegisteredInvokedAndRemoved",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.MethodReloadAttributes_KeepUnconstrainedAssemblyBoundary",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.NonStandaloneBuildTarget_IgnoresStandaloneSubtarget(Android)",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.NonStandaloneBuildTarget_IgnoresStandaloneSubtarget(iPhone)",
+        "Unity.Pipeline.Tests.Editor.Unity2022Pipeline091Tests.ObsoleteCommand_ReturnsMigrationGuidance"
+      ]
+    },
+    "playmode": {
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "nativeXmlSha256": "4119c577a005f8ac0a0dbbad8aff5509cfb5a083360738d79cdd9c30c3c5a4c8",
+      "nonPassingCases": [],
+      "portRegressionCasesPassed": []
+    }
+  },
+  "preservedAssetGuids": [
+    {
+      "old": "CodeGen/CodeReloadInPlaceILPostProcessor.cs",
+      "new": "CodeGen/MethodReloadInPlaceILPostProcessor.cs",
+      "guid": "3eb482c6630e46b98100dd9c13a3f7d3"
+    },
+    {
+      "old": "Editor/EditorCodeReloadWatcher.cs",
+      "new": "Editor/EditorMethodReloadWatcher.cs",
+      "guid": "de7a72558dd05f441b8b4ca00fef65df"
+    },
+    {
+      "old": "Editor/TypeCacheCommandDiscovery.cs",
+      "new": "Editor/CommandExecution/CommandRegistry/TypeCacheCommandDiscovery.cs",
+      "guid": "f7f7b0f5ced14e548afee892a4014ce9"
+    },
+    {
+      "old": "Runtime/CodeReload",
+      "new": "Runtime/MethodReload",
+      "guid": "c29607a31a43d7149b8296de99b81d8e"
+    },
+    {
+      "old": "Runtime/Attributes/CodeReloadAttributes.cs",
+      "new": "Runtime/Attributes/MethodReloadAttributes.cs",
+      "guid": "0bd43f6237214774ab4a178b811eb453"
+    },
+    {
+      "old": "Runtime/CodeReload/AccessibilityValidator.cs",
+      "new": "Runtime/MethodReload/AccessibilityValidator.cs",
+      "guid": "1bdaafa6e8d172648a57310104db179a"
+    },
+    {
+      "old": "Runtime/CodeReload/CodeReloadActivity.cs",
+      "new": "Runtime/MethodReload/MethodReloadActivity.cs",
+      "guid": "1f61ca7bdc5825b4883b1948d62082c2"
+    },
+    {
+      "old": "Runtime/CodeReload/CodeReloadBaseline.cs",
+      "new": "Runtime/MethodReload/MethodReloadBaseline.cs",
+      "guid": "baccc695e76ea384e95dbc2e9470e01c"
+    },
+    {
+      "old": "Runtime/CodeReload/CodeReloadRegistry.cs",
+      "new": "Runtime/MethodReload/MethodReloadRegistry.cs",
+      "guid": "23cd8d0c782f1974e8a3b4095a178092"
+    },
+    {
+      "old": "Runtime/CodeReload/InPlaceReloadProcessor.cs",
+      "new": "Runtime/MethodReload/InPlaceReloadProcessor.cs",
+      "guid": "411fb44c3329710449bcbfc2af627524"
+    },
+    {
+      "old": "Runtime/CodeReload/PipelineCodeReloadConnect.cs",
+      "new": "Runtime/MethodReload/PipelineMethodReloadConnect.cs",
+      "guid": "4aebd4ada9774254fa5adebf605139aa"
+    },
+    {
+      "old": "Runtime/CodeReload/PushEnvelope.cs",
+      "new": "Runtime/MethodReload/PushEnvelope.cs",
+      "guid": "6eb3298034ad30f4ba224dc12ea87cca"
+    },
+    {
+      "old": "Runtime/CodeReload/SourceCodeTransformer.cs",
+      "new": "Runtime/MethodReload/SourceCodeTransformer.cs",
+      "guid": "425cdc175cccce547a6a3bf6f73c1f4f"
+    },
+    {
+      "old": "Runtime/Commands/CodeReloadCommands.cs",
+      "new": "Runtime/Commands/MethodReloadCommands.cs",
+      "guid": "33ec6e594cb07434cb51fbc751ca37f2"
+    },
+    {
+      "old": "Runtime/Common/CliProgress.cs",
+      "new": "Runtime/CommandExecution/CommandQueue/CliProgress.cs",
+      "guid": "97717a6bfc8e04248b6b1d4beb2d35d5"
+    },
+    {
+      "old": "Runtime/Common/CommandInfo.cs",
+      "new": "Runtime/CommandExecution/CommandInfo.cs",
+      "guid": "40290d720d0d35b44a9fa5843a5ee294"
+    },
+    {
+      "old": "Runtime/Common/CommandRegistry.cs",
+      "new": "Runtime/CommandExecution/CommandRegistry/CommandRegistry.cs",
+      "guid": "c53b0ba553311e14c833aadafdb44999"
+    },
+    {
+      "old": "Runtime/Common/ICommandDiscovery.cs",
+      "new": "Runtime/CommandExecution/CommandRegistry/ICommandDiscovery.cs",
+      "guid": "c6e1392c576ec4d4d9b389d5fc899303"
+    },
+    {
+      "old": "Runtime/Common/ParameterInfo.cs",
+      "new": "Runtime/CommandExecution/CommandParameterInfo.cs",
+      "guid": "7127497e92677024f949772c30aaf79b"
+    },
+    {
+      "old": "Runtime/Common/PipelineJobs.cs",
+      "new": "Runtime/CommandExecution/CommandQueue/PipelineCancellation.cs",
+      "guid": "6a29a35fd3dc94b77805272046cda9aa"
+    },
+    {
+      "old": "Runtime/Compilation/CodeReloadCompiler.cs",
+      "new": "Runtime/Compilation/MethodReloadCompiler.cs",
+      "guid": "29ede4b57fcc6c64b84e5f6ee75df373"
+    },
+    {
+      "old": "Runtime/Compilation/InterpreterCodeReloadExecutor.cs",
+      "new": "Runtime/Compilation/InterpreterMethodReloadExecutor.cs",
+      "guid": "09c52feca11e4a34685504b40ba3a47c"
+    },
+    {
+      "old": "Runtime/Models/InstanceDescriptor.cs",
+      "new": "Runtime/PipelineService/PipelineServiceDescriptor/EditorInstanceDescriptor.cs",
+      "guid": "c19a2cde67d600341b17d8056b8393e2"
+    },
+    {
+      "old": "Runtime/Models/RuntimeInstanceDescriptor.cs",
+      "new": "Runtime/PipelineService/PipelineServiceDescriptor/RuntimeInstanceDescriptor.cs",
+      "guid": "a7787403e02096545b7798cd3d5d076d"
+    },
+    {
+      "old": "Runtime/PlayerSupport/CodeReloadStatusOverlay.cs",
+      "new": "Runtime/PlayerSupport/MethodReloadStatusOverlay.cs",
+      "guid": "5a6feff6b0369e049b65ff7f2e227163"
+    }
+  ],
+  "analyzerSha256": "ad6954aa59025691a071a39db7317449d1de5eee775d18babec088b799924610",
+  "validationEnvironment": [
+    "External IDE synchronization was temporarily disabled to avoid VS Code project-generation file sharing errors while tests change scripting defines; restored after testing.",
+    "Native NUnit reports are used because tests cross domain reload boundaries."
+  ],
+  "notValidated": [
+    "Player builds and build-target switches (explicit build fixtures were not selected).",
+    "IL2CPP player execution.",
+    "Unity 6/7-only Build Profile features; Unity 2022 feature_unavailable behavior is tested."
+  ],
+  "knownPortLimitations": [
+    "Roslyn 3.11 remains unprefixed to support Unity 2022; upstream compiler namespace isolation is not available."
+  ]
+}

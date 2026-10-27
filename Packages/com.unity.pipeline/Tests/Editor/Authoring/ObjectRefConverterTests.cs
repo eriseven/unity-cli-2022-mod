@@ -202,7 +202,7 @@ namespace Unity.Pipeline.Tests.Editor.Authoring
             {
                 using (var server = new PipelineTestServer())
                 {
-                    var resp = server.Execute("set_transform",
+                    var resp = server.Execute("gameobject set_transform",
                         new { target = "/CLI_ObjRefDispatch", position = new[] { 1f, 2f, 3f } });
 
                     Assert.IsTrue(resp.IsSuccess,

@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command move_asset --asset Assets/Materials/Old.mat --destination Materials/New.mat --dry_run true
-unity command move_asset --asset Assets/Materials/Old.mat --destination Materials/New.mat
+unity command asset move --asset Assets/Materials/Old.mat --destination Materials/New.mat --dry_run true
+unity command asset move --asset Assets/Materials/Old.mat --destination Materials/New.mat
 ```
 
 ## Notes

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using Newtonsoft.Json.Linq;
 using Unity.Pipeline.Commands;
+#if UNITY_6000_5_OR_NEWER
+using Unity.Scripting.LifecycleManagement;
+#endif
 
 namespace Unity.Pipeline
 {
@@ -29,6 +32,9 @@ namespace Unity.Pipeline
     /// <c>--</c> ends flag parsing. No short flags, no <c>-abc</c> bundling, no <c>--no-x</c>,
     /// no repeated-flag-becomes-array.
     /// </summary>
+#if UNITY_6000_5_OR_NEWER
+    [NoAutoStaticsCleanup]
+#endif
     internal static class CommandLineBinder
     {
         private static readonly CommandParameterInfo[] k_NoParameters = new CommandParameterInfo[0];
@@ -478,20 +484,34 @@ namespace Unity.Pipeline
             return string.Equals(slot.Name, token.Substring(0, equals), StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>
-        /// Closest declared parameter name within an edit-distance budget that scales with
-        /// length, or null. Budget is <c>min(3, max(1, longest/3))</c>: tight enough that an
-        /// unrelated name gets no suggestion at all, loose enough to catch real typos.
-        /// </summary>
         private static string SuggestParameterName(string name, IReadOnlyList<CommandParameterInfo> declared)
+        {
+            var names = new string[declared.Count];
+            for (var i = 0; i < declared.Count; i++)
+                names[i] = declared[i].Name;
+            return SuggestClosestName(name, names);
+        }
+
+        /// <summary>
+        /// Closest candidate name within an edit-distance budget that scales with length, or
+        /// null. Budget is <c>min(3, max(1, longest/3))</c>: tight enough that an unrelated name
+        /// gets no suggestion at all, loose enough to catch real typos. Shared by unknown
+        /// parameter names and unknown command names.
+        /// <para>The distance is at least the length difference, so a candidate whose length
+        /// differs by more than the budget is skipped without computing it. That keeps a
+        /// malformed request cheap: a 100 KB name costs one length comparison per candidate
+        /// instead of a full edit-distance table.</para>
+        /// </summary>
+        internal static string SuggestClosestName(string name, IEnumerable<string> candidates)
         {
             string best = null;
             var bestDistance = int.MaxValue;
 
-            for (var i = 0; i < declared.Count; i++)
+            foreach (var candidate in candidates)
             {
-                var candidate = declared[i].Name;
                 var budget = Math.Min(3, Math.Max(1, Math.Max(name.Length, candidate.Length) / 3));
+                if (Math.Abs(name.Length - candidate.Length) > budget)
+                    continue;
                 var distance = EditDistance(name, candidate);
                 if (distance <= budget && distance < bestDistance)
                 {

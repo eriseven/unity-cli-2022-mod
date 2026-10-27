@@ -22,11 +22,10 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void DefaultValues_AreSecure()
+        public void DefaultValues_AreValid()
         {
             var config = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
 
-            Assert.IsFalse(config.enableInBuilds, "enableInBuilds should default to false for security");
             Assert.AreEqual(0, config.port, "Port should default to 0 for auto-assignment");
             Assert.IsTrue(config.autoStart, "Should default to auto-start");
             Assert.AreEqual(10, config.maxWorkItemsPerFrame, "Should have a reasonable default for work items per frame");
@@ -38,14 +37,13 @@ namespace Unity.Pipeline.Tests.Editor
         public void Load_SettingsFileExists_FindsIt()
         {
             var config = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-            config.enableInBuilds = true;
+
             config.Save();
             Object.DestroyImmediate(config);
 
             var loaded = RuntimePipelineConfig.Load();
 
             Assert.IsNotNull(loaded, "Load() should find the settings file written by Save()");
-            Assert.IsTrue(loaded.enableInBuilds);
         }
 
         [Test]
@@ -58,9 +56,8 @@ namespace Unity.Pipeline.Tests.Editor
         public void SaveThenLoad_RoundTripsAllFields()
         {
             var config = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-            config.enableInBuilds = true;
+
             config.port = 7912;
-            config.requestTimeoutMs = 45000;
             config.enableAuditLogging = false;
             config.autoStart = false;
             config.maxWorkItemsPerFrame = 25;
@@ -70,9 +67,7 @@ namespace Unity.Pipeline.Tests.Editor
             var loaded = RuntimePipelineConfig.Load();
 
             Assert.IsNotNull(loaded);
-            Assert.IsTrue(loaded.enableInBuilds);
             Assert.AreEqual(7912, loaded.port);
-            Assert.AreEqual(45000, loaded.requestTimeoutMs);
             Assert.IsFalse(loaded.enableAuditLogging);
             Assert.IsFalse(loaded.autoStart);
             Assert.AreEqual(25, loaded.maxWorkItemsPerFrame);

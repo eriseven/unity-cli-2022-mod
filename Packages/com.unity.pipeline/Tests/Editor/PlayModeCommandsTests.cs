@@ -43,7 +43,7 @@ namespace Unity.Pipeline.Tests.Editor
             // Remember whether a live server was running so TearDown can restore it (and so we never
             // *start* one that wasn't there, e.g. in CI).
             m_GlobalServerWasRunning =
-                InstanceDescriptor.ReadFromProjectRoot(System.IO.Path.GetDirectoryName(Application.dataPath)) != null;
+                EditorInstanceDescriptor.ReadFromProjectRoot(System.IO.Path.GetDirectoryName(Application.dataPath)) != null;
 
             // Ensure we're in edit mode before starting tests
             if (EditorApplication.isPlaying)
@@ -83,7 +83,7 @@ namespace Unity.Pipeline.Tests.Editor
             var commands = CommandRegistry.DiscoverCommands();
 
             // Assert - Should find the editor_play command
-            var editorPlayCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_play");
+            var editorPlayCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor.playmode start");
             Assert.IsNotNull(editorPlayCommand, "Should discover the editor_play command");
             Assert.AreEqual("Enter Unity Editor play mode", editorPlayCommand.Description);
             Assert.IsTrue(editorPlayCommand.MainThreadRequired, "editor_play should require main thread");
@@ -100,7 +100,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             // Act - Execute editor_play command directly (bypass HTTP)
             var commands = CommandRegistry.DiscoverCommands();
-            var editorPlayCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_play");
+            var editorPlayCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor.playmode start");
             Assert.IsNotNull(editorPlayCommand, "editor_play command should be available");
 
             // Execute the command method directly
@@ -126,7 +126,7 @@ namespace Unity.Pipeline.Tests.Editor
                 using (var client = new PipelineClient(server))
                 {
                     // Act - Execute editor_play command via HTTP API
-                    var response = await client.ExecuteCommandAsync("editor_play", null);
+                    var response = await client.ExecuteCommandAsync("editor.playmode start", null);
 
                     // Assert - Command should execute successfully
                     Assert.IsTrue(response.IsSuccess,
@@ -183,7 +183,7 @@ namespace Unity.Pipeline.Tests.Editor
             var commands = CommandRegistry.DiscoverCommands();
 
             // Assert - Should find the editor_stop command
-            var editorStopCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_stop");
+            var editorStopCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor.playmode stop");
             Assert.IsNotNull(editorStopCommand, "Should discover the editor_stop command");
             Assert.AreEqual("Exit Unity Editor play mode", editorStopCommand.Description);
             Assert.IsTrue(editorStopCommand.MainThreadRequired, "editor_stop should require main thread");
@@ -201,7 +201,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             // Act - Execute editor_stop command directly
             var commands = CommandRegistry.DiscoverCommands();
-            var editorStopCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_stop");
+            var editorStopCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor.playmode stop");
             Assert.IsNotNull(editorStopCommand, "editor_stop command should be available");
 
             var result = editorStopCommand.Method.Invoke(null, new object[0]);
@@ -223,7 +223,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             // Act - Execute editor_stop command when already stopped
             var commands = CommandRegistry.DiscoverCommands();
-            var editorStopCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_stop");
+            var editorStopCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor.playmode stop");
 
             var result = editorStopCommand.Method.Invoke(null, new object[0]);
 
@@ -250,7 +250,7 @@ namespace Unity.Pipeline.Tests.Editor
                 using (var client = new PipelineClient(server))
                 {
                     // Step 1: Enter play mode via HTTP
-                    var playResponse = await client.ExecuteCommandAsync("editor_play", null);
+                    var playResponse = await client.ExecuteCommandAsync("editor.playmode start", null);
                     Assert.IsTrue(playResponse.IsSuccess, "editor_play via HTTP should succeed");
 
                     // Wait for Editor to actually enter play mode
@@ -258,7 +258,7 @@ namespace Unity.Pipeline.Tests.Editor
                     Assert.IsTrue(EditorApplication.isPlaying, "Should be in play mode after HTTP editor_play");
 
                     // Step 2: Exit play mode via HTTP
-                    var stopResponse = await client.ExecuteCommandAsync("editor_stop", null);
+                    var stopResponse = await client.ExecuteCommandAsync("editor.playmode stop", null);
                     Assert.IsTrue(stopResponse.IsSuccess, "editor_stop via HTTP should succeed");
 
                     // Wait for Editor to actually exit play mode
@@ -279,7 +279,7 @@ namespace Unity.Pipeline.Tests.Editor
             var commands = CommandRegistry.DiscoverCommands();
 
             // Assert - Should find the editor_pause command
-            var editorPauseCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_pause");
+            var editorPauseCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor.playmode pause");
             Assert.IsNotNull(editorPauseCommand, "Should discover the editor_pause command");
             Assert.AreEqual("Pause Unity Editor play mode", editorPauseCommand.Description);
             Assert.IsTrue(editorPauseCommand.MainThreadRequired, "editor_pause should require main thread");
@@ -300,7 +300,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             // Act - Execute editor_pause command to pause
             var commands = CommandRegistry.DiscoverCommands();
-            var editorPauseCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_pause");
+            var editorPauseCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor.playmode pause");
             Assert.IsNotNull(editorPauseCommand, "editor_pause command should be available");
 
             var pauseResult = editorPauseCommand.Method.Invoke(null, new object[0]);
@@ -332,7 +332,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             // Act - Try to pause when not in play mode
             var commands = CommandRegistry.DiscoverCommands();
-            var editorPauseCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_pause");
+            var editorPauseCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor.playmode pause");
 
             var result = editorPauseCommand.Method.Invoke(null, new object[0]);
 
@@ -360,7 +360,7 @@ namespace Unity.Pipeline.Tests.Editor
                 using (var client = new PipelineClient(server))
                 {
                     // Step 1: Enter play mode
-                    var playResponse = await client.ExecuteCommandAsync("editor_play", null);
+                    var playResponse = await client.ExecuteCommandAsync("editor.playmode start", null);
                     Assert.IsTrue(playResponse.IsSuccess, "editor_play should succeed");
 
                     // Wait for Editor to actually enter play mode
@@ -369,7 +369,7 @@ namespace Unity.Pipeline.Tests.Editor
                     Assert.IsFalse(EditorApplication.isPaused, "Should not be paused");
 
                     // Step 2: Pause play mode
-                    var pauseResponse = await client.ExecuteCommandAsync("editor_pause", null);
+                    var pauseResponse = await client.ExecuteCommandAsync("editor.playmode pause", null);
                     Assert.IsTrue(pauseResponse.IsSuccess, "editor_pause should succeed");
 
                     // Wait for Editor to actually enter pause state
@@ -383,7 +383,7 @@ namespace Unity.Pipeline.Tests.Editor
                         "editor_status should show 'paused' when paused");
 
                     // Step 4: Unpause (same pause command toggles)
-                    var unpauseResponse = await client.ExecuteCommandAsync("editor_pause", null);
+                    var unpauseResponse = await client.ExecuteCommandAsync("editor.playmode pause", null);
                     Assert.IsTrue(unpauseResponse.IsSuccess, "editor_pause (unpause) should succeed");
 
                     // Wait for Editor to actually exit pause state
@@ -393,7 +393,7 @@ namespace Unity.Pipeline.Tests.Editor
                     Assert.IsFalse(EditorApplication.isPaused, "Should be unpaused");
 
                     // Step 5: Stop play mode
-                    var stopResponse = await client.ExecuteCommandAsync("editor_stop", null);
+                    var stopResponse = await client.ExecuteCommandAsync("editor.playmode stop", null);
                     Assert.IsTrue(stopResponse.IsSuccess, "editor_stop should succeed");
 
                     // Wait for Editor to actually exit play mode
@@ -477,9 +477,9 @@ namespace Unity.Pipeline.Tests.Editor
                         .Select(cmd => cmd["name"]?.ToString())
                         .ToList();
 
-                    Assert.Contains("editor_play", playModeCommands, "Should find editor_play command");
-                    Assert.Contains("editor_stop", playModeCommands, "Should find editor_stop command");
-                    Assert.Contains("editor_pause", playModeCommands, "Should find editor_pause command");
+                    Assert.Contains("editor.playmode start", playModeCommands, "Should find editor_play command");
+                    Assert.Contains("editor.playmode stop", playModeCommands, "Should find editor_stop command");
+                    Assert.Contains("editor.playmode pause", playModeCommands, "Should find editor_pause command");
 
                     // Step 2: Check initial Editor state
                     await client.GetAsync("/api/editor_status");
@@ -487,10 +487,10 @@ namespace Unity.Pipeline.Tests.Editor
                     // Step 3: Automation workflow - Play mode testing cycle
                     var testSequence = new[]
                     {
-                        new { command = "editor_play", expectedPlayMode = "playing", description = "Enter play mode for testing" },
-                        new { command = "editor_pause", expectedPlayMode = "paused", description = "Pause to inspect state" },
-                        new { command = "editor_pause", expectedPlayMode = "playing", description = "Resume testing" },
-                        new { command = "editor_stop", expectedPlayMode = "stopped", description = "Return to edit mode" }
+                        new { command = "editor.playmode start", expectedPlayMode = "playing", description = "Enter play mode for testing" },
+                        new { command = "editor.playmode pause", expectedPlayMode = "paused", description = "Pause to inspect state" },
+                        new { command = "editor.playmode pause", expectedPlayMode = "playing", description = "Resume testing" },
+                        new { command = "editor.playmode stop", expectedPlayMode = "stopped", description = "Return to edit mode" }
                     };
 
                     foreach (var step in testSequence)
@@ -505,7 +505,7 @@ namespace Unity.Pipeline.Tests.Editor
                         {
                             await EditorTestUtilities.WaitFor(() => !EditorApplication.isPlaying);
                         }
-                        else if (step.expectedPlayMode == "playing" && step.command == "editor_play")
+                        else if (step.expectedPlayMode == "playing" && step.command == "editor.playmode start")
                         {
                             await EditorTestUtilities.WaitFor(() => EditorApplication.isPlaying);
                         }
@@ -513,7 +513,7 @@ namespace Unity.Pipeline.Tests.Editor
                         {
                             await EditorTestUtilities.WaitFor(() => EditorApplication.isPaused);
                         }
-                        else if (step.expectedPlayMode == "playing" && step.command == "editor_pause")
+                        else if (step.expectedPlayMode == "playing" && step.command == "editor.playmode pause")
                         {
                             // This is the unpause case
                             await EditorTestUtilities.WaitFor(() => !EditorApplication.isPaused);

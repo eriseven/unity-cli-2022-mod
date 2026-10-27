@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_folder --path Gameplay/Enemies
+unity command asset create_folder --path Gameplay/Enemies
 ```
 
 ## Notes

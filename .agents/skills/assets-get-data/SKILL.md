@@ -17,11 +17,11 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_serialized_fields --target Assets/Data/GameConfig.asset
-unity command get_import_settings --asset Assets/Textures/Icon.png --platform Default
+unity command component get_fields --target Assets/Data/GameConfig.asset
+unity command asset get_import_settings --asset Assets/Textures/Icon.png --platform Default
 ```
 
 ## Notes
 
-Use the type-specific commands (`get_material_properties`, `get_animation_clip`, and similar) when available. Do not read or edit Unity serialized asset files directly.
+Use the type-specific commands (`material get_properties`, `animation.clip get`, and similar) when available. Do not read or edit Unity serialized asset files directly.
 

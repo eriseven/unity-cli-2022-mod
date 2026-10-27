@@ -126,7 +126,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
         public void Get_ReturnsShaderRenderQueueKeywordsAndProperties()
         {
             var handle = CreateMaterial("Get");
-            var result = MaterialCommands.GetMaterialProperties(handle);
+            var result = MaterialCommands.GetProperties(handle);
 
             Assert.AreEqual(Shader.Find(m_KnownShader).name, result.Shader);
             Assert.IsNotNull(result.EnabledKeywords);
@@ -144,7 +144,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
                 Assert.Ignore("URP/Lit not available in this project; skipping URP-specific assertion (AC #1).");
 
             var handle = CreateMaterial("UrpGet", UrpLitShader);
-            var result = MaterialCommands.GetMaterialProperties(handle);
+            var result = MaterialCommands.GetProperties(handle);
 
             var baseColor = Prop(result, BaseColorProp);
             Assert.IsNotNull(baseColor, "_BaseColor should be present");
@@ -165,10 +165,10 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             var handle = CreateMaterial("SetColorArray");
             var props = new JObject { [ColorProp] = new JArray(1, 0, 0, 1) };
 
-            var result = MaterialCommands.SetMaterialProperties(handle, properties: props);
+            var result = MaterialCommands.SetProperties(handle, properties: props);
 
             CollectionAssert.Contains(result.Applied, ColorProp);
-            var read = MaterialCommands.GetMaterialProperties(handle);
+            var read = MaterialCommands.GetProperties(handle);
             var c = Components(Prop(read, ColorProp).Value);
             Assert.AreEqual(1f, c[0], 1e-4f);
             Assert.AreEqual(0f, c[1], 1e-4f);
@@ -182,9 +182,9 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             var handle = CreateMaterial("SetColorHex");
             var props = new JObject { [ColorProp] = "#00FF00" };
 
-            MaterialCommands.SetMaterialProperties(handle, properties: props);
+            MaterialCommands.SetProperties(handle, properties: props);
 
-            var read = MaterialCommands.GetMaterialProperties(handle);
+            var read = MaterialCommands.GetProperties(handle);
             var c = Components(Prop(read, ColorProp).Value);
             Assert.AreEqual(0f, c[0], 1e-3f);
             Assert.AreEqual(1f, c[1], 1e-3f);
@@ -203,7 +203,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             var handle = CreateMaterial("SetTex", UrpLitShader);
             var tex = CreateTexture("Albedo");
 
-            var set = MaterialCommands.SetMaterialProperties(handle,
+            var set = MaterialCommands.SetProperties(handle,
                 properties: new JObject { [BaseMapProp] = JToken.FromObject(tex) });
             CollectionAssert.Contains(set.Applied, BaseMapProp);
 
@@ -212,7 +212,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             Assert.AreEqual(loadedTex, mat.GetTexture(BaseMapProp), "texture should be assigned");
 
             // Clear with null.
-            MaterialCommands.SetMaterialProperties(handle,
+            MaterialCommands.SetProperties(handle,
                 properties: new JObject { [BaseMapProp] = JValue.CreateNull() });
             mat = AssetDatabase.LoadAssetAtPath<Material>(handle.Path);
             Assert.IsNull(mat.GetTexture(BaseMapProp), "passing null should clear the texture");
@@ -234,7 +234,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             ProjectPaths.AuthoringRoot = sub; // now Root/OutsideAlbedo.png is outside the root
 
             var ex = Assert.Throws<System.ArgumentException>(() =>
-                MaterialCommands.SetMaterialProperties(handle,
+                MaterialCommands.SetProperties(handle,
                     properties: new JObject { [BaseMapProp] = JToken.FromObject(outsideTex) }));
             StringAssert.Contains("outside the authoring root", ex.Message);
         }
@@ -248,10 +248,10 @@ namespace Unity.Pipeline.Tests.Editor.Materials
                 Assert.Ignore("Built-in Standard shader not available; skipping shader-reassign test (AC #5).");
 
             var handle = CreateMaterial("Reassign", m_KnownShader);
-            var result = MaterialCommands.SetMaterialProperties(handle, shader: StandardShader);
+            var result = MaterialCommands.SetProperties(handle, shader: StandardShader);
 
             Assert.AreEqual(StandardShader, result.Shader);
-            var read = MaterialCommands.GetMaterialProperties(handle);
+            var read = MaterialCommands.GetProperties(handle);
             Assert.AreEqual(StandardShader, read.Shader);
         }
 
@@ -259,15 +259,15 @@ namespace Unity.Pipeline.Tests.Editor.Materials
         public void Set_Shader_NotFound_ThrowsAndWritesNothing()
         {
             var handle = CreateMaterial("BadShader");
-            var before = MaterialCommands.GetMaterialProperties(handle).Shader;
+            var before = MaterialCommands.GetProperties(handle).Shader;
 
             var ex = Assert.Throws<ShaderNotFoundException>(() =>
-                MaterialCommands.SetMaterialProperties(handle, shader: "No/Such/Shader__CLI213",
+                MaterialCommands.SetProperties(handle, shader: "No/Such/Shader__CLI213",
                     properties: new JObject { [ColorProp] = new JArray(1, 0, 0, 1) }));
             StringAssert.Contains("shader_not_found", ex.Message);
             Assert.AreEqual("shader_not_found", ex.Code);
 
-            var after = MaterialCommands.GetMaterialProperties(handle).Shader;
+            var after = MaterialCommands.GetProperties(handle).Shader;
             Assert.AreEqual(before, after, "a shader_not_found must write nothing");
         }
 
@@ -279,12 +279,12 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             var handle = CreateMaterial("Keyword");
             const string keyword = "_EMISSION";
 
-            MaterialCommands.SetMaterialProperties(handle, enableKeywords: new[] { keyword });
-            var enabled = MaterialCommands.GetMaterialProperties(handle).EnabledKeywords;
+            MaterialCommands.SetProperties(handle, enableKeywords: new[] { keyword });
+            var enabled = MaterialCommands.GetProperties(handle).EnabledKeywords;
             CollectionAssert.Contains(enabled, keyword);
 
-            MaterialCommands.SetMaterialProperties(handle, disableKeywords: new[] { keyword });
-            var disabled = MaterialCommands.GetMaterialProperties(handle).EnabledKeywords;
+            MaterialCommands.SetProperties(handle, disableKeywords: new[] { keyword });
+            var disabled = MaterialCommands.GetProperties(handle).EnabledKeywords;
             CollectionAssert.DoesNotContain(disabled, keyword);
         }
 
@@ -295,11 +295,11 @@ namespace Unity.Pipeline.Tests.Editor.Materials
         {
             var handle = CreateMaterial("Queue");
 
-            MaterialCommands.SetMaterialProperties(handle, renderQueue: 3000);
-            Assert.AreEqual(3000, MaterialCommands.GetMaterialProperties(handle).RenderQueue,
+            MaterialCommands.SetProperties(handle, renderQueue: 3000);
+            Assert.AreEqual(3000, MaterialCommands.GetProperties(handle).RenderQueue,
                 "an explicit renderQueue must be reflected by the command's own read-back");
 
-            MaterialCommands.SetMaterialProperties(handle, renderQueue: -1);
+            MaterialCommands.SetProperties(handle, renderQueue: -1);
             // Validate inheritance via rawRenderQueue == -1 rather than the effective queue: the shader
             // default can legitimately equal the prior override (e.g. 3000), so comparing the effective
             // value would be flaky. The serialized override is -1 exactly when the material inherits
@@ -320,7 +320,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
                 ["_DefinitelyNotARealProp_CLI213"] = 5,
             };
 
-            var result = MaterialCommands.SetMaterialProperties(handle, properties: props);
+            var result = MaterialCommands.SetProperties(handle, properties: props);
 
             CollectionAssert.Contains(result.Applied, ColorProp);
             Assert.IsTrue(result.Unknown.Any(u => u.Contains("_DefinitelyNotARealProp_CLI213")),
@@ -341,7 +341,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
                 [MetallicProp] = new JArray(1, 2, 3),
             };
 
-            var result = MaterialCommands.SetMaterialProperties(handle, properties: props);
+            var result = MaterialCommands.SetProperties(handle, properties: props);
 
             CollectionAssert.Contains(result.Applied, BaseColorProp);
             Assert.IsTrue(result.Unknown.Any(u => u.Contains(MetallicProp)),
@@ -354,14 +354,14 @@ namespace Unity.Pipeline.Tests.Editor.Materials
         public void Set_DryRun_ReportsButDoesNotWrite()
         {
             var handle = CreateMaterial("DryRun");
-            var beforeColor = Components(Prop(MaterialCommands.GetMaterialProperties(handle), ColorProp).Value);
+            var beforeColor = Components(Prop(MaterialCommands.GetProperties(handle), ColorProp).Value);
 
             var props = new JObject { [ColorProp] = new JArray(1, 0, 0, 1) };
-            var result = MaterialCommands.SetMaterialProperties(handle, properties: props, dryRun: true);
+            var result = MaterialCommands.SetProperties(handle, properties: props, dryRun: true);
 
             CollectionAssert.Contains(result.Applied, ColorProp);
 
-            var afterColor = Components(Prop(MaterialCommands.GetMaterialProperties(handle), ColorProp).Value);
+            var afterColor = Components(Prop(MaterialCommands.GetProperties(handle), ColorProp).Value);
             CollectionAssert.AreEqual(beforeColor, afterColor, "dry_run must not change the material");
         }
 
@@ -373,7 +373,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
             var handle = CreateMaterial("ViaClient");
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_material_properties", new
+                var response = server.Execute("material set_properties", new
                 {
                     material = new { path = handle.Path },
                     properties = new JObject { [ColorProp] = new JArray(1, 0, 0, 1) },
@@ -381,7 +381,7 @@ namespace Unity.Pipeline.Tests.Editor.Materials
 
                 Assert.IsTrue(response.IsSuccess, $"set_material_properties should succeed: {response.Error}");
 
-                var read = MaterialCommands.GetMaterialProperties(handle);
+                var read = MaterialCommands.GetProperties(handle);
                 var c = Components(Prop(read, ColorProp).Value);
                 Assert.AreEqual(1f, c[0], 1e-4f);
             }

@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command add_component --target '{"hierarchyPath":"/Enemy"}' --type UnityEngine.AI.NavMeshAgent
-unity command set_component_properties --target '{"hierarchyPath":"/Enemy"}' --type UnityEngine.AI.NavMeshAgent --properties '{"m_Speed":3.5}'
+unity command component add --target '{"hierarchyPath":"/Enemy"}' --type UnityEngine.AI.NavMeshAgent
+unity command component set_properties --target '{"hierarchyPath":"/Enemy"}' --type UnityEngine.AI.NavMeshAgent --properties '{"m_Speed":3.5}'
 ```
 
 ## Notes

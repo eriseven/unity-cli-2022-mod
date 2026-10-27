@@ -17,9 +17,9 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_autotick --enable true
-unity command recompile
-unity command recompile_status
+unity command editor set_auto_tick --enable true
+unity command script recompile
+unity command script recompile_status
 unity command
 ```
 

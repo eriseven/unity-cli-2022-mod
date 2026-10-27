@@ -92,7 +92,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         [Test]
         public void CreateScene_CreatesAssetAndReturnsIdentity()
         {
-            var result = SceneCommands.CreateScene(ScenePath);
+            var result = SceneCommands.Create(ScenePath);
 
             Assert.AreEqual(ScenePath, result.AssetPath);
             Assert.IsNotEmpty(result.Guid, "Created scene should have a GUID");
@@ -102,7 +102,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         [Test]
         public void CreateScene_AppendsUnityExtension_WhenOmitted()
         {
-            var result = SceneCommands.CreateScene(TestRoot + "/NoExt");
+            var result = SceneCommands.Create(TestRoot + "/NoExt");
             Assert.AreEqual(TestRoot + "/NoExt.unity", result.AssetPath);
         }
 
@@ -110,7 +110,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         public void CreatePopulateSaveReopen_RoundTrip_PreservesContent()
         {
             // Create (single mode replaces open scenes, leaving our scene active).
-            SceneCommands.CreateScene(ScenePath);
+            SceneCommands.Create(ScenePath);
             var scene = EditorSceneManager.GetActiveScene();
             Assert.AreEqual(ScenePath, scene.path, "New scene should be the active scene");
 
@@ -121,12 +121,12 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
             EditorSceneManager.MarkSceneDirty(scene);
 
             // Save.
-            SceneCommands.SaveScene(ScenePath);
+            SceneCommands.Save(ScenePath);
             Assert.IsFalse(EditorSceneManager.GetActiveScene().isDirty, "Scene should be clean after save");
 
             // Reopen from a clean slate (replace with empty, then open our saved scene).
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            SceneCommands.OpenScene(ScenePath);
+            SceneCommands.Open(ScenePath);
 
             var reopened = EditorSceneManager.GetActiveScene();
             Assert.AreEqual(ScenePath, reopened.path);
@@ -138,7 +138,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         [Test]
         public void GetSceneHierarchy_ReturnsTreeUsableByObjectResolver()
         {
-            SceneCommands.CreateScene(ScenePath);
+            SceneCommands.Create(ScenePath);
             var scene = EditorSceneManager.GetActiveScene();
 
             var parent = new GameObject("Parent");
@@ -146,7 +146,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
             child.transform.SetParent(parent.transform);
             SceneManager.MoveGameObjectToScene(parent, scene);
 
-            var hierarchy = SceneCommands.GetSceneHierarchy(ScenePath);
+            var hierarchy = SceneCommands.GetHierarchy(ScenePath);
 
             Assert.IsTrue(hierarchy.IsActive, "Snapshotted scene should be flagged active");
             var parentNode = hierarchy.Roots.FirstOrDefault(n => n.Name == "Parent");
@@ -173,9 +173,9 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         [Test]
         public void ListOpenScenes_IncludesTheActiveScene()
         {
-            SceneCommands.CreateScene(ScenePath);
+            SceneCommands.Create(ScenePath);
 
-            var json = Newtonsoft.Json.Linq.JObject.FromObject(SceneCommands.ListOpenScenes());
+            var json = Newtonsoft.Json.Linq.JObject.FromObject(SceneCommands.ListOpen());
             var scenes = (Newtonsoft.Json.Linq.JArray)json["scenes"];
             var active = scenes.FirstOrDefault(s => (bool)s["isActive"]);
 
@@ -186,22 +186,22 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         [Test]
         public void AddAndRemoveSceneFromBuild_UpdatesBuildList()
         {
-            SceneCommands.CreateScene(ScenePath);
+            SceneCommands.Create(ScenePath);
 
             // Add.
-            SceneCommands.AddSceneToBuild(ScenePath);
+            SceneCommands.AddToBuild(ScenePath);
             Assert.IsTrue(
                 EditorBuildSettings.scenes.Any(s => s.path == ScenePath && s.enabled),
                 "Scene should be present and enabled in the build list");
 
             // Idempotent add reconciling the enabled flag.
-            SceneCommands.AddSceneToBuild(ScenePath, enabled: false);
+            SceneCommands.AddToBuild(ScenePath, enabled: false);
             var entries = EditorBuildSettings.scenes.Where(s => s.path == ScenePath).ToArray();
             Assert.AreEqual(1, entries.Length, "Adding twice must not duplicate the entry");
             Assert.IsFalse(entries[0].enabled, "Re-add should reconcile the enabled flag");
 
             // Remove.
-            SceneCommands.RemoveSceneFromBuild(ScenePath);
+            SceneCommands.RemoveFromBuild(ScenePath);
             Assert.IsFalse(
                 EditorBuildSettings.scenes.Any(s => s.path == ScenePath),
                 "Scene should be gone from the build list");
@@ -210,10 +210,10 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         [Test]
         public void SetActiveScene_UnopenedScene_ThrowsRecoverable()
         {
-            SceneCommands.CreateScene(ScenePath);
+            SceneCommands.Create(ScenePath);
             // A path that isn't open should produce a clear, recoverable error.
             Assert.Throws<System.InvalidOperationException>(
-                () => SceneCommands.SetActiveScene(TestRoot + "/NotOpen.unity"));
+                () => SceneCommands.SetActive(TestRoot + "/NotOpen.unity"));
         }
 
         #endregion
@@ -225,13 +225,13 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         {
             using (var server = new PipelineTestServer())
             {
-                var create = server.Execute("create_scene", new { path = ScenePath });
+                var create = server.Execute("scene create", new { path = ScenePath });
                 Assert.IsTrue(create.IsSuccess, $"create_scene should succeed: {create.Error}");
                 Assert.IsTrue(create.HasValidJson, "create_scene response should be valid JSON");
                 Assert.IsTrue(create.JsonResponse.ContainsKey("result"), "Should have a result field");
                 Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath), "Scene asset should exist");
 
-                var add = server.Execute("add_scene_to_build", new { path = ScenePath });
+                var add = server.Execute("scene add_to_build", new { path = ScenePath });
                 Assert.IsTrue(add.IsSuccess, $"add_scene_to_build should succeed: {add.Error}");
                 Assert.IsTrue(
                     EditorBuildSettings.scenes.Any(s => s.path == ScenePath),
@@ -242,13 +242,13 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         [Test]
         public void GetSceneHierarchy_ViaClient_ReturnsTree()
         {
-            SceneCommands.CreateScene(ScenePath);
+            SceneCommands.Create(ScenePath);
             var go = new GameObject("ViaClientRoot");
             SceneManager.MoveGameObjectToScene(go, EditorSceneManager.GetActiveScene());
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("get_scene_hierarchy", new { path = ScenePath });
+                var response = server.Execute("scene get_hierarchy", new { path = ScenePath });
 
                 Assert.IsTrue(response.IsSuccess, $"get_scene_hierarchy should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should be valid JSON");
@@ -271,7 +271,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         public void CreateScene_TemplateDefault_SeedsCameraAndLight()
         {
             var scenePath = TemplateTestRoot + "/Default.unity";
-            SceneCommands.CreateScene(scenePath, template: "default");
+            SceneCommands.Create(scenePath, template: "default");
 
             var scene = EditorSceneManager.GetActiveScene();
             Assert.AreEqual(scenePath, scene.path, "New scene should be the active scene");
@@ -284,10 +284,10 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         {
             // The seeded objects must be saved into the .unity asset, not just live in the open scene.
             var scenePath = TemplateTestRoot + "/DefaultReopen.unity";
-            SceneCommands.CreateScene(scenePath, template: "default");
+            SceneCommands.Create(scenePath, template: "default");
 
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            SceneCommands.OpenScene(scenePath);
+            SceneCommands.Open(scenePath);
 
             AssertDefaultTemplateContents(EditorSceneManager.GetActiveScene());
         }
@@ -296,7 +296,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         public void CreateScene_TemplateEmpty_SeedsNothing()
         {
             var scenePath = TemplateTestRoot + "/Empty.unity";
-            SceneCommands.CreateScene(scenePath, template: "empty");
+            SceneCommands.Create(scenePath, template: "empty");
 
             AssertEmptyTemplateContents(EditorSceneManager.GetActiveScene());
         }
@@ -306,7 +306,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         {
             // Regression guard: the historical behavior (no template arg) must remain a blank scene.
             var scenePath = TemplateTestRoot + "/Omitted.unity";
-            SceneCommands.CreateScene(scenePath);
+            SceneCommands.Create(scenePath);
 
             AssertEmptyTemplateContents(EditorSceneManager.GetActiveScene());
         }
@@ -316,7 +316,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
         {
             var scenePath = TemplateTestRoot + "/Bogus.unity";
             var ex = Assert.Throws<System.ArgumentException>(
-                () => SceneCommands.CreateScene(scenePath, template: "isometric"));
+                () => SceneCommands.Create(scenePath, template: "isometric"));
 
             // The error must enumerate the valid values so the caller can recover.
             StringAssert.Contains("empty", ex.Message);
@@ -334,7 +334,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
             var scenePath = TemplateTestRoot + "/DefaultClient.unity";
             using (var server = new PipelineTestServer())
             {
-                var create = server.Execute("create_scene", new { path = scenePath, template = "default" });
+                var create = server.Execute("scene create", new { path = scenePath, template = "default" });
                 Assert.IsTrue(create.IsSuccess, $"create_scene should succeed: {create.Error}");
                 Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath), "Scene asset should exist");
             }
@@ -349,7 +349,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
             var scenePath = TemplateTestRoot + "/EmptyClient.unity";
             using (var server = new PipelineTestServer())
             {
-                var create = server.Execute("create_scene", new { path = scenePath, template = "empty" });
+                var create = server.Execute("scene create", new { path = scenePath, template = "empty" });
                 Assert.IsTrue(create.IsSuccess, $"create_scene should succeed: {create.Error}");
                 Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath), "Scene asset should exist");
             }
@@ -368,7 +368,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
                 UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Error,
                     new System.Text.RegularExpressions.Regex("Unknown template"));
 
-                var create = server.Execute("create_scene", new { path = scenePath, template = "isometric" });
+                var create = server.Execute("scene create", new { path = scenePath, template = "isometric" });
 
                 Assert.IsFalse(create.IsSuccess, "create_scene with an unknown template should fail");
                 Assert.IsNull(
@@ -440,7 +440,7 @@ namespace Unity.Pipeline.Tests.Editor.Scenes
             var threw = false;
             try
             {
-                SceneCommands.CreateScene(ScenePath);
+                SceneCommands.Create(ScenePath);
             }
             catch (System.InvalidOperationException)
             {

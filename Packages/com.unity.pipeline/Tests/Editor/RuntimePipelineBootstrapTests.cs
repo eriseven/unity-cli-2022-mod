@@ -44,7 +44,7 @@ namespace Unity.Pipeline.Tests.Editor
             if (createDisabledConfig)
                 CreateTestConfig(enableInBuilds: false);
 
-            var driver = RuntimePipelineBootstrap.Bootstrap();
+            var driver = RuntimePipelineBootstrap.Bootstrap(false);
 
             Assert.IsNull(driver, "Bootstrap should do nothing when there is no usable config");
         }
@@ -54,7 +54,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             CreateTestConfig(enableInBuilds: true, port: 7930);
 
-            var driver = RuntimePipelineBootstrap.Bootstrap();
+            var driver = RuntimePipelineBootstrap.Bootstrap(true);
             m_CreatedDriverGameObject = driver != null ? driver.gameObject : null;
 
             Assert.IsNotNull(driver, "Bootstrap should create a driver when enableInBuilds is true");
@@ -66,8 +66,8 @@ namespace Unity.Pipeline.Tests.Editor
         {
             CreateTestConfig(enableInBuilds: true);
 
-            var first = RuntimePipelineBootstrap.Bootstrap();
-            var second = RuntimePipelineBootstrap.Bootstrap();
+            var first = RuntimePipelineBootstrap.Bootstrap(true);
+            var second = RuntimePipelineBootstrap.Bootstrap(true);
             m_CreatedDriverGameObject = first != null ? first.gameObject : null;
 
             Assert.AreSame(first, second, "A second Bootstrap() call must return the existing driver, not create a duplicate");
@@ -76,7 +76,7 @@ namespace Unity.Pipeline.Tests.Editor
         private static void CreateTestConfig(bool enableInBuilds, int port = 0)
         {
             var config = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-            config.enableInBuilds = enableInBuilds;
+            config.autoStart = false;
             config.port = port;
             config.Save();
             Object.DestroyImmediate(config);

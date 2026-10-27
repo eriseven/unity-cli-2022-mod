@@ -34,11 +34,10 @@ namespace Unity.Pipeline.Tests.Editor
             // Remember whether a live server was running so TearDown can restore it (and so we never
             // start one that wasn't there, e.g. in CI).
             m_GlobalServerWasRunning =
-                InstanceDescriptor.ReadFromProjectRoot(System.IO.Path.GetDirectoryName(Application.dataPath)) != null;
+                EditorInstanceDescriptor.ReadFromProjectRoot(System.IO.Path.GetDirectoryName(Application.dataPath)) != null;
 
             // Create test configuration
             m_TestConfig = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-            m_TestConfig.enableInBuilds = true;
 
             // Real servers: this suite validates the PRODUCTION port ranges (editor 7800-7849,
             // runtime 7900-7949) and descriptor-derived behavior (StartedAt), which the no-descriptor

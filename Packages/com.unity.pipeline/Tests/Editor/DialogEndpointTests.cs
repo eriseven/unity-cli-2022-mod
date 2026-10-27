@@ -9,12 +9,12 @@ namespace Unity.Pipeline.Tests.Editor
 {
     class DialogEndpointTests
     {
-        sealed class DialogTestServer : EditorPipelineServer
+        sealed class DialogTestServer : IsolatedEditorServer
         {
-            protected override bool WritesDescriptor => false;
+
             protected override (int basePort, int maxPort) GetPortRange() => (7850, 7899);
             protected override string GetToken() => SecurityTokenManager.GetOrCreateToken();
-            protected override bool IsSettled => true;
+            protected override bool? PinnedSettled => true;
         }
 
         DialogTestServer m_Server;

@@ -91,8 +91,8 @@ namespace Unity.Pipeline.Tests.Editor
             var commands = CommandRegistry.DiscoverCommands().ToList();
 
             // Assert - runtime commands are tagged RuntimeOnly, editor commands are not
-            var editorStatus = commands.First(c => c.Name == "editor_status");
-            var runtimeStatus = commands.First(c => c.Name == "runtime_status");
+            var editorStatus = commands.First(c => c.FullName == "editor status");
+            var runtimeStatus = commands.First(c => c.FullName == "runtime status");
 
             Assert.IsTrue(runtimeStatus.RuntimeOnly, "eval should be marked RuntimeOnly");
             Assert.IsFalse(editorStatus.RuntimeOnly, "editor_status should not be RuntimeOnly");
@@ -138,7 +138,7 @@ namespace Unity.Pipeline.Tests.Editor
                 // The local extensions use an asmref into the host but are a separate package.
                 .Where(cmd => !(cmd.Method.DeclaringType?.Namespace?.StartsWith("Unity.Pipeline.Extensions.") ?? false))
                 .Where(cmd => cmd.Tags.Count == 0)
-                .Select(cmd => cmd.Name)
+                .Select(cmd => cmd.FullName)
                 .OrderBy(name => name)
                 .ToList();
             Assert.IsEmpty(untagged,
@@ -174,7 +174,7 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.AreEqual("Unity.Pipeline.Tests.Editor", testCommand.Package,
                 "Test-assembly command should report the test assembly as its package");
 
-            var editorCommand = commands.First(cmd => cmd.Name == "editor_status");
+            var editorCommand = commands.First(cmd => cmd.FullName == "editor status");
             Assert.AreEqual("Unity.Pipeline.Editor", editorCommand.Package,
                 "Editor command should report the editor assembly as its package");
         }
@@ -201,7 +201,7 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.IsNotNull(schemaJson["required"], "Schema should have required array");
 
             // Verify command metadata
-            Assert.AreEqual("log_editor", schemaJson["title"]?.ToString());
+            Assert.AreEqual("global log_editor", schemaJson["title"]?.ToString());
             Assert.AreEqual("Log a message to Unity Editor console", schemaJson["description"]?.ToString());
 
             // Verify parameter schema
@@ -298,7 +298,7 @@ namespace Unity.Pipeline.Tests.Editor
             var commands = CommandRegistry.DiscoverCommands();
 
             // Assert - Should find the editor_status command
-            var editorStatusCommand = commands.FirstOrDefault(cmd => cmd.Name == "editor_status");
+            var editorStatusCommand = commands.FirstOrDefault(cmd => cmd.FullName == "editor status");
             Assert.IsNotNull(editorStatusCommand, "Should discover the editor_status command");
             Assert.AreEqual("Get detailed Unity Editor status and state information", editorStatusCommand.Description);
             Assert.IsTrue(editorStatusCommand.MainThreadRequired, "editor_status should require main thread");
@@ -313,7 +313,7 @@ namespace Unity.Pipeline.Tests.Editor
             // Arrange & Act - Execute editor_status command directly (bypass all HTTP and threading)
             try
             {
-                var result = Unity.Pipeline.Editor.Commands.EditorStatusCommand.GetEditorStatus();
+                var result = Unity.Pipeline.Editor.Commands.EditorStatusCommand.Status();
 
                 // Assert
                 Assert.IsNotNull(result, "editor_status command should return a result");

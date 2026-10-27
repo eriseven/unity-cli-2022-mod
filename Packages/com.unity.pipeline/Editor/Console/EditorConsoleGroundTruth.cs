@@ -4,6 +4,9 @@ using Unity.Pipeline.Console;
 using Unity.Pipeline.Models;
 using UnityEditor;
 using UnityEngine;
+#if UNITY_6000_5_OR_NEWER
+using Unity.Scripting.LifecycleManagement;
+#endif
 
 namespace Unity.Pipeline.Editor.Console
 {
@@ -28,6 +31,9 @@ namespace Unity.Pipeline.Editor.Console
     /// case this targets. The event is subscribed only to shorten the wait when a window is open.
     /// </summary>
     [InitializeOnLoad]
+#if UNITY_6000_5_OR_NEWER
+    [NoAutoStaticsCleanup]
+#endif
     static class EditorConsoleGroundTruth
     {
         const string SeededKey = "pipeline.console.seeded";

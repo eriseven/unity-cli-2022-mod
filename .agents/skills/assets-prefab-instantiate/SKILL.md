@@ -17,10 +17,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command instantiate_prefab --prefab Assets/Prefabs/Enemy.prefab --scene_path Assets/Scenes/Main.unity --name Enemy01
+unity command prefab instantiate --prefab Assets/Prefabs/Enemy.prefab --scene_path Assets/Scenes/Main.unity --name Enemy01
 ```
 
 ## Notes
 
-Read the returned scene-object identity and use `set_transform` or component commands for follow-up configuration.
+Read the returned scene-object identity and use `gameobject set_transform` or component commands for follow-up configuration.
 

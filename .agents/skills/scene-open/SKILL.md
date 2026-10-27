@@ -17,11 +17,11 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command open_scene --path Scenes/Main
-unity command open_scene --path Scenes/Lighting --additive true
+unity command scene open --path Scenes/Main
+unity command scene open --path Scenes/Lighting --additive true
 ```
 
 ## Notes
 
-Opening is blocked in Play mode. Read `list_open_scenes` first and save dirty work before replacing scenes.
+Opening is blocked in Play mode. Read `scene list_open` first and save dirty work before replacing scenes.
 

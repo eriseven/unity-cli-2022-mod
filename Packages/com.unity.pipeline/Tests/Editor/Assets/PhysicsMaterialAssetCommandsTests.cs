@@ -55,7 +55,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         [Test]
         public void CreateAsset_PhysicsMaterial_CreatesWithDefaults()
         {
-            var result = AssetCommands.CreateAsset(Root + "/Phys/Ball.physicMaterial", "PhysicsMaterial");
+            var result = AssetCommands.Create(Root + "/Phys/Ball.physicMaterial", "PhysicsMaterial");
 
             StringAssert.EndsWith(".physicMaterial", result.AssetPath);
             AssertDefaults(AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(result.AssetPath));
@@ -66,7 +66,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         {
             // CLI-222: an agent may pass the modern ".physicsMaterial" extension; it must succeed,
             // normalized to the ".physicMaterial" file Unity actually writes.
-            var result = AssetCommands.CreateAsset(Root + "/Phys/Modern.physicsMaterial", "PhysicsMaterial");
+            var result = AssetCommands.Create(Root + "/Phys/Modern.physicsMaterial", "PhysicsMaterial");
 
             StringAssert.EndsWith(".physicMaterial", result.AssetPath);
             AssertDefaults(AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(result.AssetPath));
@@ -76,7 +76,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         public void CreateAsset_PhysicsMaterial_LegacyTypeName_ResolvesToSameType()
         {
             // CLI-222: the legacy "PhysicMaterial" spelling must resolve to UnityEngine.PhysicsMaterial.
-            var result = AssetCommands.CreateAsset(Root + "/Phys/Legacy.physicMaterial", "PhysicMaterial");
+            var result = AssetCommands.Create(Root + "/Phys/Legacy.physicMaterial", "PhysicMaterial");
 
             var loaded = AssetDatabase.LoadMainAssetAtPath(result.AssetPath);
             Assert.IsInstanceOf<PhysicsMaterial>(loaded, "Legacy 'PhysicMaterial' type name should resolve to PhysicsMaterial");
@@ -86,9 +86,9 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         [Test]
         public void CreateAsset_PhysicsMaterial_FoundByFindAssets()
         {
-            var result = AssetCommands.CreateAsset(Root + "/Phys/Findable.physicMaterial", "PhysicsMaterial");
+            var result = AssetCommands.Create(Root + "/Phys/Findable.physicMaterial", "PhysicsMaterial");
 
-            var found = AssetCommands.FindAssets(type: "PhysicsMaterial", searchIn: Root);
+            var found = AssetCommands.Find(type: "PhysicsMaterial", searchIn: Root);
 
             Assert.GreaterOrEqual(found.Count, 1, "Should find the created PhysicsMaterial by type");
             CollectionAssert.Contains(
@@ -99,7 +99,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         [Test]
         public void CreateAsset_PhysicsMaterial_AssignableToColliderSlot()
         {
-            var result = AssetCommands.CreateAsset(Root + "/Phys/Assignable.physicMaterial", "PhysicsMaterial");
+            var result = AssetCommands.Create(Root + "/Phys/Assignable.physicMaterial", "PhysicsMaterial");
             var pm = AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(result.AssetPath);
 
             var go = new GameObject("__CLI222_Collider");
@@ -125,7 +125,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("create_asset",
+                var response = server.Execute("asset create",
                     new { path = Root + "/ViaClient/Ball.physicMaterial", type = "PhysicsMaterial" });
 
                 Assert.IsTrue(response.IsSuccess, $"create_asset (PhysicsMaterial) should succeed: {response.Error}");
@@ -142,7 +142,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("create_asset",
+                var response = server.Execute("asset create",
                     new { path = Root + "/ViaClient/Legacy.physicMaterial", type = "PhysicMaterial" });
 
                 Assert.IsTrue(response.IsSuccess, $"create_asset (legacy PhysicMaterial) should succeed: {response.Error}");

@@ -12,9 +12,8 @@ namespace Unity.Pipeline.Tests.Editor
     /// Because no descriptor is created, the token comes straight from SecurityTokenManager
     /// (the same source the descriptor would use), so token-gated commands still validate.
     /// </summary>
-    internal sealed class TestEditorPipelineServer : EditorPipelineServer
+    internal sealed class TestEditorPipelineServer : IsolatedEditorServer
     {
-        protected override bool WritesDescriptor => false;
 
         /// <summary>
         /// Observes everything the server reports, including requests rejected before a command
@@ -30,7 +29,7 @@ namespace Unity.Pipeline.Tests.Editor
         /// </summary>
         internal Action<CommandExecutionInfo> CommandDoneMainThreadRecorder;
 
-        protected override void OnCommandDone(in CommandExecutionInfo info)
+        internal override void OnCommandDone(in CommandExecutionInfo info)
         {
             // Keep the real behaviour (transaction log, and the dispatcher post this test server
             // exists to let a fixture observe); only the main-thread half below is stubbed out.

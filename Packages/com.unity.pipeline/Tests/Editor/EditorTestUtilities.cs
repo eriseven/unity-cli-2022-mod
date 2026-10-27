@@ -33,7 +33,7 @@ namespace Unity.Pipeline.Tests.Editor
 
         /// <summary>
         /// Manual test for the modal-stall risk the instance descriptor's "info" field warns about
-        /// (see <see cref="Models.InstanceDescriptor.Info"/>): a blocking modal dialog can stall the
+        /// (see <see cref="Models.EditorInstanceDescriptor.Info"/>): a blocking modal dialog can stall the
         /// Editor's main-thread update loop, which stalls <c>Dispatcher.ProcessWorkQueue</c> and
         /// therefore all pipeline command processing until the dialog is dismissed.
         ///

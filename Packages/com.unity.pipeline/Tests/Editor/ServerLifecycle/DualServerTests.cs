@@ -33,7 +33,6 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecyle
 
             // Create test GameObject with RuntimePipelineDriver
             m_RuntimeConfig = ScriptableObject.CreateInstance<Unity.Pipeline.Config.RuntimePipelineConfig>();
-            m_RuntimeConfig.enableInBuilds = true;
 
             m_TestGameObject = new GameObject("TestRuntimePipelineDriver");
             m_RuntimeManager = m_TestGameObject.AddComponent<RuntimePipelineDriver>();

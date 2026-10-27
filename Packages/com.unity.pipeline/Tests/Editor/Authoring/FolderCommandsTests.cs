@@ -71,7 +71,7 @@ namespace Unity.Pipeline.Tests.Editor.Authoring
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("create_folder", new { path = Root + "/ViaClient" });
+                var response = server.Execute("asset create_folder", new { path = Root + "/ViaClient" });
 
                 Assert.IsTrue(response.IsSuccess, $"create_folder should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");

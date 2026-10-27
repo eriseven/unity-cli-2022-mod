@@ -24,6 +24,10 @@ namespace Unity.Pipeline.Tests.Editor.Batch
     /// </summary>
     class BatchCommandTests
     {
+        [Unity.Pipeline.Commands.CliCommand("port091_batch_budget", "Run a batch with a short internal budget for regression testing")]
+        public static BatchResult RunShortBudget(
+            [Unity.Pipeline.Commands.CliArg("operations", "Operations", Required = true)] List<BatchOperationInput> operations)
+            => BatchCommand.Batch(operations, timeoutInSeconds: 0);
         private readonly List<GameObject> m_Spawned = new List<GameObject>();
 
         private GameObject Track(GameObject go)
@@ -78,9 +82,9 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchRef_Root" }),
-                    Op("add_component", new JObject { ["target"] = "$0.instanceId", ["type"] = "Rigidbody" }),
-                    Op("set_serialized_field", new JObject
+                    Op("gameobject create", new JObject { ["name"] = "BatchRef_Root" }),
+                    Op("component add", new JObject { ["target"] = "$0.instanceId", ["type"] = "Rigidbody" }),
+                    Op("component set_field", new JObject
                     {
                         ["target"] = "$1.instanceId",
                         ["field"] = "m_Mass",
@@ -88,7 +92,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                     }),
                 };
 
-                var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
 
                 var batch = response.JsonResponse["result"];
@@ -120,17 +124,17 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchRollback_A" }),
-                    Op("create_gameobject", new JObject { ["name"] = "BatchRollback_B" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchRollback_A" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchRollback_B" }),
                     // Fails: unknown component type -> add_component throws before mutating.
-                    Op("add_component", new JObject { ["target"] = "$0.instanceId", ["type"] = "NoSuchTypeXYZ" }),
+                    Op("component add", new JObject { ["target"] = "$0.instanceId", ["type"] = "NoSuchTypeXYZ" }),
                 };
 
                 // The failing sub-op logs an error through the shared command-dispatch path (batch
                 // reuses it); the batch surfaces the failure structurally, but the log still fires.
-                LogAssert.Expect(LogType.Error, new Regex("add_component' failed: Could not resolve component type 'NoSuchTypeXYZ'"));
+                LogAssert.Expect(LogType.Error, new Regex("component add' failed: Could not resolve component type 'NoSuchTypeXYZ'"));
 
-                var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                 Assert.IsTrue(response.IsSuccess, $"batch itself should return HTTP success: {response.RawResponse}");
 
                 var batch = response.JsonResponse["result"];
@@ -145,9 +149,9 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                     "the failing op's error should be reported");
 
                 // The two created objects must be gone (reverted), both by name and by their ids.
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchRollback_A").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchRollback_A").Count,
                     "op 0's object must be reverted");
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchRollback_B").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchRollback_B").Count,
                     "op 1's object must be reverted");
 
                 var id0 = InstanceIdOf(results[0]);
@@ -166,11 +170,11 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchUndo_A" }),
-                    Op("create_gameobject", new JObject { ["name"] = "BatchUndo_B" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchUndo_A" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchUndo_B" }),
                 };
 
-                var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
 
                 // Track the created objects so TearDown cleans them up even if the Undo below misbehaves.
@@ -178,15 +182,15 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 ResolveGameObject(results[0]);
                 ResolveGameObject(results[1]);
 
-                Assert.AreEqual(1, GameObjectCommands.FindGameObjects(name: "BatchUndo_A").Count);
-                Assert.AreEqual(1, GameObjectCommands.FindGameObjects(name: "BatchUndo_B").Count);
+                Assert.AreEqual(1, GameObjectCommands.Find(name: "BatchUndo_A").Count);
+                Assert.AreEqual(1, GameObjectCommands.Find(name: "BatchUndo_B").Count);
 
                 // One Undo must revert BOTH creations, proving the whole batch collapsed into one group.
                 Undo.PerformUndo();
 
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchUndo_A").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchUndo_A").Count,
                     "a single Undo should revert the first op (batch is one group)");
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchUndo_B").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchUndo_B").Count,
                     "a single Undo should revert the second op too (batch is one group)");
             }
         }
@@ -200,14 +204,14 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchDry_A" }),            // valid
+                    Op("gameobject create", new JObject { ["name"] = "BatchDry_A" }),            // valid
                     Op("no_such_command_xyz"),                                                    // unknown command
-                    Op("build"),                                                                  // not_batchable
-                    Op("create_gameobject", new JObject { ["bogus_param"] = "x" }),               // unknown parameter
-                    Op("add_component", new JObject { ["target"] = "$9.instanceId", ["type"] = "Rigidbody" }), // bad ref
+                    Op("build run"),                                                                  // not_batchable
+                    Op("gameobject create", new JObject { ["bogus_param"] = "x" }),               // unknown parameter
+                    Op("component add", new JObject { ["target"] = "$9.instanceId", ["type"] = "Rigidbody" }), // bad ref
                 };
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["dry_run"] = true
@@ -227,7 +231,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 StringAssert.Contains("unknown operation", results[4]["error"]?.ToString());
 
                 // Zero mutation: the valid create op must NOT have run.
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchDry_A").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchDry_A").Count,
                     "dry_run must not create anything");
             }
         }
@@ -241,11 +245,11 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchBadRef_X" }),
-                    Op("add_component", new JObject { ["target"] = "$5.instanceId", ["type"] = "Rigidbody" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchBadRef_X" }),
+                    Op("component add", new JObject { ["target"] = "$5.instanceId", ["type"] = "Rigidbody" }),
                 };
 
-                var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
 
                 var batch = response.JsonResponse["result"];
@@ -256,7 +260,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 StringAssert.Contains("unknown operation", error, "and explain why it is invalid");
 
                 Assert.IsTrue(batch["reverted"]?.ToObject<bool>() ?? false, "the prior op must be reverted");
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchBadRef_X").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchBadRef_X").Count,
                     "op 0 must be reverted after the bad reference");
             }
         }
@@ -269,14 +273,14 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchCont_A" }),
-                    Op("add_component", new JObject { ["target"] = "$0.instanceId", ["type"] = "NoSuchTypeXYZ" }), // fails
-                    Op("create_gameobject", new JObject { ["name"] = "BatchCont_C" }),                              // independent
+                    Op("gameobject create", new JObject { ["name"] = "BatchCont_A" }),
+                    Op("component add", new JObject { ["target"] = "$0.instanceId", ["type"] = "NoSuchTypeXYZ" }), // fails
+                    Op("gameobject create", new JObject { ["name"] = "BatchCont_C" }),                              // independent
                 };
 
-                LogAssert.Expect(LogType.Error, new Regex("add_component' failed: Could not resolve component type 'NoSuchTypeXYZ'"));
+                LogAssert.Expect(LogType.Error, new Regex("component add' failed: Could not resolve component type 'NoSuchTypeXYZ'"));
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["on_error"] = "continue"
@@ -307,11 +311,11 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray();
                 for (int i = 0; i < 201; i++)
-                    operations.Add(Op("create_gameobject", new JObject { ["name"] = "BatchCap_" + i }));
+                    operations.Add(Op("gameobject create", new JObject { ["name"] = "BatchCap_" + i }));
 
                 LogAssert.Expect(LogType.Error, new Regex("batch supports at most 200 operations"));
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["dry_run"] = true
@@ -319,7 +323,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
 
                 Assert.IsFalse(response.IsSuccess, "a batch over the op cap must be rejected");
                 StringAssert.Contains("200", response.RawResponse, "the error should state the 200-op cap");
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchCap_0").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchCap_0").Count,
                     "an over-cap batch must create nothing");
             }
         }
@@ -334,12 +338,12 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("run_tests", new JObject { ["mode"] = "EditMode" }),
-                    Op("list_tests"),
+                    Op("test run", new JObject { ["mode"] = "EditMode" }),
+                    Op("test list"),
                 };
 
                 // Dry run flags both without executing anything.
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["dry_run"] = true
@@ -354,7 +358,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 }
 
                 // Execution rejects them the same way — and returns instead of hanging.
-                response = server.Execute("batch", new JObject { ["operations"] = new JArray { Op("run_tests") } });
+                response = server.Execute("job batch", new JObject { ["operations"] = new JArray { Op("test run") } });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
                 var exec = response.JsonResponse["result"];
                 Assert.AreEqual(0, exec["applied"]?.ToObject<int>(), "nothing must be dispatched");
@@ -377,11 +381,11 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 {
                     var operations = new JArray
                     {
-                        Op("delete_asset", new JObject { ["asset"] = assetPath, ["confirm"] = true }),
+                        Op("asset delete", new JObject { ["asset"] = assetPath, ["confirm"] = true }),
                     };
 
                     // Dry run under the default transactional=true flags it.
-                    var response = server.Execute("batch", new JObject
+                    var response = server.Execute("job batch", new JObject
                     {
                         ["operations"] = operations,
                         ["dry_run"] = true
@@ -391,7 +395,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                     StringAssert.Contains("not_batchable_transactional", dry["results"][0]["error"]?.ToString());
 
                     // Execution under transactional=true rejects it too; the asset survives.
-                    response = server.Execute("batch", new JObject { ["operations"] = operations });
+                    response = server.Execute("job batch", new JObject { ["operations"] = operations });
                     var exec = response.JsonResponse["result"];
                     Assert.IsFalse(exec["results"][0]["success"]?.ToObject<bool>() ?? true);
                     StringAssert.Contains("not_batchable_transactional", exec["results"][0]["error"]?.ToString());
@@ -399,7 +403,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                         "a rejected delete_asset must not touch the asset");
 
                     // transactional:false allows it — with an honest revertible:false on the op.
-                    response = server.Execute("batch", new JObject
+                    response = server.Execute("job batch", new JObject
                     {
                         ["operations"] = operations,
                         ["transactional"] = false
@@ -428,10 +432,10 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("open_scene", new JObject { ["path"] = "Assets/Nope.unity" }),
+                    Op("scene open", new JObject { ["path"] = "Assets/Nope.unity" }),
                 };
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["dry_run"] = true
@@ -440,7 +444,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 StringAssert.Contains("not_batchable", dry["results"][0]["error"]?.ToString());
                 StringAssert.Contains("Undo stack", dry["results"][0]["error"]?.ToString());
 
-                response = server.Execute("batch", new JObject
+                response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["transactional"] = false
@@ -464,7 +468,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
 
                 var operations = new JArray
                 {
-                    Op("set_transform", new JObject
+                    Op("gameobject set_transform", new JObject
                     {
                         // Version-stable id: GetInstanceID() is obsolete-as-error from 6000.4.
                         ["target"] = PipelineUtils.GetObjectId(go).RawValue,
@@ -473,9 +477,9 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                     }),
                 };
 
-                LogAssert.Expect(LogType.Error, new Regex("set_transform' failed: 'rotation' must have exactly 3 components"));
+                LogAssert.Expect(LogType.Error, new Regex("gameobject set_transform' failed: 'rotation' must have exactly 3 components"));
 
-                var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
 
                 var batch = response.JsonResponse["result"];
@@ -497,20 +501,19 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchBudget_A" }),
-                    Op("create_gameobject", new JObject { ["name"] = "BatchBudget_B" }),
-                    Op("create_gameobject", new JObject { ["name"] = "BatchBudget_C" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchBudget_A" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchBudget_B" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchBudget_C" }),
                 };
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("port091_batch_budget", new JObject
                 {
-                    ["operations"] = operations,
-                    ["time_budget_ms"] = 0
+                    ["operations"] = operations
                 });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
 
                 var batch = response.JsonResponse["result"];
-                StringAssert.Contains("batch time budget exceeded", batch["error"]?.ToString());
+                StringAssert.Contains("batch timeout about to run out", batch["error"]?.ToString());
                 Assert.AreEqual(1, batch["applied"]?.ToObject<int>(), "only op 0 runs on a zero budget");
                 Assert.IsTrue(batch["reverted"]?.ToObject<bool>() ?? false, "budget abort is a transactional failure");
 
@@ -520,9 +523,9 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 Assert.IsTrue(results[1]["skipped"]?.ToObject<bool>() ?? false, "op 1 must be skipped");
                 Assert.IsTrue(results[2]["skipped"]?.ToObject<bool>() ?? false, "op 2 must be skipped");
 
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchBudget_A").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchBudget_A").Count,
                     "op 0 must be reverted by the budget-abort rollback");
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchBudget_B").Count);
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchBudget_B").Count);
             }
         }
 
@@ -535,13 +538,13 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("add_component", new JObject { ["target"] = "/NoSuchObjectXYZ_00", ["type"] = "Rigidbody" }), // fails
-                    Op("rename_gameobject", new JObject { ["target"] = "$0.instanceId", ["name"] = "Renamed" }),
+                    Op("component add", new JObject { ["target"] = "/NoSuchObjectXYZ_00", ["type"] = "Rigidbody" }), // fails
+                    Op("gameobject rename", new JObject { ["target"] = "$0.instanceId", ["name"] = "Renamed" }),
                 };
 
-                LogAssert.Expect(LogType.Error, new Regex("add_component' failed:"));
+                LogAssert.Expect(LogType.Error, new Regex("component add' failed:"));
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["on_error"] = "continue"
@@ -618,9 +621,9 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             // must not be dispatchable through an editor-server batch.
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
-                    ["operations"] = new JArray { Op("set_timescale", new JObject { ["scale"] = 0.5f }) },
+                    ["operations"] = new JArray { Op("runtime set_time_scale", new JObject { ["scale"] = 0.5f }) },
                     ["dry_run"] = true
                 });
 
@@ -638,9 +641,9 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             // I6: menu items can open modal dialogs, which would wedge an unattended batch.
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
-                    ["operations"] = new JArray { Op("menu", new JObject { ["path"] = "File/Save" }) },
+                    ["operations"] = new JArray { Op("editor invoke_menu", new JObject { ["path"] = "File/Save" }) },
                     ["dry_run"] = true
                 });
 
@@ -658,12 +661,12 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchId_A" }, id: "0"),
+                    Op("gameobject create", new JObject { ["name"] = "BatchId_A" }, id: "0"),
                 };
 
                 LogAssert.Expect(LogType.Error, new Regex("ids must match"));
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["dry_run"] = true
@@ -682,10 +685,10 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "$$literal" }),
+                    Op("gameobject create", new JObject { ["name"] = "$$literal" }),
                 };
 
-                var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
 
                 var results = response.JsonResponse["result"]["results"] as JArray;
@@ -703,11 +706,11 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchIdRef_Root" }, id: "root"),
-                    Op("add_component", new JObject { ["target"] = "$root.instanceId", ["type"] = "Rigidbody" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchIdRef_Root" }, id: "root"),
+                    Op("component add", new JObject { ["target"] = "$root.instanceId", ["type"] = "Rigidbody" }),
                 };
 
-                var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
 
                 var batch = response.JsonResponse["result"];
@@ -728,10 +731,10 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchProject_A" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchProject_A" }),
                 };
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["result_fields"] = new JObject { ["0"] = new JArray("instanceId") }
@@ -763,12 +766,12 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 {
                     var operations = new JArray
                     {
-                        Op("read_text_file", new JObject { ["path"] = bigPath }),
+                        Op("asset read_text", new JObject { ["path"] = bigPath }),
                         // References a scalar of the oversized result — must still resolve.
-                        Op("create_gameobject", new JObject { ["name"] = "$0.assetPath" }),
+                        Op("gameobject create", new JObject { ["name"] = "$0.assetPath" }),
                     };
 
-                    var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                    var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                     Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
 
                     var results = response.JsonResponse["result"]["results"] as JArray;
@@ -799,9 +802,9 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             // M7: batch-in-batch is excluded (recursion/auditing hazard).
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
-                    ["operations"] = new JArray { Op("batch", new JObject { ["operations"] = new JArray() }) },
+                    ["operations"] = new JArray { Op("job batch", new JObject { ["operations"] = new JArray() }) },
                     ["dry_run"] = true
                 });
 
@@ -820,14 +823,14 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             {
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchNoTx_A" }),
-                    Op("add_component", new JObject { ["target"] = "$0.instanceId", ["type"] = "NoSuchTypeXYZ" }), // fails
-                    Op("create_gameobject", new JObject { ["name"] = "BatchNoTx_C" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchNoTx_A" }),
+                    Op("component add", new JObject { ["target"] = "$0.instanceId", ["type"] = "NoSuchTypeXYZ" }), // fails
+                    Op("gameobject create", new JObject { ["name"] = "BatchNoTx_C" }),
                 };
 
-                LogAssert.Expect(LogType.Error, new Regex("add_component' failed: Could not resolve component type 'NoSuchTypeXYZ'"));
+                LogAssert.Expect(LogType.Error, new Regex("component add' failed: Could not resolve component type 'NoSuchTypeXYZ'"));
 
-                var response = server.Execute("batch", new JObject
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["transactional"] = false
@@ -844,7 +847,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 Assert.IsTrue(results[2]["skipped"]?.ToObject<bool>() ?? false, "op 2 must be skipped (abort)");
 
                 Assert.IsNotNull(ResolveGameObject(results[0]), "op 0's object must survive (no rollback)");
-                Assert.AreEqual(0, GameObjectCommands.FindGameObjects(name: "BatchNoTx_C").Count,
+                Assert.AreEqual(0, GameObjectCommands.Find(name: "BatchNoTx_C").Count,
                     "op 2 never ran");
             }
         }
@@ -857,8 +860,8 @@ namespace Unity.Pipeline.Tests.Editor.Batch
             // succeeded op under on_error=abort. The projection must report the bad path instead.
             using (var server = new PipelineTestServer())
             {
-                var operations = new JArray { Op("create_gameobject", new JObject { ["name"] = "BatchProj_BadPath" }) };
-                var response = server.Execute("batch", new JObject
+                var operations = new JArray { Op("gameobject create", new JObject { ["name"] = "BatchProj_BadPath" }) };
+                var response = server.Execute("job batch", new JObject
                 {
                     ["operations"] = operations,
                     ["result_fields"] = new JObject { ["0"] = new JArray("foo[") }
@@ -874,7 +877,7 @@ namespace Unity.Pipeline.Tests.Editor.Batch
                 StringAssert.Contains("foo[", results[0]["result"]?["invalidResultFields"]?[0]?.ToString(),
                     "the bad path is reported inside the projection");
 
-                var survivors = GameObjectCommands.FindGameObjects(name: "BatchProj_BadPath");
+                var survivors = GameObjectCommands.Find(name: "BatchProj_BadPath");
                 Assert.AreEqual(1, survivors.Count, "the op's mutation must survive");
                 Track(GameObject.Find("BatchProj_BadPath"));
             }
@@ -896,11 +899,11 @@ namespace Unity.Pipeline.Tests.Editor.Batch
 
                 var operations = new JArray
                 {
-                    Op("create_gameobject", new JObject { ["name"] = "BatchUndoStack_Tx" }),
-                    Op("add_component", new JObject { ["target"] = "$0.instanceId", ["type"] = "NoSuchTypeXYZ" }),
+                    Op("gameobject create", new JObject { ["name"] = "BatchUndoStack_Tx" }),
+                    Op("component add", new JObject { ["target"] = "$0.instanceId", ["type"] = "NoSuchTypeXYZ" }),
                 };
-                LogAssert.Expect(LogType.Error, new Regex("add_component' failed: Could not resolve component type 'NoSuchTypeXYZ'"));
-                var response = server.Execute("batch", new JObject { ["operations"] = operations });
+                LogAssert.Expect(LogType.Error, new Regex("component add' failed: Could not resolve component type 'NoSuchTypeXYZ'"));
+                var response = server.Execute("job batch", new JObject { ["operations"] = operations });
                 Assert.IsTrue(response.IsSuccess, $"batch should return HTTP success: {response.RawResponse}");
                 Assert.IsTrue(response.JsonResponse["result"]["reverted"]?.ToObject<bool>() ?? false,
                     "precondition: the transactional batch reverted");

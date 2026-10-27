@@ -57,7 +57,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void RunningEval_WritesTelemetryRecord_WithExpectedShape()
         {
-            var r = CodeEvalCommand.EvaluateCode("return Application.unityVersion;");
+            var r = CodeEvalCommand.Eval("return Application.unityVersion;");
             Assert.IsTrue(r.Success, r.Error);
             Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords(), "Background telemetry record should flush promptly");
 
@@ -65,7 +65,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             Assert.AreEqual(1, records.Count, "The eval should have produced exactly one telemetry record");
 
             var record = records.Single();
-            Assert.AreEqual("eval", record.Command);
+            Assert.AreEqual("script eval", record.Command);
             Assert.IsTrue(record.Success);
             Assert.AreEqual(EvalClassification.SingleExpression, record.Classification);
             Assert.Greater(record.ExecutionTimeMs, 0);
@@ -79,19 +79,19 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             var path = Path.Combine(m_Dir, "snippet.cs");
             File.WriteAllText(path, "return Application.platform.ToString();");
 
-            var r = CodeEvalCommand.EvaluateFile(path);
+            var r = CodeEvalCommand.EvalFile(path);
             Assert.IsTrue(r.Success, r.Error);
             Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords(), "Background telemetry record should flush promptly");
 
             var record = EvalUsageTelemetry.ReadRecords(m_Dir).Single();
-            Assert.AreEqual("eval_file", record.Command);
+            Assert.AreEqual("script eval_file", record.Command);
             CollectionAssert.Contains(record.Fingerprints, "Application.platform.ToString");
         }
 
         [Test]
         public void FailingEval_IsRecordedAsError()
         {
-            var r = CodeEvalCommand.EvaluateCode("return 2 +;");
+            var r = CodeEvalCommand.Eval("return 2 +;");
             Assert.IsFalse(r.Success);
             Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords(), "Background telemetry record should flush promptly");
 
@@ -103,9 +103,9 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void ReportEvals_AggregatesRecordedEvals()
         {
-            CodeEvalCommand.EvaluateCode("return Application.unityVersion;"); // one-liner, success
-            CodeEvalCommand.EvaluateCode("Debug.Log(\"x\"); return 1;");      // statements, success
-            CodeEvalCommand.EvaluateCode("return 2 +;");                       // error
+            CodeEvalCommand.Eval("return Application.unityVersion;"); // one-liner, success
+            CodeEvalCommand.Eval("Debug.Log(\"x\"); return 1;");      // statements, success
+            CodeEvalCommand.Eval("return 2 +;");                       // error
             Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords(), "Background telemetry records should flush promptly");
 
             var report = EvalTelemetryCommand.ReportEvals();
@@ -122,8 +122,8 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void ReportEvals_NegativeTop_ClampsToDefault()
         {
-            CodeEvalCommand.EvaluateCode("return Application.unityVersion;");
-            CodeEvalCommand.EvaluateCode("AssetDatabase.Refresh();");
+            CodeEvalCommand.Eval("return Application.unityVersion;");
+            CodeEvalCommand.Eval("AssetDatabase.Refresh();");
             Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords(), "Background telemetry records should flush promptly");
 
             var report = EvalTelemetryCommand.ReportEvals(top: -5);

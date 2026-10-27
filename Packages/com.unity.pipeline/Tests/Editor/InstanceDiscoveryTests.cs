@@ -46,7 +46,7 @@ namespace Unity.Pipeline.Tests.Editor
             // advertising a descriptor, test against that (read-only). Only when none is running do
             // we start our own descriptor-writing server, remembering we own it so TearDown stops
             // ONLY what we started — it must never stop or delete the live server's descriptor.
-            var existing = InstanceDescriptor.ReadFromProjectRoot(m_TestProjectPath);
+            var existing = EditorInstanceDescriptor.ReadFromProjectRoot(m_TestProjectPath);
             if (existing != null && existing.Port > 0 && MockCliDiscovery.IsInstanceRunning(existing))
             {
                 m_ServerPort = existing.Port;
@@ -73,10 +73,10 @@ namespace Unity.Pipeline.Tests.Editor
         public void InstanceDiscovery_ReadDescriptorFile_ParsesCorrectly()
         {
             // Arrange - Server should have created descriptor file during startup
-            var descriptorPath = InstanceDescriptor.GetDescriptorFilePath(m_TestProjectPath);
+            var descriptorPath = EditorInstanceDescriptor.GetDescriptorFilePath(m_TestProjectPath);
 
             // Act - Read descriptor using CLI discovery logic
-            var instance = MockCliDiscovery.ReadInstanceDescriptor(descriptorPath);
+            var instance = MockCliDiscovery.ReadEditorInstanceDescriptor(descriptorPath);
 
             // Assert - Should successfully parse instance information
             Assert.IsNotNull(instance, "Should be able to read instance descriptor");
@@ -206,7 +206,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // This test ensures the editor_status command works correctly when called directly from main thread
             // Act - Direct call to the editor_status command (should work since Unity tests run on main thread)
-            var status = Unity.Pipeline.Editor.Commands.EditorStatusCommand.GetEditorStatus();
+            var status = Unity.Pipeline.Editor.Commands.EditorStatusCommand.Status();
 
             // Assert
             Assert.IsNotNull(status, "Status should not be null");
@@ -222,7 +222,7 @@ namespace Unity.Pipeline.Tests.Editor
             var commands = CommandRegistry.DiscoverCommands().ToList();
 
             // Assert - editor_status command should be found
-            var editorStatusCommand = commands.FirstOrDefault(c => c.Name == "editor_status");
+            var editorStatusCommand = commands.FirstOrDefault(c => c.FullName == "editor status");
             Assert.IsNotNull(editorStatusCommand, "editor_status command should be discoverable");
 
             // Also verify we can invoke it via reflection (same path as server execution)
@@ -235,11 +235,11 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // Arrange - First verify the command is available
             var commands = CommandRegistry.DiscoverCommands().ToList();
-            var editorStatusCommand = commands.FirstOrDefault(c => c.Name == "editor_status");
+            var editorStatusCommand = commands.FirstOrDefault(c => c.FullName == "editor status");
 
             if (editorStatusCommand == null)
             {
-                Assert.Fail($"editor_status command not found. Available commands: [{string.Join(", ", commands.Select(c => c.Name))}]");
+                Assert.Fail($"editor_status command not found. Available commands: [{string.Join(", ", commands.Select(c => c.FullName))}]");
             }
 
             // Give dispatcher time to initialize
@@ -269,8 +269,8 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task InstanceDiscovery_ValidateConnection_ConfirmsServerReachable()
         {
             // Arrange - Get our test instance
-            var descriptorPath = InstanceDescriptor.GetDescriptorFilePath(m_TestProjectPath);
-            var instance = MockCliDiscovery.ReadInstanceDescriptor(descriptorPath);
+            var descriptorPath = EditorInstanceDescriptor.GetDescriptorFilePath(m_TestProjectPath);
+            var instance = MockCliDiscovery.ReadEditorInstanceDescriptor(descriptorPath);
             Assert.IsNotNull(instance, "Should be able to read instance descriptor");
 
             // Give server a moment to fully start if needed
@@ -287,7 +287,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void InstanceDiscovery_StaleDescriptor_DetectedAsNotRunning()
         {
             // Arrange - Create a fake descriptor with non-existent PID
-            var staleDescriptor = new InstanceDescriptor
+            var staleDescriptor = new EditorInstanceDescriptor
             {
                 Pid = 99999, // Very unlikely to exist
                 Port = 9999,
@@ -317,7 +317,7 @@ namespace Unity.Pipeline.Tests.Editor
         /// Read instance descriptor from a .unity-pipeline-port file.
         /// Simulates CLI reading discovery files.
         /// </summary>
-        public static InstanceDescriptor ReadInstanceDescriptor(string filePath)
+        public static EditorInstanceDescriptor ReadEditorInstanceDescriptor(string filePath)
         {
             if (!File.Exists(filePath))
                 return null;
@@ -325,7 +325,7 @@ namespace Unity.Pipeline.Tests.Editor
             try
             {
                 var json = File.ReadAllText(filePath);
-                return JsonConvert.DeserializeObject<InstanceDescriptor>(json);
+                return JsonConvert.DeserializeObject<EditorInstanceDescriptor>(json);
             }
             catch
             {
@@ -346,8 +346,8 @@ namespace Unity.Pipeline.Tests.Editor
                 if (!Directory.Exists(path))
                     continue;
 
-                var descriptorPath = InstanceDescriptor.GetDescriptorFilePath(path);
-                var descriptor = ReadInstanceDescriptor(descriptorPath);
+                var descriptorPath = EditorInstanceDescriptor.GetDescriptorFilePath(path);
+                var descriptor = ReadEditorInstanceDescriptor(descriptorPath);
 
                 if (descriptor != null)
                 {
@@ -367,7 +367,7 @@ namespace Unity.Pipeline.Tests.Editor
         /// Check if an instance is actually running by validating the PID.
         /// Simulates CLI process validation logic.
         /// </summary>
-        public static bool IsInstanceRunning(InstanceDescriptor descriptor)
+        public static bool IsInstanceRunning(EditorInstanceDescriptor descriptor)
         {
             if (descriptor?.Pid == null || descriptor.Pid <= 0)
                 return false;
@@ -387,7 +387,7 @@ namespace Unity.Pipeline.Tests.Editor
         /// Validate that an instance is reachable via HTTP.
         /// Simulates CLI connection validation using basic /api/status endpoint.
         /// </summary>
-        public static async Task<bool> ValidateConnection(InstanceDescriptor instance)
+        public static async Task<bool> ValidateConnection(EditorInstanceDescriptor instance)
         {
             if (instance?.Port == null || instance.Port <= 0)
                 return false;
@@ -413,7 +413,7 @@ namespace Unity.Pipeline.Tests.Editor
     /// </summary>
     class DiscoveredInstance
     {
-        public InstanceDescriptor Descriptor { get; set; }
+        public EditorInstanceDescriptor Descriptor { get; set; }
         public bool IsRunning { get; set; }
         public string DescriptorPath { get; set; }
 

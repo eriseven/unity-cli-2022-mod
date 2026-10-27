@@ -17,4 +17,4 @@ While the stage is open, use the extension command below to add a child. It defa
 unity command create_prefab_stage_gameobject --name WeaponSocket
 ```
 
-For unattended declarative changes, `save_prefab_contents` remains the preferred command.
+For unattended declarative changes, `prefab save_contents` remains the preferred command.

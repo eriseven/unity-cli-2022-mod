@@ -93,12 +93,12 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecyle
         }
 
         [Test]
-        public void InstanceDescriptor_ServerStartStop_ManagesDescriptorFile()
+        public void EditorInstanceDescriptor_ServerStartStop_ManagesDescriptorFile()
         {
             // Arrange
             var server = new EditorPipelineServer();
             var projectPath = Path.GetDirectoryName(Application.dataPath);
-            var descriptorFilePath = InstanceDescriptor.GetDescriptorFilePath(projectPath);
+            var descriptorFilePath = EditorInstanceDescriptor.GetDescriptorFilePath(projectPath);
 
             // Ensure no existing descriptor file
             if (File.Exists(descriptorFilePath))
@@ -114,7 +114,7 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecyle
                 "Instance descriptor file should be created when server starts");
 
             // Read and verify descriptor content
-            var descriptor = InstanceDescriptor.ReadFromProjectRoot(projectPath);
+            var descriptor = EditorInstanceDescriptor.ReadFromProjectRoot(projectPath);
             Assert.IsNotNull(descriptor, "Should be able to read descriptor file");
             Assert.AreEqual(server.Port, descriptor.Port, "Descriptor should contain correct port");
             Assert.Greater(descriptor.Pid, 0, "Descriptor should contain valid PID");

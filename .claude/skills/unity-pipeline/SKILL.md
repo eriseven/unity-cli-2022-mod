@@ -1,22 +1,27 @@
 ---
 name: unity-pipeline
-description: Drive a running Unity Editor or development Player from the command line via the unity-pipeline package — install the package, keep the editor ticking while unfocused, run the edit→recompile→run_tests loop, evaluate C#, and code-reload files at runtime. Use when an agent needs to control a live Unity instance, automate Unity tests, recompile scripts headlessly, or apply runtime reloads. Assumes the `unity` CLI is on PATH.
+description: Drives a running Unity Editor or dev Player through the unity-pipeline package — recompile, run tests, run C# scripts, method-reload code at runtime and audit the project. Use when an agent must control a live Unity instance or automate its tests.
 ---
 
 # Unity Pipeline (agent control)
 
 Invoke commands with `unity command <name> [args]`. Run `unity command` with no name to
 list what an instance exposes. Two servers exist: **Editor** (`7800-7849`, auto-starts with
-the editor) and **Runtime** (`7900-7949`, only in a dev Player build). See the package
-`README.md` "Commands" reference for the full list and parameters.
+the editor) and **Runtime** (`7900-7949`, only in a dev Player build). `unity command --query <term>`
+filters that list by name, description or tag.
 
 ## 1. Install & verify
 
 ```bash
 unity pipeline install            # install into current project (or --project-path)
 unity pipeline list               # confirm the editor instance + server are reachable
+unity status --until-ready        # wait until the editor server is ready
 unity command editor_status       # confirm the editor server answers
 ```
+
+An Editor that was already open picks up the package only on its next refresh, usually when its
+window regains focus. Until then `unity status` reports `STATUS_PIPELINE_LOAD_PENDING`; if that
+persists, ask the user to switch to the Unity Editor window, then re-run `unity status --until-ready`.
 
 ## 2. Autonomous edit loop (Editor)
 
@@ -56,15 +61,14 @@ is the distinction this loop depends on:
 | Exit | Meaning | What to do |
 |------|---------|------------|
 | `2` | Bad arguments — a misspelled flag, a wrong type, too many positionals. Nothing ran. | Fix the command line and retry. The error names the problem and often suggests the right flag. |
-| `6` | The command ran and failed, or the Editor could not service it. | Read the error; retrying the same invocation will not help. |
+| `6` | The command ran and failed, or no Editor could be reached. | Read the error. If it says no Pipeline instance was found, the Editor isn't reachable: wait with `unity status --until-ready` (or check `unity pipeline list` for Safe Mode), then retry. Otherwise retrying the same invocation will not help. |
 
 Do not retry an exit 2 unchanged, and do not rewrite a command line on an exit 6.
 
-## 3. Runtime code reload
+## 3. Runtime method reload
 
 Change gameplay code in a **running** game with no domain reload. The game must be live:
-enter Editor Play Mode (`unity command editor_play`) or run a dev Player. A
-The runtime Pipeline driver (enabled via Project Settings > Pipeline > Runtime) auto-discovers tagged methods on `Awake` (no manual
+enter Editor Play Mode (`unity command editor_play`) or run a dev Player. The runtime Pipeline driver (enabled via Project Settings > Pipeline > Runtime) auto-discovers tagged methods on `Awake` (no manual
 registration). Mono only — Editor Play Mode and Mono desktop dev builds, not IL2CPP. The token
 is auto-injected for local requests.
 
@@ -72,8 +76,10 @@ is auto-injected for local requests.
 
 Edit the method body directly; no separate file, no boilerplate.
 
-1. Tag the method `[CodeReload]` on the MonoBehaviour.
-2. Edit its body on disk.
+1. **Before entering Play Mode**, tag the method `[MethodReload]` on the MonoBehaviour and recompile.
+   The reload hook is compiled into the method, so tagging it while the game runs has no effect:
+   exit Play Mode, recompile, and enter it again.
+2. With the game running, edit the method body on disk.
 3. Apply (re-run to iterate):
    ```bash
    unity command reload_file --filename Assets/Spinner.cs
@@ -87,9 +93,16 @@ Edit the method body directly; no separate file, no boilerplate.
 Constraints: `void` instance methods only; **public** members only; debugging requires `--pdb`
 (the default emits no symbols).
 
-`unity command codereload_status` shows active overrides. `reload_file` options: `--timeout <ms>`
+`unity command methodreload_status` shows active overrides. `reload_file` options: `--timeout <ms>`
 (default 30000), `--assemblyDir <dir>` (persist DLLs instead of in-memory);
-`cleanup_codereload --assemblyDir <dir>` clears old DLLs.
+`cleanup_methodreload --assemblyDir <dir>` clears old DLLs.
+
+The CLI consumes `--timeout` itself, in seconds. To pass the package's `--timeout`, put the command's
+arguments after `--`:
+
+```bash
+unity command reload_file -- --filename Assets/Spinner.cs --timeout 60000
+```
 
 ## 4. Bulk construction: `run_script` (the builder pattern)
 
@@ -119,20 +132,22 @@ Rules of thumb:
   The wait is bounded by `timeout_ms`; on expiry the task keeps running detached.
 - Runtime exceptions come back with `file:line` mapped to your source (a source-mapped PDB is
   always emitted for executing runs; they compile unoptimized).
-- `--mode hotpatch` instead applies `[CodeReload]` in-place method replacements (delegates to
+- `--mode hotpatch` instead applies `[MethodReload]` in-place method replacements (delegates to
   `reload_file`); `entry`/`args`/`dry_run` are rejected there and `references`/`defines` don't apply.
 
-## 5. Quick C# eval (Runtime)
+## 5. Quick C# eval (Editor or dev Player)
 
 For genuinely ad-hoc one-liners only — anything longer belongs in a file run via `run_script`.
+`eval` targets the Editor by default; add `--runtime <process name>` to run it in a dev Player.
 
 ```bash
 unity command eval "return 2 + 2;"
-# Or evaluate a .cs file on disk (contents run through the same path):
-unity command eval_file Assets/Scratch.cs
+unity command eval "return UnityEngine.Time.timeScale;" --runtime MyGame
+# Or evaluate a .cs file on disk. Keep it outside Assets/, where Unity would compile it as project source:
+unity command eval_file AgentScripts/Scratch.cs
 ```
 
-## 5. Project audit (Editor)
+## 6. Project audit (Editor)
 
 Static-analysis scan via Project Auditor, producing a CSV of issues to fix. Trigger, poll, read.
 
@@ -163,11 +178,11 @@ CSV columns: `Category, Severity, Areas, Description, RelativePath, Line, Descri
   thread until dismissed. If a command runs long, check `unity command editor_status` (answers
   instantly even when blocked); `status: "blocked_by_dialog"` means stop retrying and tell the
   human what's blocking (its `dialog.title`/`message`/`buttons`) — it can't be clicked over CLI.
-- **Code reload needs the game running.** `reload_file` applies to a live
+- **Method reload needs the game running.** `reload_file` applies to a live
   game — enter Editor Play Mode (`unity command editor_play`) first, or run a dev Player.
 - **Player-only commands need a dev Player.** `log`, `set_timescale`, `runtime_status`, etc. hit
   the Runtime server, which does not run in the Editor.
 - **Async commands poll.** `recompile`→`recompile_status`, `run_tests --async_tests`→
   `test_status`. Never assume completion from the trigger call's response.
-- **Target a specific instance** with `--instance host:port` or `--project-path <path>`
-  when more than one is running.
+- **Target a specific instance** when more than one is running: `--project-path <path>` selects an
+  Editor, `--runtime <process name>` or `--runtime-path <port file>` selects a dev Player.

@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command package_list --scope installed --include_indirect true
-unity command package_list --scope available --offline true
+unity command package list --scope installed --include_indirect true
+unity command package list --scope available --offline true
 ```
 
 ## Notes

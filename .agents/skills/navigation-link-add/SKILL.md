@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command add_component --target '{"hierarchyPath":"/JumpLink"}' --type Unity.AI.Navigation.NavMeshLink
-unity command set_component_properties --target '{"hierarchyPath":"/JumpLink"}' --type Unity.AI.Navigation.NavMeshLink --properties '{"m_Bidirectional":true}'
+unity command component add --target '{"hierarchyPath":"/JumpLink"}' --type Unity.AI.Navigation.NavMeshLink
+unity command component set_properties --target '{"hierarchyPath":"/JumpLink"}' --type Unity.AI.Navigation.NavMeshLink --properties '{"m_Bidirectional":true}'
 ```
 
 ## Notes

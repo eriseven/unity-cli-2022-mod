@@ -17,12 +17,12 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command save_scene
-unity command save_scene --path Scenes/Main
-unity command save_all
+unity command scene save
+unity command scene save --path Scenes/Main
+unity command editor save_all
 ```
 
 ## Notes
 
-Save only the intended dirty scenes and verify their state with `list_open_scenes`.
+Save only the intended dirty scenes and verify their state with `scene list_open`.
 

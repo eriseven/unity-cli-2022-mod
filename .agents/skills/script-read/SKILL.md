@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command read_text_file --path Scripts/PlayerController.cs --max_bytes 1048576
+unity command asset read_text --path Scripts/PlayerController.cs --max_bytes 1048576
 ```
 
 ## Notes

@@ -46,7 +46,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         [Test]
         public void CreateGameObject_Empty_ReturnsIdentity()
         {
-            var result = GameObjectCommands.CreateGameObject("Empty_CLI192");
+            var result = GameObjectCommands.Create("Empty_CLI192");
             var go = PipelineUtils.IdToObject(result.InstanceId.Value) as GameObject;
             Track(go);
 
@@ -59,7 +59,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         [Test]
         public void CreateGameObject_Primitive_AttachesMeshAndCollider()
         {
-            var result = GameObjectCommands.CreateGameObject("Cube_CLI192", "cube");
+            var result = GameObjectCommands.Create("Cube_CLI192", "cube");
             var go = PipelineUtils.IdToObject(result.InstanceId.Value) as GameObject;
             Track(go);
 
@@ -71,7 +71,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         public void CreateGameObject_WithParent_BuildsHierarchy()
         {
             var parent = Track(new GameObject("Parent_CLI192"));
-            var childResult = GameObjectCommands.CreateGameObject("Child_CLI192", null, RefTo(parent));
+            var childResult = GameObjectCommands.Create("Child_CLI192", null, RefTo(parent));
             var child = PipelineUtils.IdToObject(childResult.InstanceId.Value) as GameObject;
 
             Assert.AreEqual(parent.transform, child.transform.parent, "Child should be parented");
@@ -134,7 +134,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         public void Rename_ChangesName()
         {
             var go = Track(new GameObject("Old_CLI192"));
-            GameObjectCommands.RenameGameObject(RefTo(go), "New_CLI192");
+            GameObjectCommands.Rename(RefTo(go), "New_CLI192");
             Assert.AreEqual("New_CLI192", go.name);
         }
 
@@ -144,7 +144,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
             var go = Track(new GameObject("Findable_CLI192"));
             go.AddComponent<Rigidbody>();
 
-            var result = GameObjectCommands.FindGameObjects(name: "Findable_CLI192", type: "Rigidbody");
+            var result = GameObjectCommands.Find(name: "Findable_CLI192", type: "Rigidbody");
 
             Assert.AreEqual(1, result.Count);
             Assert.AreEqual(PipelineUtils.GetObjectId(go), result.GameObjects[0].InstanceId);
@@ -155,7 +155,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         {
             var go = new GameObject("Doomed_CLI192");
             var id = PipelineUtils.GetObjectId(go);
-            GameObjectCommands.DeleteGameObject(new ObjectRef { InstanceId = id });
+            GameObjectCommands.Delete(new ObjectRef { InstanceId = id });
 
             Assert.IsNull(PipelineUtils.IdToObject(id), "GameObject should be destroyed");
         }
@@ -182,7 +182,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("create_gameobject", new { name = "ViaClient_CLI192", primitive = "sphere" });
+                var response = server.Execute("gameobject create", new { name = "ViaClient_CLI192", primitive = "sphere" });
 
                 Assert.IsTrue(response.IsSuccess, $"create_gameobject should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");
@@ -204,7 +204,7 @@ namespace Unity.Pipeline.Tests.Editor.GameObjects
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("find_gameobjects", new { name = "ViaFind_CLI192" });
+                var response = server.Execute("gameobject find", new { name = "ViaFind_CLI192" });
 
                 Assert.IsTrue(response.IsSuccess, $"find_gameobjects should succeed: {response.Error}");
                 var count = response.JsonResponse["result"]?["count"]?.ToObject<int>();

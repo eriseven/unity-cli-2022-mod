@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command remove_component --target '{"hierarchyPath":"/Player"}' --type UnityEngine.Rigidbody
+unity command component remove --target '{"hierarchyPath":"/Player"}' --type UnityEngine.Rigidbody
 ```
 
 ## Notes

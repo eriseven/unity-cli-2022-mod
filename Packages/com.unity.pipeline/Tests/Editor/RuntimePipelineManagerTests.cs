@@ -14,17 +14,17 @@ namespace Unity.Pipeline.Tests.Editor
         {
             var driver = RuntimePipelineBootstrap.Instance;
             var server = PipelineServerStartup.Server;
-            var discovery = CommandRegistry.DiscoverCommands().First(c => c.Name == "editor_status");
+            var discovery = CommandRegistry.DiscoverCommands().First(c => c.FullName == "editor status");
             var go = new GameObject("LegacyPipelineCompatibilityTest");
             try
             {
                 var manager = go.AddComponent<RuntimePipelineManager>();
-                manager.enableInBuilds = true;
+
                 manager.autoStart = true;
                 Assert.AreSame(driver, RuntimePipelineBootstrap.Instance);
                 Assert.AreEqual(driver != null && driver.IsServerRunning, manager.IsServerRunning);
                 Assert.AreSame(server, PipelineServerStartup.Server);
-                Assert.AreSame(discovery, CommandRegistry.DiscoverCommands().First(c => c.Name == "editor_status"));
+                Assert.AreSame(discovery, CommandRegistry.DiscoverCommands().First(c => c.FullName == "editor status"));
             }
             finally { Object.DestroyImmediate(go); }
             Assert.AreSame(driver, RuntimePipelineBootstrap.Instance);

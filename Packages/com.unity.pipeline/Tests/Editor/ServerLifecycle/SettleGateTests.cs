@@ -23,18 +23,16 @@ namespace Unity.Pipeline.Tests.Editor
         /// <see cref="Settled"/>, since an EditMode test cannot put the real Editor into its
         /// cold-import busy state.
         /// </summary>
-        private sealed class SettleGateTestServer : EditorPipelineServer
+        private sealed class SettleGateTestServer : IsolatedEditorServer
         {
             /// <summary>false simulates the post-cold-start settle window; true a settled server.</summary>
             public bool Settled { get; set; }
-
-            protected override bool WritesDescriptor => false;
 
             protected override (int basePort, int maxPort) GetPortRange() => (7850, 7899);
 
             protected override string GetToken() => SecurityTokenManager.GetOrCreateToken();
 
-            protected override bool IsSettled => Settled;
+            protected override bool? PinnedSettled => Settled;
         }
 
         /// <summary>
@@ -43,15 +41,13 @@ namespace Unity.Pipeline.Tests.Editor
         /// the cold-import one) settles immediately and never gates anything, even if the Editor
         /// happens to be importing/compiling at Start() (as CI fixtures that create scripts do).
         /// </summary>
-        private sealed class LatchProbeServer : EditorPipelineServer
+        private sealed class LatchProbeServer : IsolatedEditorServer
         {
             public bool RealSettled => IsSettled;
 
             /// <summary>The session-settled SessionState marker, surfaced so the latch test can
             /// assert its precondition explicitly instead of assuming it.</summary>
             public static bool SessionSettled => IsSessionSettled;
-
-            protected override bool WritesDescriptor => false;
 
             protected override (int basePort, int maxPort) GetPortRange() => (7850, 7899);
 
@@ -101,7 +97,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             var json = response.JsonResponse;
             Assert.IsFalse(json["success"].ToObject<bool>(), "Busy response should have success=false");
-            Assert.AreEqual("log_editor", json["command"]?.ToString(), "Verbose busy response should echo the command");
+            Assert.AreEqual("global log_editor", json["command"]?.ToString(), "Verbose busy response should echo the command");
             Assert.AreEqual("Server Busy", json["error"]?.ToString(), "Busy response should carry the busy error");
             Assert.AreEqual("busy", json["status"]?.ToString(), "Busy response should carry the machine-readable status marker");
             Assert.AreEqual("settling", json["busyReason"]?.ToString(), "Busy response should carry the specific busy reason");
@@ -154,7 +150,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // Act - recompile_status is MainThreadRequired=false: exactly the polling clients rely
             // on while the Editor is busy, so it must never be gated.
-            var response = await m_PipelineClient.ExecuteCommandAsync("recompile_status", new { });
+            var response = await m_PipelineClient.ExecuteCommandAsync("script recompile_status", new { });
 
             // Assert
             Assert.IsTrue(response.IsSuccess,
@@ -167,7 +163,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // Act - editor_status is main-thread but explicitly exempt: it is the status surface
             // callers poll to observe the settling state itself.
-            var response = await m_PipelineClient.ExecuteCommandAsync("editor_status", new { });
+            var response = await m_PipelineClient.ExecuteCommandAsync("editor status", new { });
 
             // Assert
             Assert.IsTrue(response.IsSuccess,

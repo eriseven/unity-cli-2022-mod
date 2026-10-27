@@ -17,11 +17,11 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_component_properties --target '{"hierarchyPath":"/Player"}' --type UnityEngine.Rigidbody --properties '{"m_Mass":2}'
-unity command set_serialized_field --target '{"hierarchyPath":"/Player"}' --component UnityEngine.Rigidbody --field m_Mass --value 2
+unity command component set_properties --target '{"hierarchyPath":"/Player"}' --type UnityEngine.Rigidbody --properties '{"m_Mass":2}'
+unity command component set_field --target '{"hierarchyPath":"/Player"}' --component UnityEngine.Rigidbody --field m_Mass --value 2
 ```
 
 ## Notes
 
-Read fields first, apply one coherent change, and re-read the result. Unknown property names fail the `set_component_properties` batch.
+Read fields first, apply one coherent change, and re-read the result. Unknown property names fail the `component set_properties` batch.
 

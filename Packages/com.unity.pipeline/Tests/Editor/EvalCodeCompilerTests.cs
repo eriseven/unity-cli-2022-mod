@@ -13,7 +13,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void CompileAndExecuteOnMainThread_ReturnsValue()
         {
-            var result = EvalCodeCompiler.CompileAndExecuteOnMainThread("return 42;", 5000, null);
+            var result = EvalCodeCompiler.CompileAndExecuteOnMainThread("return 42;", System.TimeSpan.FromSeconds(5), null);
 
             Assert.IsTrue(result.Success, $"Should succeed. Error: {result.Error}");
             Assert.AreEqual(42, result.Result, "Should return the evaluated value");
@@ -22,7 +22,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void CompileAndExecuteOnMainThread_AccessesUnityApi()
         {
-            var result = EvalCodeCompiler.CompileAndExecuteOnMainThread("return Application.unityVersion;", 5000, null);
+            var result = EvalCodeCompiler.CompileAndExecuteOnMainThread("return Application.unityVersion;", System.TimeSpan.FromSeconds(5), null);
 
             Assert.IsTrue(result.Success, $"Unity API access should work. Error: {result.Error}");
             Assert.IsInstanceOf<string>(result.Result, "Unity version should be a string");
@@ -32,7 +32,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void CompileAndExecuteOnMainThread_CompilationError_ReturnsDiagnostics()
         {
-            var result = EvalCodeCompiler.CompileAndExecuteOnMainThread("return 2 +;", 5000, null);
+            var result = EvalCodeCompiler.CompileAndExecuteOnMainThread("return 2 +;", System.TimeSpan.FromSeconds(5), null);
 
             Assert.IsFalse(result.Success, "Invalid syntax should fail");
             Assert.AreEqual("Compilation Failed", result.Error, "Should report a compilation error");

@@ -17,13 +17,13 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command add_animator_parameter --controller Assets/Animation/Player.controller --name Speed --type Float --defaultValue 0
-unity command add_animator_layer --controller Assets/Animation/Player.controller --name UpperBody --weight 1
-unity command add_animator_state --controller Assets/Animation/Player.controller --layer "Base Layer" --name Idle --isDefault true
-unity command add_animator_transition --controller Assets/Animation/Player.controller --layer "Base Layer" --fromState Idle --toState Run --conditions '[{"parameter":"Speed","mode":"Greater","threshold":0.1}]'
+unity command animation.animator add_parameter --controller Assets/Animation/Player.controller --name Speed --type Float --defaultValue 0
+unity command animation.animator add_layer --controller Assets/Animation/Player.controller --name UpperBody --weight 1
+unity command animation.animator add_state --controller Assets/Animation/Player.controller --layer "Base Layer" --name Idle --isDefault true
+unity command animation.animator add_transition --controller Assets/Animation/Player.controller --layer "Base Layer" --fromState Idle --toState Run --conditions '[{"parameter":"Speed","mode":"Greater","threshold":0.1}]'
 ```
 
 ## Notes
 
-Use `get_animator_controller` first and preserve stable state/layer names. Use `--dry_run true` on supported commands before a complex graph mutation.
+Use `animation.animator get_controller` first and preserve stable state/layer names. Use `--dry_run true` on supported commands before a complex graph mutation.
 

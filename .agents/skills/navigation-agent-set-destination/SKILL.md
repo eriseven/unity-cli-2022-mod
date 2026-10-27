@@ -6,7 +6,7 @@ description: Set a NavMeshAgent destination in Unity Editor Play mode through Pi
 # Navigation / Set Agent Destination
 
 ```powershell
-unity command editor_play
+unity command editor.playmode start
 unity command set_navmesh_agent_destination --target '{"hierarchyPath":"/Agent"}' --destination '[4,0,10]'
 ```
 

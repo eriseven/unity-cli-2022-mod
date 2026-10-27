@@ -29,25 +29,25 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         {
             var commands = CommandRegistry.DiscoverCommands().ToList();
 
-            var bake = commands.FirstOrDefault(c => c.Name == "bake_occlusion_culling");
+            var bake = commands.FirstOrDefault(c => c.FullName == "occlusion bake");
             Assert.IsNotNull(bake, "Should discover bake_occlusion_culling");
             CollectionAssert.AreEquivalent(
                 new[] { "smallest_occluder", "smallest_hole", "backface_threshold", "confirm", "dry_run" },
                 bake.Parameters.Select(p => p.Name).ToList());
 
-            var status = commands.FirstOrDefault(c => c.Name == "occlusion_bake_status");
+            var status = commands.FirstOrDefault(c => c.FullName == "occlusion bake_status");
             Assert.IsNotNull(status, "Should discover occlusion_bake_status");
             Assert.IsFalse(status.MainThreadRequired, "occlusion_bake_status must be off-main-thread");
             Assert.AreEqual(0, status.Parameters.Count, "occlusion_bake_status takes no parameters");
 
-            Assert.IsNotNull(commands.FirstOrDefault(c => c.Name == "cancel_occlusion_bake"));
-            Assert.IsNotNull(commands.FirstOrDefault(c => c.Name == "clear_occlusion_culling"));
+            Assert.IsNotNull(commands.FirstOrDefault(c => c.FullName == "occlusion cancel_bake"));
+            Assert.IsNotNull(commands.FirstOrDefault(c => c.FullName == "occlusion clear_bake"));
         }
 
         [Test]
         public void ClearOcclusion_WithoutConfirm_Throws()
         {
-            Assert.Throws<System.ArgumentException>(() => OcclusionBakeCommands.ClearOcclusionCulling());
+            Assert.Throws<System.ArgumentException>(() => OcclusionBakeCommands.ClearBake());
         }
 
         [Test]
@@ -55,14 +55,14 @@ namespace Unity.Pipeline.Tests.Editor.Baking
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            var result = JObject.FromObject(OcclusionBakeCommands.BakeOcclusionCulling());
+            var result = JObject.FromObject(OcclusionBakeCommands.Bake());
             Assert.AreEqual("no_scene", result["code"].Value<string>());
         }
 
         [Test]
         public void OcclusionBakeStatus_AlwaysHasStatusField()
         {
-            var json = OcclusionBakeCommands.OcclusionBakeStatus();
+            var json = OcclusionBakeCommands.BakeStatus();
             Assert.IsNotNull(json["status"]);
         }
     }

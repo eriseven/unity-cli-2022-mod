@@ -27,13 +27,13 @@ namespace Unity.Pipeline.Tests.Editor
     [AttributeUsage(AttributeTargets.Assembly)]
     sealed class LiveServerGuardAttribute : Attribute, ITestAction
     {
-        private InstanceDescriptor m_Before;
+        private EditorInstanceDescriptor m_Before;
 
         public ActionTargets Targets => ActionTargets.Test;
 
         public void BeforeTest(ITest test)
         {
-            m_Before = InstanceDescriptor.ReadFromProjectRoot(ProjectRoot());
+            m_Before = EditorInstanceDescriptor.ReadFromProjectRoot(ProjectRoot());
         }
 
         public void AfterTest(ITest test)
@@ -44,7 +44,7 @@ namespace Unity.Pipeline.Tests.Editor
             if (m_Before == null || m_Before.Port <= 0)
                 return;
 
-            var after = InstanceDescriptor.ReadFromProjectRoot(ProjectRoot());
+            var after = EditorInstanceDescriptor.ReadFromProjectRoot(ProjectRoot());
 
             // [Explicit] suites (ServerLifecycle, RuntimePipelineServerTests, …) are excluded from the
             // dogfood loop and knowingly disturb the live server — but they MUST hand it back intact in

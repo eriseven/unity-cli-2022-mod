@@ -17,11 +17,11 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_component_properties --target '{"hierarchyPath":"/Player"}' --type UnityEngine.Rigidbody
-unity command get_serialized_fields --target '{"hierarchyPath":"/Player"}' --component UnityEngine.Rigidbody
+unity command component get_properties --target '{"hierarchyPath":"/Player"}' --type UnityEngine.Rigidbody
+unity command component get_fields --target '{"hierarchyPath":"/Player"}' --component UnityEngine.Rigidbody
 ```
 
 ## Notes
 
-Use `get_component_properties` for the component property map and `get_serialized_fields` for field paths and values.
+Use `component get_properties` for the component property map and `component get_fields` for field paths and values.
 

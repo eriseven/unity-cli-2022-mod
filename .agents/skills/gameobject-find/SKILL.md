@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command find_gameobjects --name Player --include_inactive true
-unity command find_gameobjects --type UnityEngine.Camera --hierarchy_path /Environment/MainCamera
+unity command gameobject find --name Player --include_inactive true
+unity command gameobject find --type UnityEngine.Camera --hierarchy_path /Environment/MainCamera
 ```
 
 ## Notes

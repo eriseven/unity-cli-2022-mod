@@ -1,6 +1,6 @@
 using System.Collections;
 using NUnit.Framework;
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -10,7 +10,7 @@ namespace Unity.Pipeline.Tests.Editor
     /// Basic tests for hot reload Pattern A method override functionality.
     /// Tests the end-to-end flow: mark method -> create override -> compile -> verify behavior.
     /// </summary>
-    class CodeReloadBasicTests
+    class MethodReloadBasicTests
     {
         /// <summary>
         /// Test class with hot reloadable methods for testing.
@@ -20,14 +20,14 @@ namespace Unity.Pipeline.Tests.Editor
             public int lastCalculatedValue;
             public string lastMessage;
 
-            [CodeReload]
+            [MethodReload]
             public void UpdateValue()
             {
                 lastCalculatedValue = 10; // Original behavior
                 lastMessage = "Original UpdateValue called";
             }
 
-            [CodeReload(Id = "CustomCalculation")]
+            [MethodReload(Id = "CustomCalculation")]
             public int CalculateScore(int input)
             {
                 return input * 2; // Original calculation
@@ -40,11 +40,11 @@ namespace Unity.Pipeline.Tests.Editor
         public void SetUp()
         {
             // Create test component
-            var go = new GameObject("CodeReloadTestObject");
+            var go = new GameObject("MethodReloadTestObject");
             testComponent = go.AddComponent<TestComponent>();
 
             // Clear any existing hot reload state (including reloadable methods for test isolation)
-            CodeReloadRegistry.ClearAllForTesting();
+            MethodReloadRegistry.ClearAllForTesting();
         }
 
         [TearDown]
@@ -56,68 +56,68 @@ namespace Unity.Pipeline.Tests.Editor
             }
 
             // Clean up hot reload state
-            CodeReloadRegistry.ClearAllForTesting();
+            MethodReloadRegistry.ClearAllForTesting();
         }
 
         [Test]
-        public void CodeReloadRegistry_RegisterReloadableMethod_Success()
+        public void MethodReloadRegistry_RegisterReloadableMethod_Success()
         {
             // Arrange
             var method = typeof(TestComponent).GetMethod("UpdateValue");
-            var attribute = new CodeReloadAttribute();
+            var attribute = new MethodReloadAttribute();
 
             // Act
-            CodeReloadRegistry.RegisterReloadableMethod(method, attribute);
+            MethodReloadRegistry.RegisterReloadableMethod(method, attribute);
 
             // Assert
-            var stats = CodeReloadRegistry.GetStats();
+            var stats = MethodReloadRegistry.GetStats();
             Assert.That(stats.ReloadableMethodCount, Is.EqualTo(1));
             Assert.That(stats.ReloadableMethodIds.Contains("TestComponent.UpdateValue"));
         }
 
         [Test]
-        public void CodeReloadRegistry_RegisterReloadableMethodWithCustomId_Success()
+        public void MethodReloadRegistry_RegisterReloadableMethodWithCustomId_Success()
         {
             // Arrange
             var method = typeof(TestComponent).GetMethod("CalculateScore");
-            var attribute = new CodeReloadAttribute { Id = "CustomCalculation" };
+            var attribute = new MethodReloadAttribute { Id = "CustomCalculation" };
 
             // Act
-            CodeReloadRegistry.RegisterReloadableMethod(method, attribute);
+            MethodReloadRegistry.RegisterReloadableMethod(method, attribute);
 
             // Assert
-            var stats = CodeReloadRegistry.GetStats();
+            var stats = MethodReloadRegistry.GetStats();
             Assert.That(stats.ReloadableMethodCount, Is.EqualTo(1));
             Assert.That(stats.ReloadableMethodIds.Contains("CustomCalculation"));
         }
 
         [Test]
-        public void CodeReloadRegistry_TryInvokeCodeReload_NoOverrideReturnsFalse()
+        public void MethodReloadRegistry_TryInvokeMethodReload_NoOverrideReturnsFalse()
         {
             // Arrange
             var method = typeof(TestComponent).GetMethod("UpdateValue");
-            var attribute = new CodeReloadAttribute();
-            CodeReloadRegistry.RegisterReloadableMethod(method, attribute);
+            var attribute = new MethodReloadAttribute();
+            MethodReloadRegistry.RegisterReloadableMethod(method, attribute);
 
             // Act
-            var result = CodeReloadRegistry.TryInvokeCodeReload("TestComponent.UpdateValue", testComponent);
+            var result = MethodReloadRegistry.TryInvokeMethodReload("TestComponent.UpdateValue", testComponent);
 
             // Assert
             Assert.That(result, Is.False, "Should return false when no hot reload override is registered");
         }
 
         [Test]
-        public void CodeReloadRegistry_GetStats_ReturnsCorrectCounts()
+        public void MethodReloadRegistry_GetStats_ReturnsCorrectCounts()
         {
             // Arrange - register multiple methods
             var updateMethod = typeof(TestComponent).GetMethod("UpdateValue");
             var calculateMethod = typeof(TestComponent).GetMethod("CalculateScore");
 
-            CodeReloadRegistry.RegisterReloadableMethod(updateMethod, new CodeReloadAttribute());
-            CodeReloadRegistry.RegisterReloadableMethod(calculateMethod, new CodeReloadAttribute { Id = "CustomCalculation" });
+            MethodReloadRegistry.RegisterReloadableMethod(updateMethod, new MethodReloadAttribute());
+            MethodReloadRegistry.RegisterReloadableMethod(calculateMethod, new MethodReloadAttribute { Id = "CustomCalculation" });
 
             // Act
-            var stats = CodeReloadRegistry.GetStats();
+            var stats = MethodReloadRegistry.GetStats();
 
             // Assert
             Assert.That(stats.ReloadableMethodCount, Is.EqualTo(2));
@@ -127,17 +127,17 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void CodeReloadRegistry_ClearAllOverrides_ClearsAllState()
+        public void MethodReloadRegistry_ClearAllOverrides_ClearsAllState()
         {
             // Arrange - register some methods and mock some overrides
             var method = typeof(TestComponent).GetMethod("UpdateValue");
-            CodeReloadRegistry.RegisterReloadableMethod(method, new CodeReloadAttribute());
+            MethodReloadRegistry.RegisterReloadableMethod(method, new MethodReloadAttribute());
 
             // Act
-            CodeReloadRegistry.ClearAllOverrides();
+            MethodReloadRegistry.ClearAllOverrides();
 
             // Assert
-            var stats = CodeReloadRegistry.GetStats();
+            var stats = MethodReloadRegistry.GetStats();
             Assert.That(stats.ActiveOverrideCount, Is.EqualTo(0));
             Assert.That(stats.LoadedTypeCount, Is.EqualTo(0));
 
@@ -146,15 +146,15 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [UnityTest]
-        public IEnumerator CodeReloadRegistry_MainThreadDispatch_WorksCorrectly()
+        public IEnumerator MethodReloadRegistry_MainThreadDispatch_WorksCorrectly()
         {
             // Arrange
             var method = typeof(TestComponent).GetMethod("UpdateValue");
-            var attribute = new CodeReloadAttribute { RequireMainThread = true };
-            CodeReloadRegistry.RegisterReloadableMethod(method, attribute);
+            var attribute = new MethodReloadAttribute { RequireMainThread = true };
+            MethodReloadRegistry.RegisterReloadableMethod(method, attribute);
 
             // Act - test that method can be invoked (even without override, for thread safety)
-            var result = CodeReloadRegistry.TryInvokeCodeReload("TestComponent.UpdateValue", testComponent);
+            var result = MethodReloadRegistry.TryInvokeMethodReload("TestComponent.UpdateValue", testComponent);
 
             // Assert
             Assert.That(result, Is.False); // No override registered, should return false

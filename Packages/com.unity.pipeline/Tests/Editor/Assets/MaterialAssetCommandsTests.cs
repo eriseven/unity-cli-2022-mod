@@ -56,7 +56,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         public void CreateAsset_Material_WithShader_CreatesValidMaterial()
         {
             var path = Root + "/Mats/Bar.mat";
-            var result = AssetCommands.CreateAsset(path, "Material", shader: m_KnownShader);
+            var result = AssetCommands.Create(path, "Material", shader: m_KnownShader);
 
             Assert.AreEqual(path, result.AssetPath);
 
@@ -71,7 +71,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         {
             // No explicit shader: should fall back to the active pipeline's lit shader (or Standard).
             var path = Root + "/Mats/Default.mat";
-            AssetCommands.CreateAsset(path, "Material");
+            AssetCommands.Create(path, "Material");
 
             var loaded = AssetDatabase.LoadAssetAtPath<Material>(path);
             Assert.IsNotNull(loaded, "Created .mat should load as a Material");
@@ -84,7 +84,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
             var path = Root + "/Mats/Broken.mat";
 
             var ex = Assert.Throws<System.ArgumentException>(
-                () => AssetCommands.CreateAsset(path, "Material", shader: "No/Such/Shader__CLI221"),
+                () => AssetCommands.Create(path, "Material", shader: "No/Such/Shader__CLI221"),
                 "An unknown shader name should fail with a clear ArgumentException");
             StringAssert.Contains("not found", ex.Message);
 
@@ -99,7 +99,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
             var path = Root + "/Mats/DryRunBroken.mat";
 
             var ex = Assert.Throws<System.ArgumentException>(
-                () => AssetCommands.CreateAsset(path, "Material", shader: "No/Such/Shader__CLI221", dryRun: true),
+                () => AssetCommands.Create(path, "Material", shader: "No/Such/Shader__CLI221", dryRun: true),
                 "dry_run should resolve/validate the shader and fail on an unknown one");
             StringAssert.Contains("not found", ex.Message);
 
@@ -111,7 +111,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         {
             // A valid dry_run resolves the shader (no throw) but writes no asset.
             var path = Root + "/Mats/DryRunOk.mat";
-            var result = AssetCommands.CreateAsset(path, "Material", shader: m_KnownShader, dryRun: true);
+            var result = AssetCommands.Create(path, "Material", shader: m_KnownShader, dryRun: true);
 
             Assert.AreEqual(path, result.AssetPath);
             Assert.IsNull(AssetDatabase.LoadMainAssetAtPath(path), "dry_run must never write an asset");
@@ -121,7 +121,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         public void CreateAsset_Material_AssignableToRendererSlot()
         {
             var path = Root + "/Mats/Assignable.mat";
-            AssetCommands.CreateAsset(path, "Material", shader: m_KnownShader);
+            AssetCommands.Create(path, "Material", shader: m_KnownShader);
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
 
             var go = new GameObject("__CLI221_Renderer");
@@ -148,7 +148,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
             using (var server = new PipelineTestServer())
             {
                 var path = Root + "/ViaClient/Wall.mat";
-                var response = server.Execute("create_asset", new { path, type = "Material", shader = m_KnownShader });
+                var response = server.Execute("asset create", new { path, type = "Material", shader = m_KnownShader });
 
                 Assert.IsTrue(response.IsSuccess, $"create_asset (Material) should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");
@@ -170,7 +170,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
                 LogAssert.Expect(LogType.Error, new Regex("not found"));
 
                 var path = Root + "/ViaClient/Broken.mat";
-                var response = server.Execute("create_asset", new { path, type = "Material", shader = "No/Such/Shader__CLI221" });
+                var response = server.Execute("asset create", new { path, type = "Material", shader = "No/Such/Shader__CLI221" });
 
                 Assert.IsFalse(response.IsSuccess, "An unknown shader should fail over the wire");
                 Assert.IsNull(AssetDatabase.LoadMainAssetAtPath(path), "No asset should be written on a shader failure");

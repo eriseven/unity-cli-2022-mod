@@ -39,7 +39,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void Menu_IsDiscovered_WithExpectedSchema()
         {
-            var cmd = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.Name == "menu");
+            var cmd = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.FullName == "editor invoke_menu");
 
             Assert.IsNotNull(cmd, "Should discover the menu command");
             Assert.IsTrue(cmd.MainThreadRequired, "menu calls Editor APIs and must run on the main thread");
@@ -53,7 +53,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void Menu_NoPath_ListsAvailableItems()
         {
-            var result = MenuItemCommand.ExecuteMenu("");
+            var result = MenuItemCommand.InvokeMenu("");
 
             Assert.IsTrue(result.Success, "Listing should succeed");
             Assert.IsNotNull(result.Items, "Items should be populated in list mode");
@@ -71,7 +71,7 @@ namespace Unity.Pipeline.Tests.Editor
             // also surface menus Unity defines natively in C++ — e.g. the Assets menu built by
             // AssetsMenu.cpp:Build. Those entries carry no [MenuItem] attribute, so this test proves
             // the listing includes a native item the attribute-only approach would have missed.
-            var items = MenuItemCommand.ExecuteMenu("").Items;
+            var items = MenuItemCommand.InvokeMenu("").Items;
             Assert.IsNotNull(items);
 
             // What the old attribute-only approach saw (trailing keyboard shortcuts stripped, so the
@@ -104,7 +104,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             Assert.IsFalse(s_MarkerInvoked, "Precondition: marker not yet invoked");
 
-            var result = MenuItemCommand.ExecuteMenu(k_TestMenuPath);
+            var result = MenuItemCommand.InvokeMenu(k_TestMenuPath);
 
             Assert.IsTrue(result.Success, $"Expected success. Message: {result.Message}");
             Assert.AreEqual(k_TestMenuPath, result.Path);
@@ -118,7 +118,7 @@ namespace Unity.Pipeline.Tests.Editor
             // does not treat that expected log as a failure.
             LogAssert.Expect(LogType.Error, new Regex("ExecuteMenuItem failed because there is no menu named"));
 
-            var result = MenuItemCommand.ExecuteMenu("Window/Pipeline/Tests/This Item Does Not Exist 12345");
+            var result = MenuItemCommand.InvokeMenu("Window/Pipeline/Tests/This Item Does Not Exist 12345");
 
             Assert.IsFalse(result.Success, "An unknown menu item should fail");
             StringAssert.Contains("not found", result.Message);
@@ -132,7 +132,7 @@ namespace Unity.Pipeline.Tests.Editor
             // never disturbs the server agents drive over HTTP. Mirrors CodeEvalCommandTests.
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("menu", new { path = k_TestMenuPath });
+                var response = server.Execute("editor invoke_menu", new { path = k_TestMenuPath });
                 Assert.IsTrue(response.IsSuccess, response.Error);
 
                 var result = response.GetTypedResponse<MenuResponse>();

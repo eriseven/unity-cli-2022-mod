@@ -22,4 +22,4 @@ unity command bake_navmesh_surfaces_compat
 
 ## Notes
 
-This extension command invokes `NavMeshSurface.BuildNavMesh` for every active-scene surface, then returns the per-surface data-presence result. Pass `--target '{"hierarchyPath":"/NavigationSurface"}'` to bake or clear one surface, and `--clear true` to remove its baked data. Do not substitute the legacy `bake_navmesh` command: it does not build `NavMeshSurface` data.
+This extension command invokes `NavMeshSurface.BuildNavMesh` for every active-scene surface, then returns the per-surface data-presence result. Pass `--target '{"hierarchyPath":"/NavigationSurface"}'` to bake or clear one surface, and `--clear true` to remove its baked data. Do not substitute the legacy `navmesh bake` command: it does not build `NavMeshSurface` data.

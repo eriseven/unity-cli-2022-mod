@@ -33,7 +33,7 @@ namespace Unity.Pipeline.Tests.Editor.Console
             var marker = NewMarker("survives_exit");
             EmitError(marker);
 
-            var consoleResponse = ConsoleCommand.GetConsole(level: "error");
+            var consoleResponse = ConsoleCommand.Get(level: "error");
             Assert.IsTrue(consoleResponse.Entries.Any(e => e.Message != null && e.Message.Contains(marker)),
                 "console must still capture entries logged after exiting play mode");
         }

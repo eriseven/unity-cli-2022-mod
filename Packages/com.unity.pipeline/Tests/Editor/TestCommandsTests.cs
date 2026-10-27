@@ -29,7 +29,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // RunTests returns a structured failure (Success=false + Error) rather than throwing,
             // so the client receives the full response.
-            var result = await TestCommands.RunTests(mode: "invalid_mode");
+            var result = await TestCommands.Run(mode: "invalid_mode");
             Assert.IsFalse(result.Success, "Invalid mode should fail");
             Assert.IsTrue(result.Error.Contains("Invalid mode"), $"Error should mention invalid mode: {result.Error}");
         }
@@ -37,7 +37,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public async Task RunTests_InvalidFilterType_ReturnsError()
         {
-            var result = await TestCommands.RunTests(filter: "x", filterType: "invalid_filter_type");
+            var result = await TestCommands.Run(filter: "x", filterType: "invalid_filter_type");
             Assert.IsFalse(result.Success, "Invalid filterType should fail");
             Assert.IsTrue(result.Error.Contains("Invalid filterType"), $"Error should mention invalid filterType: {result.Error}");
         }
@@ -45,7 +45,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void GetTestStatus_ReturnsJsonWithStatus()
         {
-            var status = TestCommands.GetTestStatus();
+            var status = TestCommands.Status();
             Assert.IsNotNull(status);
             Assert.IsNotNull(status["status"]);
         }
@@ -57,7 +57,7 @@ namespace Unity.Pipeline.Tests.Editor
         [UnityTest]
         public IEnumerator ListTests_Editor_ReturnsTestsWithoutRunning()
         {
-            var task = TestCommands.ListTests("editor");
+            var task = TestCommands.List("editor");
             yield return new WaitUntil(() => task.IsCompleted);
 
             Assert.IsNull(task.Exception, task.Exception?.ToString());
@@ -77,10 +77,10 @@ namespace Unity.Pipeline.Tests.Editor
         [UnityTest]
         public IEnumerator ListTests_All_IsSupersetOfEditorAndIncludesEditMode()
         {
-            var editorTask = TestCommands.ListTests("editor");
+            var editorTask = TestCommands.List("editor");
             yield return new WaitUntil(() => editorTask.IsCompleted);
 
-            var allTask = TestCommands.ListTests("all");
+            var allTask = TestCommands.List("all");
             yield return new WaitUntil(() => allTask.IsCompleted);
 
             Assert.IsNull(allTask.Exception, allTask.Exception?.ToString());
@@ -95,7 +95,7 @@ namespace Unity.Pipeline.Tests.Editor
         [UnityTest]
         public IEnumerator ListTests_InvalidMode_ReturnsError()
         {
-            var task = TestCommands.ListTests("bogus");
+            var task = TestCommands.List("bogus");
             yield return new WaitUntil(() => task.IsCompleted);
 
             var response = task.Result;
@@ -113,10 +113,10 @@ namespace Unity.Pipeline.Tests.Editor
         {
             var cmds = CommandRegistry.DiscoverCommands();
 
-            var run = cmds.FirstOrDefault(c => c.Name == "run_tests");
-            var status = cmds.FirstOrDefault(c => c.Name == "test_status");
-            var cancel = cmds.FirstOrDefault(c => c.Name == "cancel_tests");
-            var list = cmds.FirstOrDefault(c => c.Name == "list_tests");
+            var run = cmds.FirstOrDefault(c => c.FullName == "test run");
+            var status = cmds.FirstOrDefault(c => c.FullName == "test status");
+            var cancel = cmds.FirstOrDefault(c => c.FullName == "test cancel");
+            var list = cmds.FirstOrDefault(c => c.FullName == "test list");
 
             Assert.IsNotNull(run, "run_tests should be discovered");
             Assert.IsTrue(run.MainThreadRequired, "run_tests requires main thread");
@@ -131,7 +131,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void RunTests_HasExpectedParametersAndDefaults()
         {
-            var run = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.Name == "run_tests");
+            var run = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.FullName == "test run");
             Assert.IsNotNull(run);
 
             var names = run.Parameters.Select(p => p.Name).ToList();
@@ -139,7 +139,7 @@ namespace Unity.Pipeline.Tests.Editor
                 Assert.Contains(n, names, $"run_tests should have '{n}' parameter");
 
             Assert.AreEqual("all", run.Parameters.First(p => p.Name == "mode").DefaultValue);
-            Assert.AreEqual(300, run.Parameters.First(p => p.Name == "timeout").DefaultValue);
+            Assert.AreEqual(600, run.Parameters.First(p => p.Name == "timeout").DefaultValue);
         }
 
         #endregion

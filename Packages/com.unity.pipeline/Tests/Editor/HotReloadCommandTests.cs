@@ -2,7 +2,7 @@ using System.Collections;
 using System.IO;
 using NUnit.Framework;
 using Unity.Pipeline.Compilation;
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 using Unity.Pipeline.Runtime.Commands;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -13,30 +13,30 @@ namespace Unity.Pipeline.Tests.Editor
     /// Integration tests for hot reload CLI commands.
     /// Tests the complete workflow: CLI commands → compiler → registry → runtime behavior.
     /// </summary>
-    class CodeReloadCommandTests
+    class MethodReloadCommandTests
     {
         [SetUp]
         public void SetUp()
         {
             // Clear hot reload state
-            CodeReloadRegistry.ClearAllForTesting();
+            MethodReloadRegistry.ClearAllForTesting();
         }
 
         [TearDown]
         public void TearDown()
         {
-            CodeReloadRegistry.ClearAllForTesting();
+            MethodReloadRegistry.ClearAllForTesting();
         }
 
         [Test]
-        public void CodeReloadStatus_ReturnsStats()
+        public void MethodReloadStatus_ReturnsStats()
         {
             // Arrange - register a test method
             var method = typeof(SimpleTestClass).GetMethod("TestMethod");
-            CodeReloadRegistry.RegisterReloadableMethod(method, new CodeReloadAttribute());
+            MethodReloadRegistry.RegisterReloadableMethod(method, new MethodReloadAttribute());
 
             // Act
-            var result = CodeReloadCommands.CodeReloadStatus();
+            var result = MethodReloadCommands.Status();
 
             // Assert
             Assert.That(result.Success, Is.True);
@@ -48,7 +48,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void ReloadFile_WithInvalidFilename_ReturnsBadRequest()
         {
             // Act
-            var result = CodeReloadCommands.ReloadFile("");
+            var result = MethodReloadCommands.Reload("");
 
             // Assert
             Assert.That(result.Success, Is.False);
@@ -60,7 +60,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void ReloadFile_WithNonExistentFile_ReturnsFileNotFound()
         {
             // Act
-            var result = CodeReloadCommands.ReloadFile("NonExistentFile.cs");
+            var result = MethodReloadCommands.Reload("NonExistentFile.cs");
 
             // Assert
             Assert.That(result.Success, Is.False);
@@ -71,17 +71,17 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReloadFileInPlace_NonExistentFile_ReturnsFileNotFound()
         {
-            var result = CodeReloadCommands.ReloadFile("NonExistentInPlaceFile.cs");
+            var result = MethodReloadCommands.Reload("NonExistentInPlaceFile.cs");
 
             Assert.That(result.Success, Is.False);
             Assert.That(result.Error, Is.EqualTo("File Not Found"));
         }
 
         [Test]
-        public void CodeReloadResponse_Success_CreatesCorrectResponse()
+        public void MethodReloadResponse_Success_CreatesCorrectResponse()
         {
             // Act
-            var response = CodeReloadResponse.CmdSuccess("test-assembly", "Test message", new System.Collections.Generic.List<string> { "method1", "method2" }, 1500);
+            var response = MethodReloadResponse.CmdSuccess("test-assembly", "Test message", new System.Collections.Generic.List<string> { "method1", "method2" }, 1500);
 
             // Assert
             Assert.That(response.Success, Is.True);
@@ -92,10 +92,10 @@ namespace Unity.Pipeline.Tests.Editor
         }
 
         [Test]
-        public void CodeReloadResponse_Failure_CreatesCorrectResponse()
+        public void MethodReloadResponse_Failure_CreatesCorrectResponse()
         {
             // Act
-            var response = CodeReloadResponse.CmdFailure("Test Error", "Detailed error message", 2000);
+            var response = MethodReloadResponse.CmdFailure("Test Error", "Detailed error message", 2000);
 
             // Assert
             Assert.That(response.Success, Is.False);

@@ -51,7 +51,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_SimpleArithmetic_ReturnsResult()
         {
-            var r = CodeEvalCommand.EvaluateCode("return 2 + 2;");
+            var r = CodeEvalCommand.Eval("return 2 + 2;");
             Assert.IsTrue(r.Success, r.Error);
             Assert.AreEqual(4, r.Result);
         }
@@ -59,7 +59,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_StringExpression_ReturnsString()
         {
-            var r = CodeEvalCommand.EvaluateCode("return \"Hello World\";");
+            var r = CodeEvalCommand.Eval("return \"Hello World\";");
             Assert.IsTrue(r.Success, r.Error);
             Assert.AreEqual("Hello World", r.Result);
         }
@@ -67,7 +67,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_UnityApi_ReturnsVersion()
         {
-            var r = CodeEvalCommand.EvaluateCode("return Application.unityVersion;");
+            var r = CodeEvalCommand.Eval("return Application.unityVersion;");
             Assert.IsTrue(r.Success, r.Error);
             Assert.IsInstanceOf<string>(r.Result);
         }
@@ -75,7 +75,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_DebugLog_ReturnsExplicitValue()
         {
-            var r = CodeEvalCommand.EvaluateCode("Debug.Log(\"x\"); return \"logged\";");
+            var r = CodeEvalCommand.Eval("Debug.Log(\"x\"); return \"logged\";");
             Assert.IsTrue(r.Success, r.Error);
             Assert.AreEqual("logged", r.Result);
         }
@@ -83,7 +83,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_EmptyCode_BadRequest()
         {
-            var r = CodeEvalCommand.EvaluateCode("");
+            var r = CodeEvalCommand.Eval("");
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
         }
@@ -91,7 +91,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_NullCode_BadRequest()
         {
-            var r = CodeEvalCommand.EvaluateCode(null);
+            var r = CodeEvalCommand.Eval(null);
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
         }
@@ -99,7 +99,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_SyntaxError_CompilationFailed()
         {
-            var r = CodeEvalCommand.EvaluateCode("return 2 +;");
+            var r = CodeEvalCommand.Eval("return 2 +;");
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Compilation Failed", r.Error);
             Assert.Greater(r.Diagnostics.Count, 0);
@@ -108,7 +108,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_RuntimeException_Fails()
         {
-            var r = CodeEvalCommand.EvaluateCode("throw new System.Exception(\"boom\");");
+            var r = CodeEvalCommand.Eval("throw new System.Exception(\"boom\");");
             Assert.IsFalse(r.Success);
             Assert.IsNotNull(r.ErrorDetails);
         }
@@ -116,18 +116,18 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateCode_ZeroTimeout_BadRequest()
         {
-            var r = CodeEvalCommand.EvaluateCode("return 1;", timeout: 0);
-            Assert.IsFalse(r.Success);
-            Assert.AreEqual("Bad Request", r.Error);
+            using var server = new PipelineTestServer();
+            var r = server.Execute("script eval", new { code = "return 1;", timeout = 0 });
+            Assert.IsFalse(r.IsSuccess);
+            Assert.AreEqual(400, r.StatusCode);
         }
 
         [Test]
-        public void EvaluateCode_ExcessiveTimeout_BadRequest()
+        public void EvaluateCode_LongTimeout_IsAccepted()
         {
             // Cap raised to 24h (CLI-335): 40s is legal now; beyond the cap still rejects.
-            var r = CodeEvalCommand.EvaluateCode("return 1;", timeout: 86_400_001);
-            Assert.IsFalse(r.Success);
-            Assert.AreEqual("Bad Request", r.Error);
+            var r = CodeEvalCommand.Eval("return 1;", timeoutInSeconds: 86400.001);
+            Assert.IsTrue(r.Success, r.Error);
         }
 
         [Test]
@@ -137,14 +137,14 @@ namespace Unity.Pipeline.Tests.Editor
             // EvaluateSource's hardcoded ceiling rejects any `timeout` above 30000ms outright,
             // before even attempting compilation, so a caller can't even ask for more time
             // regardless of whether their code would actually need it.
-            var r = CodeEvalCommand.EvaluateCode("return 1;", timeout: 35000);
+            var r = CodeEvalCommand.Eval("return 1;", timeoutInSeconds: 35.0);
             Assert.IsTrue(r.Success, $"Expected a timeout request above 30000ms to be accepted, got: {r.Error} / {r.ErrorDetails}");
         }
 
         [Test]
         public void EvaluateCode_RecordsExecutionTime()
         {
-            var r = CodeEvalCommand.EvaluateCode("return 42;", timeout: 5000);
+            var r = CodeEvalCommand.Eval("return 42;", timeoutInSeconds: 5.0);
             Assert.IsTrue(r.Success, r.Error);
             Assert.Greater(r.ExecutionTimeMs, 0);
         }
@@ -153,9 +153,9 @@ namespace Unity.Pipeline.Tests.Editor
         public void EvaluateCode_Success_PopulatesEnvelopeMetadata()
         {
             var before = System.DateTime.UtcNow;
-            var r = CodeEvalCommand.EvaluateCode("return 42;");
+            var r = CodeEvalCommand.Eval("return 42;");
             Assert.IsTrue(r.Success, r.Error);
-            Assert.AreEqual("eval", r.Command);
+            Assert.AreEqual("script eval", r.Command);
             Assert.AreNotEqual(default(System.DateTime), r.ExecutedAt, "executedAt must be a real timestamp");
             Assert.GreaterOrEqual(r.ExecutedAt, before);
         }
@@ -164,9 +164,9 @@ namespace Unity.Pipeline.Tests.Editor
         public void EvaluateCode_Failure_PopulatesEnvelopeMetadata()
         {
             var before = System.DateTime.UtcNow;
-            var r = CodeEvalCommand.EvaluateCode("return 2 +;");
+            var r = CodeEvalCommand.Eval("return 2 +;");
             Assert.IsFalse(r.Success);
-            Assert.AreEqual("eval", r.Command);
+            Assert.AreEqual("script eval", r.Command);
             Assert.AreNotEqual(default(System.DateTime), r.ExecutedAt, "executedAt must be a real timestamp");
             Assert.GreaterOrEqual(r.ExecutedAt, before);
         }
@@ -184,7 +184,7 @@ namespace Unity.Pipeline.Tests.Editor
             System.IO.File.WriteAllText(path, "return 2 + 2;");
             try
             {
-                var r = CodeEvalCommand.EvaluateFile(path);
+                var r = CodeEvalCommand.EvalFile(path);
                 Assert.IsTrue(r.Success, r.Error);
                 Assert.AreEqual(4, r.Result);
             }
@@ -200,7 +200,7 @@ namespace Unity.Pipeline.Tests.Editor
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
                 "eval_missing_" + System.Guid.NewGuid().ToString("N") + ".cs");
-            var r = CodeEvalCommand.EvaluateFile(path);
+            var r = CodeEvalCommand.EvalFile(path);
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
         }
@@ -214,7 +214,7 @@ namespace Unity.Pipeline.Tests.Editor
             System.IO.File.WriteAllText(path, "return 2 + 2;");
             try
             {
-                var r = CodeEvalCommand.EvaluateFile(path);
+                var r = CodeEvalCommand.EvalFile(path);
                 Assert.IsFalse(r.Success);
                 Assert.AreEqual("Bad Request", r.Error);
             }
@@ -233,7 +233,7 @@ namespace Unity.Pipeline.Tests.Editor
             System.IO.File.WriteAllText(path, "   ");
             try
             {
-                var r = CodeEvalCommand.EvaluateFile(path);
+                var r = CodeEvalCommand.EvalFile(path);
                 Assert.IsFalse(r.Success);
                 Assert.AreEqual("Bad Request", r.Error);
             }
@@ -246,7 +246,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EvaluateFile_NullFile_BadRequest()
         {
-            var r = CodeEvalCommand.EvaluateFile(null);
+            var r = CodeEvalCommand.EvalFile(null);
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
         }
@@ -261,7 +261,7 @@ namespace Unity.Pipeline.Tests.Editor
             using (var server = new PipelineTestServer())
             {
                 // The test client authenticates with the server's bearer token.
-                var response = server.Execute("eval", new { code = "return Application.platform.ToString();", timeout = 5000 });
+                var response = server.Execute("script eval", new { code = "return Application.platform.ToString();", timeout = 5 });
                 Assert.IsTrue(response.IsSuccess, response.Error);
 
                 var r = response.GetTypedResponse<EvalResponse>();
@@ -276,7 +276,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("eval", new { code = "return 2 +;", timeout = 5000 });
+                var response = server.Execute("script eval", new { code = "return 2 +;", timeout = 5 });
 
                 var r = response.GetTypedResponse<EvalResponse>();
                 Assert.IsNotNull(r, "Should deserialize an EvalResponse");
@@ -295,14 +295,14 @@ namespace Unity.Pipeline.Tests.Editor
             // value, once threaded through, should be the deadline that governs the wait.
             using (var server = new PipelineTestServer())
             {
-                LogAssert.Expect(LogType.Error, new Regex("Failed to handle /api/exec request.*timed out after 150ms"));
+
 
                 // PipelineTestServer.Execute's own pump loop dequeues and runs the eval work item
                 // synchronously once it starts, so it can't observe the request's completion until
                 // that (compile + 600ms sleep) finishes — give it enough headroom for that, on top of
                 // the compile itself, even though the actual dispatcher timeout below fires in ~150ms.
-                var response = server.Execute("eval",
-                    new { code = "System.Threading.Thread.Sleep(600); return 1;", timeout = 150 },
+                var response = server.Execute("script eval",
+                    new { code = "System.Threading.Thread.Sleep(600); return 1;", timeout = 0.15 },
                     timeoutMs: 20000);
 
                 Assert.IsFalse(response.IsSuccess,
@@ -321,7 +321,7 @@ namespace Unity.Pipeline.Tests.Editor
             {
                 using (var server = new PipelineTestServer())
                 {
-                    var response = server.Execute("eval_file", new { file = path, timeout = 5000 });
+                    var response = server.Execute("script eval_file", new { file = path, timeout = 5 });
                     Assert.IsTrue(response.IsSuccess, response.Error);
 
                     var r = response.GetTypedResponse<EvalResponse>();

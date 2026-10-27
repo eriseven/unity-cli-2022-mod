@@ -17,12 +17,12 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_navmesh_settings
-unity command set_navmesh_settings --settings '{"agentRadius":0.5,"agentHeight":2}' --dry_run true
-unity command set_navmesh_settings --settings '{"agentRadius":0.5,"agentHeight":2}'
+unity command navmesh get_settings
+unity command navmesh set_settings --settings '{"agentRadius":0.5,"agentHeight":2}' --dry_run true
+unity command navmesh set_settings --settings '{"agentRadius":0.5,"agentHeight":2}'
 ```
 
 ## Notes
 
-Use the legacy settings pair for bake parameters. Use `bake_navmesh_surfaces` for AI Navigation `NavMeshSurface` components.
+Use the legacy settings pair for bake parameters. Use `navmesh bake_surfaces` for AI Navigation `NavMeshSurface` components.
 

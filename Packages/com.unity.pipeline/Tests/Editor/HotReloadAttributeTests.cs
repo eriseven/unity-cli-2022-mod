@@ -2,43 +2,43 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using Unity.Pipeline.Compilation;
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 using UnityEngine;
 
 namespace Unity.Pipeline.Tests.Editor
 {
     /// <summary>
-    /// Tests specifically for CodeReloadMethod attribute compilation and reflection.
+    /// Tests specifically for MethodReloadMethod attribute compilation and reflection.
     /// Helps diagnose issues with attribute detection in compiled assemblies.
     /// </summary>
-    class CodeReloadAttributeTests
+    class MethodReloadAttributeTests
     {
         [Test]
-        public void CodeReloadOverrideMethodAttribute_DirectUsage_CanBeReflected()
+        public void MethodReloadOverrideMethodAttribute_DirectUsage_CanBeReflected()
         {
             // Test that the attribute can be found via reflection on a directly compiled class
 
-            var method = typeof(TestCodeReloadClass).GetMethod("TestOverrideMethod");
+            var method = typeof(TestMethodReloadClass).GetMethod("TestOverrideMethod");
             Assert.IsNotNull(method, "Test method should exist");
 
-            var attribute = method.GetCustomAttribute<CodeReloadOverrideMethodAttribute>();
-            Assert.IsNotNull(attribute, "CodeReloadMethod attribute should be found");
+            var attribute = method.GetCustomAttribute<MethodReloadOverrideMethodAttribute>();
+            Assert.IsNotNull(attribute, "MethodReloadMethod attribute should be found");
             Assert.AreEqual("TestTarget.TestMethod", attribute.TargetMethodId, "Target method ID should match");
         }
 
         [Test]
-        public void RoslynCompilationService_WithCodeReloadAttribute_CompilesAndReflects()
+        public void RoslynCompilationService_WithMethodReloadAttribute_CompilesAndReflects()
         {
-            // Test that RoslynCompilationService can compile code with CodeReloadMethod attribute
+            // Test that RoslynCompilationService can compile code with MethodReloadMethod attribute
             // and the attribute can be reflected from the compiled assembly
 
             var sourceCode = @"
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 using UnityEngine;
 
-public static class CompiledCodeReloadClass
+public static class CompiledMethodReloadClass
 {
-    [CodeReloadOverrideMethod(""CompiledTarget.CompiledMethod"")]
+    [MethodReloadOverrideMethod(""CompiledTarget.CompiledMethod"")]
     public static void CompiledOverrideMethod(object instance)
     {
         Debug.Log(""Compiled hot reload method"");
@@ -48,7 +48,7 @@ public static class CompiledCodeReloadClass
             var request = new CompilationRequest
             {
                 SourceCode = sourceCode,
-                AssemblyName = "CodeReloadAttributeTest",
+                AssemblyName = "MethodReloadAttributeTest",
                 AdditionalAssemblyPrefixes = new[] { "Unity.Pipeline" }
             };
 
@@ -58,7 +58,7 @@ public static class CompiledCodeReloadClass
             Assert.IsNotNull(result.Assembly, "Should return compiled assembly");
 
             // Find the compiled class and method
-            var compiledType = result.Assembly.GetType("CompiledCodeReloadClass");
+            var compiledType = result.Assembly.GetType("CompiledMethodReloadClass");
             Assert.IsNotNull(compiledType, "Compiled class should exist");
 
             var compiledMethod = compiledType.GetMethod("CompiledOverrideMethod");
@@ -67,24 +67,24 @@ public static class CompiledCodeReloadClass
             // Check if attribute can be found via reflection
             var customAttributes = compiledMethod.GetCustomAttributes(true);
 
-            var hotReloadAttribute = compiledMethod.GetCustomAttribute<CodeReloadOverrideMethodAttribute>();
+            var hotReloadAttribute = compiledMethod.GetCustomAttribute<MethodReloadOverrideMethodAttribute>();
             if (hotReloadAttribute == null)
             {
                 // Try to find by name
-                var attributeByName = customAttributes.FirstOrDefault(a => a.GetType().Name == "CodeReloadOverrideMethodAttribute");
+                var attributeByName = customAttributes.FirstOrDefault(a => a.GetType().Name == "MethodReloadOverrideMethodAttribute");
 
                 if (attributeByName != null)
                 {
-                    hotReloadAttribute = attributeByName as CodeReloadOverrideMethodAttribute;
+                    hotReloadAttribute = attributeByName as MethodReloadOverrideMethodAttribute;
                 }
             }
 
-            Assert.IsNotNull(hotReloadAttribute, "CodeReloadMethod attribute should be found on compiled method");
+            Assert.IsNotNull(hotReloadAttribute, "MethodReloadMethod attribute should be found on compiled method");
             Assert.AreEqual("CompiledTarget.CompiledMethod", hotReloadAttribute.TargetMethodId, "Target method ID should match");
         }
 
         [Test]
-        public void MetadataReferences_IncludeUnityPipeline_CanFindCodeReloadTypes()
+        public void MetadataReferences_IncludeUnityPipeline_CanFindMethodReloadTypes()
         {
             // Verify that Unity.Pipeline assemblies are included in metadata references
 
@@ -96,11 +96,11 @@ public static class CompiledCodeReloadClass
         }
 
         /// <summary>
-        /// Test class with CodeReloadMethod attribute for direct testing.
+        /// Test class with MethodReloadMethod attribute for direct testing.
         /// </summary>
-        public static class TestCodeReloadClass
+        public static class TestMethodReloadClass
         {
-            [CodeReloadOverrideMethod("TestTarget.TestMethod")]
+            [MethodReloadOverrideMethod("TestTarget.TestMethod")]
             public static void TestOverrideMethod(object instance)
             {
             }

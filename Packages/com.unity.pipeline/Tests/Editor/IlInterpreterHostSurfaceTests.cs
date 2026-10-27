@@ -6,7 +6,7 @@ using NUnit.Framework;
 using UnityEngine;
 using Unity.Pipeline.Compilation;
 using Unity.Pipeline.Editor.BuildProcessors;
-using Unity.Pipeline.CodeReload;
+using Unity.Pipeline.MethodReload;
 using IlInterpreter.Interpreter;
 
 namespace Unity.Pipeline.Tests.Editor
@@ -76,7 +76,7 @@ namespace Unity.Pipeline.Tests.Editor
         class DummyReloadTarget { public int Value; public void Tick() { } }
 
         [Test]
-        public void CodeReloadOverlay_OnlyAdds_TargetType()
+        public void MethodReloadOverlay_OnlyAdds_TargetType()
         {
             var baseNames = RegisteredLinkNames(IlInterpreterHostBindings.CreateStandard());
             var overlay = RegisteredLinkNames(

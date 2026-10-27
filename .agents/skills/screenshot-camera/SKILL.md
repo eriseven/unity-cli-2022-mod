@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command capture_game_view --camera MainCamera --width 1280 --height 720 --save_path Screenshots/main.png
+unity command capture game_view --camera MainCamera --width 1280 --height 720 --save_path Screenshots/main.png
 ```
 
 ## Notes

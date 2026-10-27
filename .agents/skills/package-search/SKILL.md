@@ -17,10 +17,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command package_search --query com.unity.timeline --offline false
+unity command package search --query com.unity.timeline --offline false
 ```
 
 ## Notes
 
-Inspect package metadata and installed status before calling `package_add`.
+Inspect package metadata and installed status before calling `package add`.
 

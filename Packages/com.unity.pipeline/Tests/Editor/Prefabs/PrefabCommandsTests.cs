@@ -70,7 +70,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
         {
             // 1. Create a prefab from a configured source GameObject.
             var source = CreateSourceGameObject("Base");
-            var baseResult = PrefabCommands.CreatePrefab(
+            var baseResult = PrefabCommands.Create(
                 new ObjectRef { InstanceId = PipelineUtils.GetObjectId(source) },
                 Root + "/Base");
 
@@ -82,7 +82,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
             Assert.IsTrue(PrefabUtility.IsPartOfPrefabInstance(source), "Source should become a connected prefab instance");
 
             // 2. Instantiate the prefab into the active scene.
-            var instResult = PrefabCommands.InstantiatePrefab(
+            var instResult = PrefabCommands.Instantiate(
                 new ObjectRef { Path = basePath },
                 name: "CLI194_Instance");
             Assert.IsTrue(instResult.InstanceId.HasValue, "Instantiate should return a scene instanceId");
@@ -91,7 +91,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
             Assert.IsTrue(PrefabUtility.IsPartOfPrefabInstance(instance), "Instantiated object should be a prefab instance");
 
             // 3. Create a variant of the base prefab.
-            var variantResult = PrefabCommands.CreatePrefabVariant(
+            var variantResult = PrefabCommands.CreateVariant(
                 new ObjectRef { Path = basePath },
                 Root + "/BaseVariant");
             var variantPath = Root + "/BaseVariant.prefab";
@@ -107,7 +107,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
             collider.isTrigger = true; // an instance override
             PrefabUtility.RecordPrefabInstancePropertyModifications(collider);
 
-            PrefabCommands.ApplyPrefabOverrides(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(instance) });
+            PrefabCommands.ApplyOverrides(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(instance) });
 
             var baseAsset = AssetDatabase.LoadAssetAtPath<GameObject>(basePath);
             Assert.IsTrue(baseAsset.GetComponent<BoxCollider>().isTrigger,
@@ -119,7 +119,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
             Assert.IsTrue(PrefabUtility.HasPrefabInstanceAnyOverrides(instance, false),
                 "Instance should have a pending override before revert");
 
-            PrefabCommands.RevertPrefabOverrides(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(instance) });
+            PrefabCommands.RevertOverrides(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(instance) });
 
             Assert.IsTrue(instance.GetComponent<BoxCollider>().isTrigger,
                 "After revert the instance should match the asset (isTrigger=true)");
@@ -131,14 +131,14 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
         public void UnpackPrefab_OutermostRoot_RemovesInstanceConnection()
         {
             var source = CreateSourceGameObject("Unpackable");
-            PrefabCommands.CreatePrefab(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(source) }, Root + "/Unpackable");
+            PrefabCommands.Create(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(source) }, Root + "/Unpackable");
 
-            var instResult = PrefabCommands.InstantiatePrefab(
+            var instResult = PrefabCommands.Instantiate(
                 new ObjectRef { Path = Root + "/Unpackable.prefab" }, name: "CLI194_Unpacked");
             var instance = (GameObject)PipelineUtils.IdToObject(instResult.InstanceId.Value);
             Assert.IsTrue(PrefabUtility.IsPartOfPrefabInstance(instance));
 
-            PrefabCommands.UnpackPrefab(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(instance) }, completely: true);
+            PrefabCommands.Unpack(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(instance) }, completely: true);
 
             Assert.IsFalse(PrefabUtility.IsPartOfPrefabInstance(instance),
                 "After unpack the object should no longer be a prefab instance");
@@ -153,7 +153,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
         {
             // Build an inner prefab and an outer prefab that nests an instance of the inner one.
             var inner = CreateSourceGameObject("Inner");
-            PrefabCommands.CreatePrefab(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(inner) }, Root + "/Inner");
+            PrefabCommands.Create(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(inner) }, Root + "/Inner");
             var innerPath = Root + "/Inner.prefab";
             var innerAsset = AssetDatabase.LoadAssetAtPath<GameObject>(innerPath);
 
@@ -161,7 +161,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
             var nested = (GameObject)PrefabUtility.InstantiatePrefab(innerAsset);
             nested.transform.SetParent(outer.transform);
             nested.name = "NestedChild";
-            PrefabCommands.CreatePrefab(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(outer) }, Root + "/Outer");
+            PrefabCommands.Create(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(outer) }, Root + "/Outer");
             var outerPath = Root + "/Outer.prefab";
 
             // Sanity: the saved outer prefab nests a real instance of the inner prefab.
@@ -175,7 +175,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
             }
 
             // Edit the outer prefab through the stage (rename the nested child).
-            var editResult = PrefabCommands.SavePrefabContents(
+            var editResult = PrefabCommands.SaveContents(
                 new ObjectRef { Path = outerPath },
                 renameChild: "NestedChild",
                 newName: "RenamedNested");
@@ -220,7 +220,7 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("create_prefab", new
+                var response = server.Execute("prefab create", new
                 {
                     source = new { instanceId = PipelineUtils.GetObjectId(source) },
                     path = Root + "/ViaClient"
@@ -240,12 +240,12 @@ namespace Unity.Pipeline.Tests.Editor.Prefabs
         public void InstantiatePrefab_ViaClient_Succeeds()
         {
             var source = CreateSourceGameObject("ClientInstSource");
-            PrefabCommands.CreatePrefab(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(source) }, Root + "/ClientInst");
+            PrefabCommands.Create(new ObjectRef { InstanceId = PipelineUtils.GetObjectId(source) }, Root + "/ClientInst");
             var prefabPath = Root + "/ClientInst.prefab";
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("instantiate_prefab", new
+                var response = server.Execute("prefab instantiate", new
                 {
                     prefab = new { path = prefabPath },
                     name = "CLI194_ClientInstance"

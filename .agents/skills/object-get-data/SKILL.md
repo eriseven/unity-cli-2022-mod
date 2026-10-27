@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_serialized_fields --target Assets/Data/GameConfig.asset
-unity command get_serialized_fields --target '{"hierarchyPath":"/Player"}' --component PlayerController
+unity command component get_fields --target Assets/Data/GameConfig.asset
+unity command component get_fields --target '{"hierarchyPath":"/Player"}' --component PlayerController
 ```
 
 ## Notes

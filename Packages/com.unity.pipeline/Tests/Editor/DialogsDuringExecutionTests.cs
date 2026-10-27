@@ -29,12 +29,12 @@ namespace Unity.Pipeline.Tests.Editor
 
     class DialogsDuringExecutionTests
     {
-        sealed class DialogTestServer : EditorPipelineServer
+        sealed class DialogTestServer : IsolatedEditorServer
         {
-            protected override bool WritesDescriptor => false;
+
             protected override (int basePort, int maxPort) GetPortRange() => (7850, 7899);
             protected override string GetToken() => SecurityTokenManager.GetOrCreateToken();
-            protected override bool IsSettled => true;
+            protected override bool? PinnedSettled => true;
         }
 
         DialogTestServer m_Server;
@@ -61,21 +61,20 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public async Task ApiExec_NoDialogRaised_OmitsDialogsDuringExecutionField()
         {
-            var response = await m_Client.ExecuteCommandAsync("editor_status", new { });
+            var response = await m_Client.ExecuteCommandAsync("editor status", new { });
 
             Assert.IsTrue(response.IsSuccess);
             Assert.IsNull(response.JsonResponse["dialogsDuringExecution"]);
         }
 
         [Test]
-        public async Task ApiExec_DialogRaisedAndDismissedInsideHandler_AttachesIt()
+        public async Task ApiExec_DialogRaisedAndDismissedInsideHandler_DoesNotAttachRetiredField()
         {
             var response = await m_Client.ExecuteCommandAsync("test_simulate_dialog_during_exec", new { });
 
             Assert.IsTrue(response.IsSuccess);
             var attached = (JArray)response.JsonResponse["dialogsDuringExecution"];
-            Assert.IsNotNull(attached, "A dialog raised inside the command's own handler must be attached");
-            Assert.AreEqual(42, attached[0]["id"].ToObject<int>());
+            Assert.IsNull(attached, "0.9 removed dialogsDuringExecution; dialogs are exposed through the dialog endpoint.");
         }
 
         [Test]
@@ -85,7 +84,7 @@ namespace Unity.Pipeline.Tests.Editor
                 System.DateTime.UtcNow.AddMinutes(-5));
             m_Server.Dialogs.OnDismissed(1, System.DateTime.UtcNow.AddMinutes(-5));
 
-            var response = await m_Client.ExecuteCommandAsync("editor_status", new { });
+            var response = await m_Client.ExecuteCommandAsync("editor status", new { });
 
             Assert.IsTrue(response.IsSuccess);
             Assert.IsNull(response.JsonResponse["dialogsDuringExecution"],

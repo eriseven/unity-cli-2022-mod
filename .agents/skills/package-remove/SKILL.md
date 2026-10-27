@@ -17,10 +17,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command package_remove --name com.unity.timeline --dry_run true
-unity command package_remove --name com.unity.timeline --confirm true
-unity command package_status
-unity command recompile_status
+unity command package remove --name com.unity.timeline --dry_run true
+unity command package remove --name com.unity.timeline --confirm true
+unity command package status
+unity command script recompile_status
 ```
 
 ## Notes

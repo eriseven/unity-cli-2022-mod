@@ -17,11 +17,11 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_transform --target '{"hierarchyPath":"/Player"}' --position '[0,1,0]'
-unity command set_active --target '{"hierarchyPath":"/Player"}' --active true
-unity command set_tag --target '{"hierarchyPath":"/Player"}' --tag Player
-unity command set_layer --target '{"hierarchyPath":"/Player"}' --layer Gameplay
-unity command rename_gameobject --target '{"hierarchyPath":"/Player"}' --name Hero
+unity command gameobject set_transform --target '{"hierarchyPath":"/Player"}' --position '[0,1,0]'
+unity command gameobject set_active --target '{"hierarchyPath":"/Player"}' --active true
+unity command gameobject set_tag --target '{"hierarchyPath":"/Player"}' --tag Player
+unity command gameobject set_layer --target '{"hierarchyPath":"/Player"}' --layer Gameplay
+unity command gameobject rename --target '{"hierarchyPath":"/Player"}' --name Hero
 ```
 
 ## Notes

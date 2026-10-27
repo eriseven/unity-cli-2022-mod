@@ -25,6 +25,7 @@ namespace Unity.Pipeline.Tests.Editor
         private const string BuildInfoAssetPath = "Assets/Settings/Pipeline/Resources/RuntimePipelineBuildInfo.asset";
         private PipelineRuntimeBuildProcessor m_BuildProcessor;
         private bool m_PreviousDevelopment;
+        private string m_PreviousDefines;
 
         [SetUp]
         public void SetUp()
@@ -32,6 +33,8 @@ namespace Unity.Pipeline.Tests.Editor
             RuntimePipelineResourceTestGuard.AssertNoConfigAssetExists();
 
             m_BuildProcessor = new PipelineRuntimeBuildProcessor();
+            m_PreviousDefines = PlayerSettings.GetScriptingDefineSymbols(PipelineBuildSymbols.ActiveTarget());
+            SetPipelineEnabled(false);
             DeleteIfExists(TransientConfigAssetPath);
             DeleteIfExists(BuildInfoAssetPath);
 
@@ -47,6 +50,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void TearDown()
         {
             EditorUserBuildSettings.development = m_PreviousDevelopment;
+            PlayerSettings.SetScriptingDefineSymbols(PipelineBuildSymbols.ActiveTarget(), m_PreviousDefines);
             DeleteIfExists(TransientConfigAssetPath);
             DeleteIfExists(BuildInfoAssetPath);
             RuntimePipelineResourceTestGuard.DeleteConfigIfExists();
@@ -58,10 +62,20 @@ namespace Unity.Pipeline.Tests.Editor
                 AssetDatabase.DeleteAsset(path);
         }
 
+        private static void SetPipelineEnabled(bool enabled)
+        {
+            var target = PipelineBuildSymbols.ActiveTarget();
+            var defines = PlayerSettings.GetScriptingDefineSymbols(target);
+            defines = PipelineBuildSymbols.Remove(defines, PipelineBuildSymbols.Release);
+            defines = enabled ? PipelineBuildSymbols.Add(defines, PipelineBuildSymbols.Development)
+                : PipelineBuildSymbols.Remove(defines, PipelineBuildSymbols.Development);
+            PlayerSettings.SetScriptingDefineSymbols(target, defines);
+        }
+
         private static void CreateConfig(bool enableInBuilds)
         {
             var config = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-            config.enableInBuilds = enableInBuilds;
+            SetPipelineEnabled(enableInBuilds);
             config.port = 7920;
             config.Save();
             Object.DestroyImmediate(config);
@@ -78,7 +92,7 @@ namespace Unity.Pipeline.Tests.Editor
             EnsureFolder(Path.GetDirectoryName(TransientConfigAssetPath).Replace('\\', '/'));
 
             var staleConfig = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-            staleConfig.enableInBuilds = enableInBuilds;
+            // Inclusion is now selected by build symbols, not the resource asset.
             staleConfig.port = 7999;
             AssetDatabase.CreateAsset(staleConfig, TransientConfigAssetPath);
 
@@ -150,7 +164,6 @@ namespace Unity.Pipeline.Tests.Editor
 
             var baked = AssetDatabase.LoadAssetAtPath<RuntimePipelineConfig>(TransientConfigAssetPath);
             Assert.IsNotNull(baked, "OnPreprocessBuild should bake the current authored config");
-            Assert.IsTrue(baked.enableInBuilds, "Baked asset must reflect the current authored config, not the stale leftover");
             Assert.AreEqual(7920, baked.port, "Baked asset must reflect the current authored config's port, not the stale leftover's 7999");
 
             var buildInfo = AssetDatabase.LoadAssetAtPath<RuntimePipelineBuildInfo>(BuildInfoAssetPath);
@@ -202,7 +215,6 @@ namespace Unity.Pipeline.Tests.Editor
 
             var baked = AssetDatabase.LoadAssetAtPath<RuntimePipelineConfig>(TransientConfigAssetPath);
             Assert.IsNotNull(baked, "OnPreprocessBuild should bake the authored config into a transient Resources asset");
-            Assert.IsTrue(baked.enableInBuilds);
             Assert.AreEqual(7920, baked.port);
         }
 
@@ -255,11 +267,13 @@ namespace Unity.Pipeline.Tests.Editor
         private const string TransientConfigAssetPath = "Assets/Settings/Pipeline/Resources/RuntimePipelineConfig.asset";
         private const string TransientBuildInfoAssetPath = "Assets/Settings/Pipeline/Resources/RuntimePipelineBuildInfo.asset";
         private bool m_PreviousDevelopment;
+        private string m_PreviousDefines;
 
         [SetUp]
         public void SetUp()
         {
             RuntimePipelineResourceTestGuard.AssertNoConfigAssetExists();
+            m_PreviousDefines = PlayerSettings.GetScriptingDefineSymbols(PipelineBuildSymbols.ActiveTarget());
 
             // BuildOptions.Development on this test's BuildPipeline.BuildPlayer call does not
             // reliably flip the global EditorUserBuildSettings.development before OnPreprocessBuild
@@ -273,6 +287,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void TearDown()
         {
             EditorUserBuildSettings.development = m_PreviousDevelopment;
+            PlayerSettings.SetScriptingDefineSymbols(PipelineBuildSymbols.ActiveTarget(), m_PreviousDefines);
             RuntimePipelineResourceTestGuard.DeleteConfigIfExists();
         }
 
@@ -338,7 +353,11 @@ namespace Unity.Pipeline.Tests.Editor
             EditorSceneManager.SaveScene(scene, scenePath);
 
             var config = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-            config.enableInBuilds = validConfiguration;
+            var target = PipelineBuildSymbols.ActiveTarget();
+            var symbols = PlayerSettings.GetScriptingDefineSymbols(target);
+            symbols = validConfiguration ? PipelineBuildSymbols.Add(symbols, PipelineBuildSymbols.Development)
+                : PipelineBuildSymbols.Remove(symbols, PipelineBuildSymbols.Development);
+            PlayerSettings.SetScriptingDefineSymbols(target, symbols);
             config.Save();
             Object.DestroyImmediate(config);
 

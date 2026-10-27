@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command eval --code 'return 2 + 2;'
-unity command eval_file --file Assets/Automation/OneOff.cs --timeout 5000
+unity command script eval --code 'return 2 + 2;'
+unity command script eval_file --file Assets/Automation/OneOff.cs --timeout 5
 ```
 
 ## Notes

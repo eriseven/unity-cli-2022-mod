@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_timeline --path Timelines/Intro.playable --frameRate 60
+unity command animation.timeline create --path Timelines/Intro.playable --frameRate 60
 ```
 
 ## Notes

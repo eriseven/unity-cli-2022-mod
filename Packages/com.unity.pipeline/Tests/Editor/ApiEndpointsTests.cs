@@ -45,7 +45,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_GetEndpoint_ReturnsCommandList()
         {
             // Act - Call /api/commands endpoint using unified Pipeline client
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert - Response structure
@@ -69,7 +69,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             // Verify a specific test command is included
             var testCommand = commands.Cast<JObject>()
-                .FirstOrDefault(cmd => cmd["name"]?.ToString() == "log_editor");
+                .FirstOrDefault(cmd => cmd["command"]?.ToString() == "global log_editor");
             Assert.IsNotNull(testCommand, "Should include log_editor test command");
             Assert.AreEqual("Log a message to Unity Editor console", testCommand["description"]?.ToString());
         }
@@ -78,27 +78,27 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_OnEditorServer_IncludesTaggedRuntimeCommands()
         {
             // Act - List commands from the Editor server
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
             var responseJson = JObject.Parse(jsonContent);
             var commandNames = (responseJson["commands"] as JArray)
                 .Cast<JObject>()
-                .Select(cmd => cmd["name"]?.ToString())
+                .Select(cmd => cmd["command"]?.ToString())
                 .ToList();
 
             // Assert - both surfaces are listed; the runtime tag distinguishes Player commands
-            Assert.Contains("editor_status", commandNames, "Editor command should be listed");
-            CollectionAssert.Contains(commandNames, "runtime_status");
-            var runtime = responseJson["commands"].First(c => (string)c["name"] == "runtime_status");
+            Assert.Contains("editor status", commandNames, "Editor command should be listed");
+            CollectionAssert.Contains(commandNames, "runtime status");
+            var runtime = responseJson["commands"].First(c => (string)c["command"] == "runtime status");
             CollectionAssert.Contains(runtime["tags"].Values<string>().ToArray(), "runtime");
-            CollectionAssert.Contains(commandNames, "set_target_framerate");
+            CollectionAssert.Contains(commandNames, "runtime set_target_frame_rate");
         }
 
         [Test]
         public async Task ApiCommands_DefaultDetail_ReturnsFullMetadata()
         {
             // Act - no detail parameter: full is the default (back-compat with pre-detail clients)
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert
@@ -109,7 +109,7 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.Greater(commands.Count, 0, "Should have at least one discovered command");
 
             var logEditor = commands.Cast<JObject>()
-                .First(cmd => cmd["name"]?.ToString() == "log_editor");
+                .First(cmd => cmd["command"]?.ToString() == "global log_editor");
             Assert.IsNotNull(logEditor["parameters"], "default detail should include parameters");
             Assert.IsNotNull(logEditor["schema"], "default detail should include schema");
             Assert.IsNotNull(logEditor["tags"], "default detail should include tags");
@@ -120,7 +120,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_DetailCompact_ReturnsLightweightIndex()
         {
             // Act - detail=compact opts into the lightweight browse/discovery projection
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert
@@ -131,12 +131,12 @@ namespace Unity.Pipeline.Tests.Editor
 
             foreach (var cmd in commands.Cast<JObject>())
             {
-                Assert.IsNotNull(cmd["name"], "compact entry should have name");
+                Assert.IsNotNull(cmd["command"], "compact entry should have name");
                 Assert.IsNotNull(cmd["description"], "compact entry should have description");
                 Assert.IsNotNull(cmd["tags"], "compact entry should have tags");
                 Assert.IsNotNull(cmd["package"], "compact entry should have package");
-                Assert.IsNull(cmd["parameters"], $"compact entry '{cmd["name"]}' should omit parameters");
-                Assert.IsNull(cmd["schema"], $"compact entry '{cmd["name"]}' should omit schema");
+                Assert.IsNull(cmd["parameters"], $"compact entry '{cmd["command"]}' should omit parameters");
+                Assert.IsNull(cmd["schema"], $"compact entry '{cmd["command"]}' should omit schema");
             }
         }
 
@@ -144,7 +144,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_QueryFilter_MatchesTagCaseInsensitively()
         {
             // Act - 'REGISTRATION' only appears in test_tagged's 'test/registration' tag
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&query=REGISTRATION");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&query=REGISTRATION");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert
@@ -153,17 +153,17 @@ namespace Unity.Pipeline.Tests.Editor
             var responseJson = JObject.Parse(jsonContent);
             var names = (responseJson["commands"] as JArray)
                 .Cast<JObject>()
-                .Select(cmd => cmd["name"]?.ToString())
+                .Select(cmd => cmd["command"]?.ToString())
                 .ToList();
-            Assert.Contains("test_tagged", names, "query should match a command via its tag, case-insensitively");
-            CollectionAssert.DoesNotContain(names, "log_editor", "commands matching neither name, description nor tag should be filtered out");
+            Assert.Contains("global test_tagged", names, "query should match a command via its tag, case-insensitively");
+            CollectionAssert.DoesNotContain(names, "global log_editor", "commands matching neither name, description nor tag should be filtered out");
         }
 
         [Test]
         public async Task ApiCommands_QueryFilter_MatchesNameByPrefix()
         {
             // Act - 'log_edi' is a strict prefix of the 'log_editor' command name
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&query=log_edi");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&query=log_edi");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert
@@ -171,16 +171,16 @@ namespace Unity.Pipeline.Tests.Editor
                 $"query filter should return success, got: {httpResponse.StatusCode}");
             var names = (JObject.Parse(jsonContent)["commands"] as JArray)
                 .Cast<JObject>()
-                .Select(cmd => cmd["name"]?.ToString())
+                .Select(cmd => cmd["command"]?.ToString())
                 .ToList();
-            Assert.Contains("log_editor", names, "a query that is a prefix of a command name should match that command");
+            Assert.Contains("global log_editor", names, "a query that is a prefix of a command name should match that command");
         }
 
         [Test]
         public async Task ApiCommands_QueryFilter_NoMatch_ReturnsEmptyNotError()
         {
             // Act
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?query=zzz_definitely_no_match_zzz");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&query=zzz_definitely_no_match_zzz");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert - empty result, not an error
@@ -196,22 +196,22 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_TagFilter_MatchesSubtreeBySegmentPrefix()
         {
             // Act / Assert - 'test' matches the exact 'test' tag and the 'test/registration' subtree
-            var jsonContent = await (await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&tag=test"))
+            var jsonContent = await (await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&tag=test"))
                 .Content.ReadAsStringAsync();
             var names = (JObject.Parse(jsonContent)["commands"] as JArray)
-                .Cast<JObject>().Select(cmd => cmd["name"]?.ToString()).ToList();
-            Assert.Contains("test_tagged", names, "tag=test should match the tagged test command");
-            CollectionAssert.DoesNotContain(names, "log_editor", "untagged commands should be filtered out");
+                .Cast<JObject>().Select(cmd => cmd["command"]?.ToString()).ToList();
+            Assert.Contains("global test_tagged", names, "tag=test should match the tagged test command");
+            CollectionAssert.DoesNotContain(names, "global log_editor", "untagged commands should be filtered out");
 
             // Drilling into a subtag still matches
-            jsonContent = await (await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&tag=test/registration"))
+            jsonContent = await (await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&tag=test/registration"))
                 .Content.ReadAsStringAsync();
             names = (JObject.Parse(jsonContent)["commands"] as JArray)
-                .Cast<JObject>().Select(cmd => cmd["name"]?.ToString()).ToList();
-            Assert.Contains("test_tagged", names, "tag=test/registration should match the subtag directly");
+                .Cast<JObject>().Select(cmd => cmd["command"]?.ToString()).ToList();
+            Assert.Contains("global test_tagged", names, "tag=test/registration should match the subtag directly");
 
             // Segment-aware: 'tes' is not a whole-segment prefix of 'test'
-            jsonContent = await (await m_PipelineClient.GetHttpAsync("/api/commands?tag=tes"))
+            jsonContent = await (await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&tag=tes"))
                 .Content.ReadAsStringAsync();
             Assert.AreEqual(0, JObject.Parse(jsonContent)["total"]?.ToObject<int>(),
                 "tag matching should respect '/' segment boundaries, not raw string prefixes");
@@ -221,7 +221,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_CombinedFilters_AreAnded()
         {
             // Act - log_editor matches the query but carries no tags, so the tag filter excludes it
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?query=log_editor&tag=test");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&query=log_editor&tag=test");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert
@@ -235,7 +235,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_GroupByPackage_GroupsCommandsByOriginatingAssembly()
         {
             // Act
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&group_by=package&query=log_editor");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&group_by=package&query=log_editor");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert - grouped responses carry 'groups' instead of 'commands'
@@ -250,15 +250,15 @@ namespace Unity.Pipeline.Tests.Editor
                 .FirstOrDefault(g => g["package"]?.ToString() == "Unity.Pipeline.Tests.Editor");
             Assert.IsNotNull(testGroup, "log_editor's assembly should appear as a package group");
             var groupNames = (testGroup["commands"] as JArray)
-                .Cast<JObject>().Select(cmd => cmd["name"]?.ToString()).ToList();
-            Assert.Contains("log_editor", groupNames, "the group should contain the matching command");
+                .Cast<JObject>().Select(cmd => cmd["command"]?.ToString()).ToList();
+            Assert.Contains("global log_editor", groupNames, "the group should contain the matching command");
         }
 
         [Test]
         public async Task ApiCommands_GroupByTag_ReturnsNestedTagTree()
         {
             // Act
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&group_by=tag&tag=test");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&group_by=tag&tag=test");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert - top-level 'test' node with a nested 'test/registration' child
@@ -270,22 +270,22 @@ namespace Unity.Pipeline.Tests.Editor
             var testNode = groups.Cast<JObject>().FirstOrDefault(g => g["tag"]?.ToString() == "test");
             Assert.IsNotNull(testNode, "should have a top-level 'test' tag node");
             var directNames = (testNode["commands"] as JArray)
-                .Cast<JObject>().Select(cmd => cmd["name"]?.ToString()).ToList();
-            Assert.Contains("test_tagged", directNames, "test_tagged carries the exact 'test' tag");
+                .Cast<JObject>().Select(cmd => cmd["command"]?.ToString()).ToList();
+            Assert.Contains("global test_tagged", directNames, "test_tagged carries the exact 'test' tag");
 
             var childNode = (testNode["children"] as JArray)?.Cast<JObject>()
                 .FirstOrDefault(g => g["tag"]?.ToString() == "test/registration");
             Assert.IsNotNull(childNode, "'test/registration' should nest under 'test'");
             var childNames = (childNode["commands"] as JArray)
-                .Cast<JObject>().Select(cmd => cmd["name"]?.ToString()).ToList();
-            Assert.Contains("test_tagged", childNames, "test_tagged also carries the 'test/registration' tag");
+                .Cast<JObject>().Select(cmd => cmd["command"]?.ToString()).ToList();
+            Assert.Contains("global test_tagged", childNames, "test_tagged also carries the 'test/registration' tag");
         }
 
         [Test]
         public async Task ApiCommands_GroupByInvalid_ReturnsBadRequestListingAcceptedValues()
         {
             // Act
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?group_by=namespace");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&group_by=namespace");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert
@@ -300,19 +300,19 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_Pagination_SlicesNameSortedListDeterministically()
         {
             // Arrange - the unpaginated listing (name-sorted for deterministic pages)
-            var allJson = await (await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact"))
+            var allJson = await (await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact"))
                 .Content.ReadAsStringAsync();
             var allNames = (JObject.Parse(allJson)["commands"] as JArray)
-                .Cast<JObject>().Select(cmd => cmd["name"]?.ToString()).ToList();
+                .Cast<JObject>().Select(cmd => cmd["command"]?.ToString()).ToList();
             CollectionAssert.AreEqual(allNames.OrderBy(n => n, System.StringComparer.Ordinal).ToList(), allNames,
                 "commands should be name-sorted so pagination windows are deterministic");
 
             // Act
-            var pageJson = await (await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&offset=1&limit=2"))
+            var pageJson = await (await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&offset=1&limit=2"))
                 .Content.ReadAsStringAsync();
             var pageResponse = JObject.Parse(pageJson);
             var pageNames = (pageResponse["commands"] as JArray)
-                .Cast<JObject>().Select(cmd => cmd["name"]?.ToString()).ToList();
+                .Cast<JObject>().Select(cmd => cmd["command"]?.ToString()).ToList();
 
             // Assert
             CollectionAssert.AreEqual(allNames.Skip(1).Take(2).ToList(), pageNames,
@@ -327,14 +327,14 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_PaginationInvalid_ReturnsBadRequest()
         {
             // Act / Assert - negative offset
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?offset=-1");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&offset=-1");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
             Assert.AreEqual(400, (int)httpResponse.StatusCode,
                 $"negative offset should be rejected with 400. Response: {jsonContent}");
             StringAssert.Contains("offset", jsonContent, "error should name the offending parameter");
 
             // Non-numeric limit
-            httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?limit=abc");
+            httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&limit=abc");
             jsonContent = await httpResponse.Content.ReadAsStringAsync();
             Assert.AreEqual(400, (int)httpResponse.StatusCode,
                 $"non-numeric limit should be rejected with 400. Response: {jsonContent}");
@@ -345,7 +345,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_SortByPackage_OrdersByPackageThenName()
         {
             // Act
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&sort=package");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&sort=package");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert - ordered by originating package, ties broken by name
@@ -353,7 +353,7 @@ namespace Unity.Pipeline.Tests.Editor
                 $"sort=package should return success, got: {httpResponse.StatusCode}");
             var pairs = (JObject.Parse(jsonContent)["commands"] as JArray)
                 .Cast<JObject>()
-                .Select(cmd => (Package: cmd["package"]?.ToString(), Name: cmd["name"]?.ToString()))
+                .Select(cmd => (Package: cmd["package"]?.ToString(), Name: cmd["command"]?.ToString()))
                 .ToList();
             var expected = pairs
                 .OrderBy(p => p.Package, System.StringComparer.Ordinal)
@@ -367,14 +367,14 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_OrderDesc_ReversesNameSort()
         {
             // Act
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=compact&order=desc");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=compact&order=desc");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert
             Assert.IsTrue(httpResponse.IsSuccessStatusCode,
                 $"order=desc should return success, got: {httpResponse.StatusCode}");
             var names = (JObject.Parse(jsonContent)["commands"] as JArray)
-                .Cast<JObject>().Select(cmd => cmd["name"]?.ToString()).ToList();
+                .Cast<JObject>().Select(cmd => cmd["command"]?.ToString()).ToList();
             CollectionAssert.AreEqual(names.OrderByDescending(n => n, System.StringComparer.Ordinal).ToList(), names,
                 "order=desc should reverse the default name sort");
         }
@@ -383,7 +383,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_SortInvalid_ReturnsBadRequestListingAcceptedValues()
         {
             // Act / Assert - unknown sort key
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?sort=alphabetical");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&sort=alphabetical");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
             Assert.AreEqual(400, (int)httpResponse.StatusCode,
                 $"Invalid sort value should be rejected with 400. Response: {jsonContent}");
@@ -391,7 +391,7 @@ namespace Unity.Pipeline.Tests.Editor
             StringAssert.Contains("package", jsonContent, "error should list accepted value 'package'");
 
             // Unknown order direction
-            httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?order=upside_down");
+            httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&order=upside_down");
             jsonContent = await httpResponse.Content.ReadAsStringAsync();
             Assert.AreEqual(400, (int)httpResponse.StatusCode,
                 $"Invalid order value should be rejected with 400. Response: {jsonContent}");
@@ -403,7 +403,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_DetailFull_ReturnsFullMetadataWithTagsAndPackage()
         {
             // Act - detail=full opts into the complete per-command metadata
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=full");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=full");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert
@@ -411,7 +411,7 @@ namespace Unity.Pipeline.Tests.Editor
                 $"detail=full should return success, got: {httpResponse.StatusCode}");
             var commands = JObject.Parse(jsonContent)["commands"] as JArray;
             var logEditor = commands.Cast<JObject>()
-                .First(cmd => cmd["name"]?.ToString() == "log_editor");
+                .First(cmd => cmd["command"]?.ToString() == "global log_editor");
             Assert.IsNotNull(logEditor["parameters"], "full detail should include parameters");
             Assert.IsNotNull(logEditor["schema"], "full detail should include schema");
             Assert.IsNotNull(logEditor["tags"], "full detail should include tags");
@@ -423,7 +423,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_InvalidDetail_ReturnsBadRequestListingAcceptedValues()
         {
             // Act - an unsupported detail value
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?detail=verbose");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true&detail=verbose");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
 
             // Assert - rejected with a clear error naming the accepted values
@@ -439,7 +439,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiCommands_CommandStructure_ContainsRequiredFields()
         {
             // Act - Call /api/commands endpoint using unified Pipeline client
-            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands");
+            var httpResponse = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true");
             var jsonContent = await httpResponse.Content.ReadAsStringAsync();
             var responseJson = JObject.Parse(jsonContent);
 
@@ -448,7 +448,7 @@ namespace Unity.Pipeline.Tests.Editor
             var firstCommand = commands[0] as JObject;
 
             // Required command fields
-            Assert.IsNotNull(firstCommand["name"], "Command should have name field");
+            Assert.IsNotNull(firstCommand["command"], "Command should have name field");
             Assert.IsNotNull(firstCommand["description"], "Command should have description field");
             Assert.IsNotNull(firstCommand["parameters"], "Command should have parameters array");
             Assert.IsNotNull(firstCommand["schema"], "Command should have JSON schema");
@@ -457,7 +457,7 @@ namespace Unity.Pipeline.Tests.Editor
             // Verify schema is valid JSON
             var schema = firstCommand["schema"]?.ToString();
             var schemaJson = JObject.Parse(schema);
-            Assert.AreEqual(firstCommand["name"]?.ToString(), schemaJson["title"]?.ToString(),
+            Assert.AreEqual(firstCommand["command"]?.ToString(), schemaJson["title"]?.ToString(),
                 "Schema title should match command name");
         }
 
@@ -513,7 +513,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_PostCommand_ExecutesSuccessfully()
         {
             // Arrange
-            var commandRequest = new CommandExecutionRequest("log_editor");
+            var commandRequest = new CommandExecutionRequest("global log_editor");
             commandRequest.Parameters["message"] = "Test message from CLI";
 
             // Act - Execute command via /api/exec endpoint using unified Pipeline client
@@ -541,7 +541,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_VerboseFlag_IncludesEnvelopeMetadata()
         {
             // Arrange - opt into the full envelope via the request's verbose flag.
-            var commandRequest = new CommandExecutionRequest("log_editor") { Verbose = true };
+            var commandRequest = new CommandExecutionRequest("global log_editor") { Verbose = true };
             commandRequest.Parameters["message"] = "Test message from CLI";
 
             // Act
@@ -553,7 +553,7 @@ namespace Unity.Pipeline.Tests.Editor
             var responseJson = response.JsonResponse;
             Assert.IsTrue(responseJson["success"].ToObject<bool>(), "Command should execute successfully");
             Assert.IsNotNull(responseJson["command"], "Verbose envelope should include the command");
-            Assert.AreEqual("log_editor", responseJson["command"]?.ToString());
+            Assert.AreEqual("global log_editor", responseJson["command"]?.ToString());
             Assert.IsNotNull(responseJson["executedAt"], "Verbose envelope should include executedAt");
         }
 
@@ -563,7 +563,7 @@ namespace Unity.Pipeline.Tests.Editor
             // The payload-null semantics themselves are pinned at the serializer level
             // (ResponseEnvelopeSizeTests); this covers the HTTP wiring: the request flag
             // deserializes and the reply still parses.
-            var request = new CommandExecutionRequest("log_editor") { OmitNulls = true };
+            var request = new CommandExecutionRequest("global log_editor") { OmitNulls = true };
             request.Parameters["message"] = "omitNulls round-trip";
 
             var response = await m_PipelineClient.PostJsonAsync("/api/exec", request);
@@ -580,9 +580,9 @@ namespace Unity.Pipeline.Tests.Editor
             // must honor the request's verbose flag — that's precisely when a debugging client
             // wants the full envelope. Pre-parse failures (unparseable JSON) can't, by definition.
             var verboseResponse = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { command = "log_editor", timeout = -1, verbose = true });
+                new { command = "global log_editor", timeout = -1, verbose = true });
             var leanResponse = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { command = "log_editor", timeout = -1 });
+                new { command = "global log_editor", timeout = -1 });
 
             Assert.AreEqual(400, verboseResponse.StatusCode, "Invalid timeout should be rejected");
             Assert.IsNotNull(verboseResponse.JsonResponse["executedAt"],
@@ -634,7 +634,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_MissingRequiredParameter_ReturnsValidationError()
         {
             // Arrange - Try to execute log_editor without required message parameter
-            var invalidRequest = new CommandExecutionRequest("log_editor");
+            var invalidRequest = new CommandExecutionRequest("global log_editor");
             // Intentionally not setting the 'message' parameter to test validation
 
             // Act - Execute command with missing parameter via /api/exec endpoint using unified Pipeline client
@@ -658,7 +658,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_OversizedBody_ReturnsPayloadTooLarge()
         {
             // Arrange - a request whose body exceeds the 1 MiB cap (Content-Length will advertise it).
-            var oversized = new CommandExecutionRequest("log_editor");
+            var oversized = new CommandExecutionRequest("global log_editor");
             oversized.Parameters["message"] = new string('a', (1 * 1024 * 1024) + 1024);
 
             // Act
@@ -678,7 +678,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // Arrange - 'limit' is an int defaulting to 100. Falling back to that default would
             // hand the caller far more entries than it asked for, with no way to detect it.
-            var request = new CommandExecutionRequest("console");
+            var request = new CommandExecutionRequest("console get");
             request.Parameters["tail"] = "not-a-number";
 
             // Act
@@ -716,7 +716,7 @@ namespace Unity.Pipeline.Tests.Editor
                 UnityEngine.Debug.Log($"CLI978_numeric_string_seed_{i}");
             }
 
-            var request = new CommandExecutionRequest("console");
+            var request = new CommandExecutionRequest("console get");
             request.Parameters["tail"] = "5";
 
             // Act
@@ -753,7 +753,7 @@ namespace Unity.Pipeline.Tests.Editor
             // {"parent": true} used to read as an omitted argument and create_gameobject ran with
             // parent == null — creating the object at the scene root rather than rejecting the
             // malformed handle. A declined token must be a conversion error, not a silent default.
-            var request = new CommandExecutionRequest("create_gameobject");
+            var request = new CommandExecutionRequest("gameobject create");
             request.Parameters["name"] = "CLI978_should_not_be_created";
             request.Parameters["parent"] = true;
 
@@ -776,7 +776,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // The guard above must not catch a legitimately null optional argument: an explicit JSON
             // null is the one value allowed to convert to null, and it falls back to the default.
-            var request = new CommandExecutionRequest("console");
+            var request = new CommandExecutionRequest("console get");
             request.Parameters["level"] = null;
             request.Parameters["tail"] = 5;
 
@@ -795,7 +795,7 @@ namespace Unity.Pipeline.Tests.Editor
             // "Omit (or empty) to move the object to the scene root". The declined-token guard must
             // not reject it. Uses a target that cannot resolve, so this asserts parameter BINDING
             // without reparenting anything: the call still fails, but not as a validation failure.
-            var request = new CommandExecutionRequest("set_parent");
+            var request = new CommandExecutionRequest("gameobject set_parent");
             request.Parameters["target"] = "/CLI978_no_such_object";
             request.Parameters["parent"] = "";
 
@@ -826,7 +826,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_ArgvForm_ExecutesTheCommand()
         {
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "test_types", "--count", "5" } });
+                new { argv = new[] { "global", "test_types", "--count", "5" } });
 
             Assert.AreEqual(200, response.StatusCode, $"Response: {response.RawResponse}");
             Assert.IsTrue(response.IsCommandSuccess, $"Response: {response.RawResponse}");
@@ -848,7 +848,7 @@ namespace Unity.Pipeline.Tests.Editor
             // The CLI renders this in four output formats; without the echo it has nothing
             // to show, because it no longer binds client-side.
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "test_types", "--count", "5" } });
+                new { argv = new[] { "global", "test_types", "--count", "5" } });
 
             var echoed = response.JsonResponse["parameters"] as JObject;
             Assert.IsNotNull(echoed, $"argv requests must echo bound parameters. Response: {response.RawResponse}");
@@ -859,7 +859,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_StructuredForm_DoesNotEchoParameters()
         {
             // Back-compat: the structured path's envelope must not grow a key.
-            var request = new CommandExecutionRequest("test_types");
+            var request = new CommandExecutionRequest("global test_types");
             request.Parameters["count"] = 5;
 
             var response = await m_PipelineClient.PostJsonAsync("/api/exec", request);
@@ -873,7 +873,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // argv is already split; re-splitting it would corrupt any value containing a space.
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor", "hello world" } });
+                new { argv = new[] { "global", "log_editor", "hello world" } });
 
             var echoed = response.JsonResponse["parameters"] as JObject;
             Assert.IsNotNull(echoed, $"Response: {response.RawResponse}");
@@ -897,7 +897,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_CommandAndArgvTogether_IsRejected()
         {
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { command = "test_types", argv = new[] { "test_types" } });
+                new { command = "global test_types", argv = new[] { "global", "test_types" } });
 
             Assert.AreEqual(400, response.StatusCode, $"Response: {response.RawResponse}");
         }
@@ -906,7 +906,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_ArgvAndCommandLineTogether_IsRejected()
         {
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "test_types" }, commandLine = "test_types" });
+                new { argv = new[] { "global", "test_types" }, commandLine = "global test_types" });
 
             Assert.AreEqual(400, response.StatusCode, $"Response: {response.RawResponse}");
         }
@@ -917,7 +917,7 @@ namespace Unity.Pipeline.Tests.Editor
             // Silently dropping the payload would recreate exactly the absent-vs-null
             // ambiguity this codebase legislates against in the lean envelope.
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "test_types" }, parameters = new { count = 5 } });
+                new { argv = new[] { "global", "test_types" }, parameters = new { count = 5 } });
 
             Assert.AreEqual(400, response.StatusCode, $"Response: {response.RawResponse}");
         }
@@ -946,7 +946,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_UnknownFlag_ReturnsInvalidCommandArgsWithProblemsAndSchema()
         {
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor", "--mesage", "hi" } });
+                new { argv = new[] { "global", "log_editor", "--mesage", "hi" } });
 
             Assert.AreEqual(400, response.StatusCode, $"Response: {response.RawResponse}");
 
@@ -966,7 +966,7 @@ namespace Unity.Pipeline.Tests.Editor
             // so the CLI's existing renderer consumes it with no new code.
             var schema = json["commandSchema"] as JObject;
             Assert.IsNotNull(schema, "an argument error must carry the command's schema");
-            Assert.AreEqual("log_editor", schema["name"]?.ToString());
+            Assert.AreEqual("global log_editor", schema["command"]?.ToString());
             Assert.IsNotNull(schema["parameters"] as JArray);
         }
 
@@ -974,7 +974,7 @@ namespace Unity.Pipeline.Tests.Editor
         public async Task ApiExec_TypeMismatch_ReturnsTypeMismatchProblem()
         {
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "test_types", "--count", "abc" } });
+                new { argv = new[] { "global", "test_types", "--count", "abc" } });
 
             Assert.AreEqual(400, response.StatusCode, $"Response: {response.RawResponse}");
 
@@ -1037,17 +1037,17 @@ namespace Unity.Pipeline.Tests.Editor
             // built without generating that schema at all. Pinning both halves keeps the shape
             // from drifting when the wasteful generate-then-discard is removed.
             var error = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor", "--mesage", "hi" } });
+                new { argv = new[] { "global", "log_editor", "--mesage", "hi" } });
             Assert.AreEqual(400, error.StatusCode, $"Response: {error.RawResponse}");
 
             var entry = error.JsonResponse["commandSchema"] as JObject;
             Assert.IsNotNull(entry, $"Response: {error.RawResponse}");
             Assert.IsNull(entry["schema"], "the generated schema must not ride along on an error");
 
-            var catalogHttp = await m_PipelineClient.GetHttpAsync("/api/commands");
+            var catalogHttp = await m_PipelineClient.GetHttpAsync("/api/commands?include_tests=true");
             var catalog = JObject.Parse(await catalogHttp.Content.ReadAsStringAsync());
             var served = (catalog["commands"] as JArray)
-                ?.FirstOrDefault(c => c["name"]?.ToString() == "log_editor") as JObject;
+                ?.FirstOrDefault(c => c["command"]?.ToString() == "global log_editor") as JObject;
             Assert.IsNotNull(served, "log_editor must be in the catalog");
             Assert.IsNotNull(served["schema"], "/api/commands still carries the generated schema");
 
@@ -1090,7 +1090,7 @@ namespace Unity.Pipeline.Tests.Editor
             // ApiExec_RawFormMissingRequiredParameter_ReportsTheSameMessageInBothForms, which is
             // a stronger check than the log line this used to expect.
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor" } });
+                new { argv = new[] { "global", "log_editor" } });
 
             Assert.AreEqual(400, response.StatusCode, $"Response: {response.RawResponse}");
             Assert.AreEqual("Parameter Validation Failed", response.JsonResponse["error"]?.ToString());
@@ -1104,9 +1104,9 @@ namespace Unity.Pipeline.Tests.Editor
             // Reply-shape flags are captured before the raw-form branch, so a malformed
             // command line still honours them.
             var lean = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor", "--mesage", "hi" } });
+                new { argv = new[] { "global", "log_editor", "--mesage", "hi" } });
             var verbose = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor", "--mesage", "hi" }, verbose = true });
+                new { argv = new[] { "global", "log_editor", "--mesage", "hi" }, verbose = true });
 
             Assert.AreEqual(400, lean.StatusCode);
             Assert.AreEqual(400, verbose.StatusCode);
@@ -1162,7 +1162,7 @@ namespace Unity.Pipeline.Tests.Editor
             // returned 200 plus an id, and only failed later inside the detached run. A client
             // polling that id learns minutes later what was knowable up front.
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor" }, job = true });
+                new { argv = new[] { "global", "log_editor" }, job = true });
 
             Assert.AreEqual(400, response.StatusCode, $"Response: {response.RawResponse}");
             Assert.IsNull(response.JsonResponse["result"], "no job id for a known-invalid submission");
@@ -1178,9 +1178,9 @@ namespace Unity.Pipeline.Tests.Editor
             LogAssert.Expect(LogType.Error, "ExecuteCommandByName: Parameter validation failed: Required parameter 'message' is missing or empty");
 
             var viaArgv = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor" } });
+                new { argv = new[] { "global", "log_editor" } });
             var viaStructured = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new CommandExecutionRequest("log_editor"));
+                new CommandExecutionRequest("global log_editor"));
 
             Assert.AreEqual(400, viaArgv.StatusCode);
             Assert.AreEqual(400, viaStructured.StatusCode);
@@ -1223,7 +1223,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             // A mistyped parameter must not return a job id and exit 0.
             var response = await m_PipelineClient.PostJsonAsync("/api/exec",
-                new { argv = new[] { "log_editor", "--mesage", "hi" }, job = true });
+                new { argv = new[] { "global", "log_editor", "--mesage", "hi" }, job = true });
 
             Assert.AreEqual(400, response.StatusCode, $"Response: {response.RawResponse}");
             Assert.IsNull(response.JsonResponse["result"], "no job id for a malformed command line");

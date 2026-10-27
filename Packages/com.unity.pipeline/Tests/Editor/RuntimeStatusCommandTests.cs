@@ -17,7 +17,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void GetRuntimeStatus_ReturnsValidData()
         {
-            var response = RuntimeStatusCommand.GetRuntimeStatus();
+            var response = RuntimeStatusCommand.Status();
 
             Assert.IsNotNull(response);
             Assert.IsNotEmpty(response.UnityVersion, "Should have Unity version");
@@ -34,7 +34,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             try
             {
-                var response = RuntimeStatusCommand.GetRuntimeStatus();
+                var response = RuntimeStatusCommand.Status();
 
                 Assert.IsNull(response.PipelineDriver, "No driver was ever bootstrapped in this test, so there is nothing to report");
             }
@@ -55,22 +55,19 @@ namespace Unity.Pipeline.Tests.Editor
             try
             {
                 var config = ScriptableObject.CreateInstance<RuntimePipelineConfig>();
-                config.enableInBuilds = true;
-                config.requestTimeoutMs = 12345;
+
                 config.enableAuditLogging = false;
                 config.autoStart = false;
                 config.maxWorkItemsPerFrame = 17;
                 config.Save();
                 Object.DestroyImmediate(config);
 
-                var driver = RuntimePipelineBootstrap.Bootstrap();
+                var driver = RuntimePipelineBootstrap.Bootstrap(true);
                 driverGameObject = driver != null ? driver.gameObject : null;
 
-                var response = RuntimeStatusCommand.GetRuntimeStatus();
+                var response = RuntimeStatusCommand.Status();
 
                 Assert.IsNotNull(response.PipelineDriver);
-                Assert.IsTrue(response.PipelineDriver.EnableInBuilds);
-                Assert.AreEqual(12345, response.PipelineDriver.RequestTimeoutMs);
                 Assert.IsFalse(response.PipelineDriver.EnableAuditLogging);
                 Assert.IsFalse(response.PipelineDriver.AutoStart);
                 Assert.AreEqual(17, response.PipelineDriver.MaxWorkItemsPerFrame);
@@ -95,7 +92,7 @@ namespace Unity.Pipeline.Tests.Editor
         {
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("runtime_status", null);
+                var response = server.Execute("runtime status", null);
 
                 Assert.IsTrue(response.IsSuccess, $"Command should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");

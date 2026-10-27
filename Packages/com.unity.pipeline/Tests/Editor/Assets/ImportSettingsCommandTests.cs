@@ -417,7 +417,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("get_import_settings", new
+                var response = server.Execute("asset get_import_settings", new
                 {
                     asset = new { path },
                     platform = "Android"

@@ -17,11 +17,11 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_animation_clip --path Animations/Walk.anim --frameRate 60 --loop true
-unity command create_animation_clip --path Animations/Walk.anim --confirm true  # overwrite only
+unity command animation.clip create --path Animations/Walk.anim --frameRate 60 --loop true
+unity command animation.clip create --path Animations/Walk.anim --confirm true  # overwrite only
 ```
 
 ## Notes
 
-Use a path under the authoring root. Create curves separately with `set_animation_curve`, then read the clip back before continuing.
+Use a path under the authoring root. Create curves separately with `animation.clip set_curve`, then read the clip back before continuing.
 

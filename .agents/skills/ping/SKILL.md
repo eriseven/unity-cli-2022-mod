@@ -18,10 +18,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 
 ```powershell
 unity pipeline list
-unity command editor_status
+unity command editor status
 ```
 
 ## Notes
 
-`editor_status` is the Pipeline replacement for an MCP ping. If no server is reachable, open the project in Unity and verify the Pipeline package/server instead of retrying old MCP commands.
+`editor status` is the Pipeline replacement for an MCP ping. If no server is reachable, open the project in Unity and verify the Pipeline package/server instead of retrying old MCP commands.
 

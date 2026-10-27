@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command get_animation_clip --clip Assets/Animations/Walk.anim --includeKeys true
+unity command animation.clip get --clip Assets/Animations/Walk.anim --includeKeys true
 unity command get_animation_clip_details --clip Assets/Animations/Walk.anim
 ```
 

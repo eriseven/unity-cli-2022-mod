@@ -35,9 +35,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             Assert.IsTrue(response.Success);
             Assert.AreEqual("runtime_pipeline", response.Group);
-            Assert.AreEqual(false, response.Values["enableInBuilds"]);
             Assert.AreEqual(0, response.Values["port"]);
-            Assert.AreEqual(30000, response.Values["requestTimeoutMs"]);
             Assert.AreEqual(true, response.Values["enableAuditLogging"]);
             Assert.AreEqual(true, response.Values["autoStart"]);
             Assert.AreEqual(10, response.Values["maxWorkItemsPerFrame"]);
@@ -101,8 +99,6 @@ namespace Unity.Pipeline.Tests.Editor
         {
             new TestCaseData(new RuntimePipelineSettingsInput { Port = -1 }).SetName("Set_PortBelowRange_RejectedAndNotApplied"),
             new TestCaseData(new RuntimePipelineSettingsInput { Port = 65536 }).SetName("Set_PortAboveRange_RejectedAndNotApplied"),
-            new TestCaseData(new RuntimePipelineSettingsInput { RequestTimeoutMs = 999 }).SetName("Set_RequestTimeoutMsBelowRange_RejectedAndNotApplied"),
-            new TestCaseData(new RuntimePipelineSettingsInput { RequestTimeoutMs = 60001 }).SetName("Set_RequestTimeoutMsAboveRange_RejectedAndNotApplied"),
             new TestCaseData(new RuntimePipelineSettingsInput { MaxWorkItemsPerFrame = 0 }).SetName("Set_MaxWorkItemsPerFrameBelowRange_RejectedAndNotApplied"),
             new TestCaseData(new RuntimePipelineSettingsInput { MaxWorkItemsPerFrame = 51 }).SetName("Set_MaxWorkItemsPerFrameAboveRange_RejectedAndNotApplied"),
         };
@@ -121,18 +117,18 @@ namespace Unity.Pipeline.Tests.Editor
         public void Set_Confirmed_AppliesAndPersists()
         {
             var response = RuntimePipelineSettingsCommands.Set(
-                new RuntimePipelineSettingsInput { EnableInBuilds = true, Port = 7950, MaxWorkItemsPerFrame = 20 },
+                new RuntimePipelineSettingsInput { AutoStart = false, Port = 7950, MaxWorkItemsPerFrame = 20 },
                 confirm: true);
 
             Assert.IsTrue(response.Success);
             Assert.IsTrue(response.Applied);
-            Assert.AreEqual(true, response.Values["enableInBuilds"]);
+            Assert.AreEqual(false, response.Values["autoStart"]);
             Assert.AreEqual(7950, response.Values["port"]);
             Assert.AreEqual(20, response.Values["maxWorkItemsPerFrame"]);
 
             var persisted = RuntimePipelineConfig.Load();
             Assert.IsNotNull(persisted);
-            Assert.IsTrue(persisted.enableInBuilds);
+            Assert.IsFalse(persisted.autoStart);
             Assert.AreEqual(7950, persisted.port);
             Assert.AreEqual(20, persisted.maxWorkItemsPerFrame);
         }
@@ -140,11 +136,11 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void Set_OmittedFields_LeftUnchanged()
         {
-            RuntimePipelineSettingsCommands.Set(new RuntimePipelineSettingsInput { RequestTimeoutMs = 45000 }, confirm: true);
+            RuntimePipelineSettingsCommands.Set(new RuntimePipelineSettingsInput { MaxWorkItemsPerFrame = 45 }, confirm: true);
 
             var response = RuntimePipelineSettingsCommands.Set(new RuntimePipelineSettingsInput { Port = 7910 }, confirm: true);
 
-            Assert.AreEqual(45000, response.Values["requestTimeoutMs"], "A field omitted from this call must keep its prior value");
+            Assert.AreEqual(45, response.Values["maxWorkItemsPerFrame"], "A field omitted from this call must keep its prior value");
             Assert.AreEqual(7910, response.Values["port"]);
         }
 
@@ -161,6 +157,7 @@ namespace Unity.Pipeline.Tests.Editor
             var configFieldNames = typeof(RuntimePipelineConfig)
                 .GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .Select(f => f.Name)
+                .Concat(new[] { "enableInDevelopmentBuilds", "enableInReleaseBuilds" })
                 .ToArray();
 
             var expectedPropertyNames = configFieldNames
@@ -185,6 +182,7 @@ namespace Unity.Pipeline.Tests.Editor
             var configFieldNames = typeof(RuntimePipelineConfig)
                 .GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .Select(f => f.Name)
+                .Concat(new[] { "enableInDevelopmentBuilds", "enableInReleaseBuilds" })
                 .ToArray();
 
             var response = RuntimePipelineSettingsCommands.Get();
@@ -201,7 +199,7 @@ namespace Unity.Pipeline.Tests.Editor
         /// enforces): if either changes without the other, this fails loudly instead of the two
         /// silently disagreeing about what's a valid value.
         /// </summary>
-        [TestCase("MinRequestTimeoutMs", "MaxRequestTimeoutMs", nameof(RuntimePipelineConfig.requestTimeoutMs))]
+
         [TestCase("MinMaxWorkItemsPerFrame", "MaxMaxWorkItemsPerFrame", nameof(RuntimePipelineConfig.maxWorkItemsPerFrame))]
         public void ValidationBounds_MatchRuntimePipelineConfigRangeAttributes(string minConstName, string maxConstName, string configFieldName)
         {

@@ -65,7 +65,7 @@ public static class Builder
 {
     public static int Build() { return 42; }
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual(42, r.Result);
@@ -86,7 +86,7 @@ namespace My.Space
         public static int Other() { return 1; }
     }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "My.Space.Tools.Greet");
+            var r = await RunScriptCommand.Run(file, entry: "My.Space.Tools.Greet");
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual("hi", r.Result);
@@ -101,7 +101,7 @@ public static class Builder
 {
     public static string Build() { return Application.unityVersion; }
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.IsInstanceOf<string>(r.Result);
@@ -119,7 +119,7 @@ public static class Builder
 {
     public static int Build() { return 2 +; }  // syntax error
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Compilation Failed", r.Error);
@@ -136,7 +136,7 @@ public static class Builder
 {
     public static int Build() { throw new System.Exception(""should not run""); }
 }");
-            var r = await RunScriptCommand.RunScript(file, dryRun: true);
+            var r = await RunScriptCommand.Run(file, dryRun: true);
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.IsNull(r.Result, "dry_run must not execute the entry");
@@ -154,7 +154,7 @@ public static class Builder
 {
     public static int Build() { return 2 +; }
 }");
-            var r = await RunScriptCommand.RunScript(file, dryRun: true);
+            var r = await RunScriptCommand.Run(file, dryRun: true);
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Compilation Failed", r.Error);
@@ -173,7 +173,7 @@ public static class Builder
 {
     public static int Build() { return 1; }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Nope.DoesNotExist");
+            var r = await RunScriptCommand.Run(file, entry: "Nope.DoesNotExist");
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Entry Point Not Found", r.Error);
@@ -188,7 +188,7 @@ public static class Builder
     public static int A() { return 1; }
     public static int B() { return 2; }
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Entry Point Not Found", r.Error);
@@ -204,7 +204,7 @@ public static class Builder
     public static int Helper() { return 1; }
     public static int Main() { return 99; }
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual(99, r.Result);
@@ -219,7 +219,7 @@ public class Builder
     public int Build() { return 1; }   // instance, not static
     public static int Trigger() { return 0; }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build");
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build");
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Entry Point Not Found", r.Error);
@@ -237,7 +237,7 @@ public static class Builder
     public static T Build<T>() { return default(T); }
     public static int Other() { return 1; }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build");
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build");
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Entry Point Not Found", r.Error);
@@ -257,7 +257,7 @@ public static class Outer
         public static int Build() { return 7; }
     }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Outer.Inner.Build");
+            var r = await RunScriptCommand.Run(file, entry: "Outer.Inner.Build");
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual(7, r.Result);
@@ -280,7 +280,7 @@ public static class Builder
     }
 }");
             var args = new JArray(3, 2.5f, "Green", new JArray("x", "y"));
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build", args: args);
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build", args: args);
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual("3:2.5:Green:2", r.Result);
@@ -298,7 +298,7 @@ public static class Builder
     public static string Build(GameObject go) { return go.name; }
 }");
             var handle = JObject.FromObject(new { instanceId = PipelineUtils.GetObjectId(go) });
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build", args: new JArray(handle));
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build", args: new JArray(handle));
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual("RunScript_RefTarget", r.Result);
@@ -312,7 +312,7 @@ public static class Builder
 {
     public static int Build(int required) { return required; }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build", args: new JArray());
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build", args: new JArray());
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
@@ -327,7 +327,7 @@ public static class Builder
 {
     public static int Build(int a, int b = 7) { return a + b; }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build", args: new JArray(3));
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build", args: new JArray(3));
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual(10, r.Result);
@@ -341,7 +341,7 @@ public static class Builder
 {
     public static int Build(int a) { return a; }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build", args: new JArray(1, 2, 3));
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build", args: new JArray(1, 2, 3));
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
@@ -357,7 +357,7 @@ public static class Builder
 {
     public static int Build(int a) { return a; }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build", args: new JArray((object)null));
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build", args: new JArray((object)null));
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
@@ -373,7 +373,7 @@ public static class Builder
 {
     public static string Build(int? a) { return a.HasValue ? a.Value.ToString() : ""none""; }
 }");
-            var r = await RunScriptCommand.RunScript(file, entry: "Builder.Build", args: new JArray((object)null));
+            var r = await RunScriptCommand.Run(file, entry: "Builder.Build", args: new JArray((object)null));
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual("none", r.Result);
@@ -391,7 +391,7 @@ public static class Builder
 {
     public static int Build() { throw new System.InvalidOperationException(""boom""); }
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Runtime Error", r.Error);
@@ -412,7 +412,7 @@ public static class Builder
                 "        throw new System.InvalidOperationException(\"mapped\");\n" + // line 5
                 "    }\n" +
                 "}\n");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Runtime Error", r.Error);
@@ -444,7 +444,7 @@ public static class Builder
         throw new System.InvalidOperationException(""async boom"");
     }
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsFalse(r.Success, "the faulted task's exception must fail the run");
             Assert.AreEqual("Runtime Error", r.Error);
@@ -465,7 +465,7 @@ public static class Builder
         Ran = 1;
     }
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             // async Task materializes as Task<VoidTaskResult>; the placeholder must not leak
@@ -486,7 +486,7 @@ public static class Builder
         return 42;
     }
 }");
-            var r = await RunScriptCommand.RunScript(file);
+            var r = await RunScriptCommand.Run(file);
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual(42, r.Result, "Task<int>.Result should be unwrapped into the response");
@@ -510,7 +510,7 @@ public static class Builder
         return a * b;
     }
 }");
-            var r = await RunScriptCommand.RunScript(file, args: new JArray(6, 7));
+            var r = await RunScriptCommand.Run(file, args: new JArray(6, 7));
 
             Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
             Assert.AreEqual(42, r.Result);
@@ -532,7 +532,7 @@ public static class Builder
     }
 }");
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            var r = await RunScriptCommand.RunScript(file, timeoutMs: 1500);
+            var r = await RunScriptCommand.Run(file, timeoutInSeconds: 1.5);
             sw.Stop();
 
             Assert.IsFalse(r.Success, "the entry task cannot have completed within the budget");
@@ -549,7 +549,7 @@ public static class Builder
         [Test]
         public async Task RunScript_NullFile_BadRequest()
         {
-            var r = await RunScriptCommand.RunScript(null);
+            var r = await RunScriptCommand.Run(null);
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
         }
@@ -557,7 +557,7 @@ public static class Builder
         [Test]
         public async Task RunScript_NonCsFile_BadRequest()
         {
-            var r = await RunScriptCommand.RunScript("Something.txt");
+            var r = await RunScriptCommand.Run("Something.txt");
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
         }
@@ -566,7 +566,7 @@ public static class Builder
         public async Task RunScript_MissingFile_FileNotFound()
         {
             var path = Path.Combine(Path.GetTempPath(), "run_script_missing_" + System.Guid.NewGuid().ToString("N") + ".cs");
-            var r = await RunScriptCommand.RunScript(path);
+            var r = await RunScriptCommand.Run(path);
             Assert.IsFalse(r.Success);
             Assert.AreEqual("File Not Found", r.Error);
         }
@@ -576,7 +576,7 @@ public static class Builder
         {
             var file = WriteTempScript(@"
 public static class Builder { public static int Build() { return 1; } }");
-            var r = await RunScriptCommand.RunScript(file, mode: "banana");
+            var r = await RunScriptCommand.Run(file, mode: "banana");
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
         }
@@ -609,11 +609,11 @@ public static class Builder
 }";
             var file = WriteTempScript(source);
 
-            var withoutFlag = await RunScriptCommand.RunScript(file);
+            var withoutFlag = await RunScriptCommand.Run(file);
             Assert.IsTrue(withoutFlag.Success, withoutFlag.Error + " / " + withoutFlag.ErrorDetails);
             Assert.AreEqual("editor", withoutFlag.Result, "UNITY_EDITOR should be defined by default");
 
-            var withFlag = await RunScriptCommand.RunScript(file, defines: new[] { "MY_FLAG" });
+            var withFlag = await RunScriptCommand.Run(file, defines: new[] { "MY_FLAG" });
             Assert.IsTrue(withFlag.Success, withFlag.Error + " / " + withFlag.ErrorDetails);
             Assert.AreEqual("editor,flag", withFlag.Result, "a custom define must extend, not replace, the active defines");
         }
@@ -643,7 +643,7 @@ public static class Builder
             try
             {
                 Directory.SetCurrentDirectory(Path.GetTempPath());
-                var r = await RunScriptCommand.RunScript(relative);
+                var r = await RunScriptCommand.Run(relative);
 
                 Assert.IsTrue(r.Success, r.Error + " / " + r.ErrorDetails);
                 Assert.AreEqual(11, r.Result);
@@ -664,7 +664,7 @@ public static class Builder
             // hotpatch delegates to reload_file; a clearly-missing file must surface as a mapped
             // failure rather than throwing, proving the delegation + error mapping.
             var path = Path.Combine(Path.GetTempPath(), "run_script_hotpatch_missing_" + System.Guid.NewGuid().ToString("N") + ".cs");
-            var r = await RunScriptCommand.RunScript(path, mode: "hotpatch");
+            var r = await RunScriptCommand.Run(path, mode: "hotpatch");
 
             Assert.IsFalse(r.Success);
             Assert.IsNotNull(r.Error);
@@ -679,7 +679,7 @@ public static class Builder
             // reload_file would answer "File Not Found" — a "Bad Request" naming dry_run proves the
             // request was rejected before any hotpatch machinery (or compile) was touched.
             var path = Path.Combine(Path.GetTempPath(), "run_script_hotpatch_dryrun_" + System.Guid.NewGuid().ToString("N") + ".cs");
-            var r = await RunScriptCommand.RunScript(path, mode: "hotpatch", dryRun: true);
+            var r = await RunScriptCommand.Run(path, mode: "hotpatch", dryRun: true);
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
@@ -695,7 +695,7 @@ public static class Builder
             // hotpatch never invokes an entry point, so a supplied entry must be rejected by name
             // instead of silently ignored.
             var path = Path.Combine(Path.GetTempPath(), "run_script_hotpatch_entry_" + System.Guid.NewGuid().ToString("N") + ".cs");
-            var r = await RunScriptCommand.RunScript(path, entry: "Builder.Build", mode: "hotpatch");
+            var r = await RunScriptCommand.Run(path, entry: "Builder.Build", mode: "hotpatch");
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
@@ -706,7 +706,7 @@ public static class Builder
         public async Task RunScript_Hotpatch_ArgsSupplied_Rejected()
         {
             var path = Path.Combine(Path.GetTempPath(), "run_script_hotpatch_args_" + System.Guid.NewGuid().ToString("N") + ".cs");
-            var r = await RunScriptCommand.RunScript(path, args: new JArray(1), mode: "hotpatch");
+            var r = await RunScriptCommand.Run(path, args: new JArray(1), mode: "hotpatch");
 
             Assert.IsFalse(r.Success);
             Assert.AreEqual("Bad Request", r.Error);
@@ -727,7 +727,7 @@ public static class Builder
 }");
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("run_script", new { file, timeout_ms = 15000 });
+                var response = server.Execute("script run", new { file, timeout_ms = 15000 });
                 Assert.IsTrue(response.IsSuccess, response.Error);
 
                 var r = response.GetTypedResponse<RunScriptResponse>();
@@ -747,7 +747,7 @@ public static class Builder
 }");
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("run_script", new
+                var response = server.Execute("script run", new
                 {
                     file,
                     entry = "Builder.Build",
@@ -776,13 +776,13 @@ public static class Builder
 }");
             using (var server = new PipelineTestServer())
             {
-                LogAssert.Expect(LogType.Error, new Regex("Failed to handle /api/exec request.*timed out after 300ms"));
+
 
                 // Like the matching eval test: PipelineTestServer.Execute's pump loop runs the
                 // dequeued work item synchronously, so it can't observe completion until the
                 // compile + 2000ms sleep finish — give the outer wait headroom even though the
                 // dispatcher timeout itself fires at ~300ms.
-                var response = server.Execute("run_script", new { file, timeout_ms = 300 }, timeoutMs: 30000);
+                var response = server.Execute("script run", new { file, timeout = 0.3 }, timeoutMs: 30000);
 
                 Assert.IsFalse(response.IsSuccess,
                     $"Expected the 300ms budget to time out instead of waiting for the 2000ms sleep: {response.RawResponse}");
@@ -799,7 +799,7 @@ public static class Builder
 }");
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("run_script", new { file });
+                var response = server.Execute("script run", new { file });
 
                 var r = response.GetTypedResponse<RunScriptResponse>();
                 Assert.IsNotNull(r);

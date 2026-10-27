@@ -34,7 +34,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         private string CreateController(string name)
         {
             var path = $"{Root}/{name}.controller";
-            AnimatorControllerCommands.CreateAnimatorController(path);
+            AnimatorControllerCommands.CreateController(path);
             return path;
         }
 
@@ -43,7 +43,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         {
             var path = CreateController("Empty");
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             Assert.AreEqual(1, info.Layers.Count, "A new controller should have exactly one (Base) layer");
             Assert.AreEqual(0, info.Layers[0].States.Count, "Base Layer should start with no states");
             Assert.AreEqual(0, info.Parameters.Count);
@@ -54,16 +54,16 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         {
             var path = CreateController("Params");
 
-            var added = AnimatorControllerCommands.AddAnimatorParameter(PathRef(path), "Speed", "Float", new JValue(0f));
+            var added = AnimatorControllerCommands.AddParameter(PathRef(path), "Speed", "Float", new JValue(0f));
             Assert.IsInstanceOf<AddParameterResult>(added);
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             Assert.AreEqual(1, info.Parameters.Count);
             Assert.AreEqual("Speed", info.Parameters[0].Name);
             Assert.AreEqual("Float", info.Parameters[0].ParamType);
 
             // Duplicate name => structured error, not exception.
-            var dup = AnimatorControllerCommands.AddAnimatorParameter(PathRef(path), "Speed", "Float");
+            var dup = AnimatorControllerCommands.AddParameter(PathRef(path), "Speed", "Float");
             Assert.IsInstanceOf<ErrorResult>(dup);
             Assert.AreEqual("duplicate_parameter", ((ErrorResult)dup).Code);
         }
@@ -73,11 +73,11 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         {
             var path = CreateController("Layers");
 
-            var added = AnimatorControllerCommands.AddAnimatorLayer(PathRef(path), "Upper", weight: 0.5f, blendingMode: "Additive");
+            var added = AnimatorControllerCommands.AddLayer(PathRef(path), "Upper", weight: 0.5f, blendingMode: "Additive");
             Assert.IsInstanceOf<AddLayerResult>(added);
             Assert.AreEqual(1, ((AddLayerResult)added).Layer.Index);
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             Assert.AreEqual(2, info.Layers.Count);
             Assert.AreEqual("Upper", info.Layers[1].Name);
         }
@@ -89,13 +89,13 @@ namespace Unity.Pipeline.Tests.Editor.Animation
 
             // A clip to use as the state motion.
             var clipPath = Root + "/Idle.anim";
-            AnimationClipCommands.CreateAnimationClip(clipPath);
+            AnimationClipCommands.Create(clipPath);
 
-            var added = AnimatorControllerCommands.AddAnimatorState(
+            var added = AnimatorControllerCommands.AddState(
                 PathRef(path), layer: null, name: "Idle", motion: PathRef(clipPath), isDefault: true);
             Assert.IsInstanceOf<AddStateResult>(added);
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             Assert.AreEqual(1, info.Layers[0].States.Count);
             var state = info.Layers[0].States[0];
             Assert.AreEqual("Idle", state.Name);
@@ -109,7 +109,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         {
             var path = CreateController("BadLayer");
 
-            var result = AnimatorControllerCommands.AddAnimatorState(
+            var result = AnimatorControllerCommands.AddState(
                 PathRef(path), layer: new JValue("NoSuchLayer"), name: "S");
             Assert.IsInstanceOf<ErrorResult>(result);
             Assert.AreEqual("layer_not_found", ((ErrorResult)result).Code);
@@ -119,20 +119,20 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void AddTransition_WithCondition()
         {
             var path = CreateController("Transitions");
-            AnimatorControllerCommands.AddAnimatorParameter(PathRef(path), "Speed", "Float", new JValue(0f));
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Idle");
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Run");
+            AnimatorControllerCommands.AddParameter(PathRef(path), "Speed", "Float", new JValue(0f));
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Idle");
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Run");
 
             var conditions = new JArray
             {
                 new JObject { ["parameter"] = "Speed", ["mode"] = "Greater", ["threshold"] = 0.1f }
             };
-            var added = AnimatorControllerCommands.AddAnimatorTransition(
+            var added = AnimatorControllerCommands.AddTransition(
                 PathRef(path), null, "Idle", "Run", conditions);
             Assert.IsInstanceOf<AddTransitionResult>(added);
             Assert.AreEqual(1, ((AddTransitionResult)added).Transition.ConditionCount);
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             var transitions = info.Layers[0].Transitions;
             Assert.AreEqual(1, transitions.Count);
             Assert.AreEqual("Idle", transitions[0].From);
@@ -146,8 +146,8 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void AddTransition_UnknownParameter_ThrowsAndWritesNothing()
         {
             var path = CreateController("BadParam");
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Idle");
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Run");
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Idle");
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Run");
 
             var conditions = new JArray
             {
@@ -155,10 +155,10 @@ namespace Unity.Pipeline.Tests.Editor.Animation
             };
 
             var ex = Assert.Throws<System.ArgumentException>(
-                () => AnimatorControllerCommands.AddAnimatorTransition(PathRef(path), null, "Idle", "Run", conditions));
+                () => AnimatorControllerCommands.AddTransition(PathRef(path), null, "Idle", "Run", conditions));
             StringAssert.Contains("Ghost", ex.Message, "error should name the offending parameter");
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             Assert.AreEqual(0, info.Layers[0].Transitions.Count, "nothing should be written on a bad condition");
         }
 
@@ -166,9 +166,9 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void AddTransition_ModeTypeMismatch_Throws()
         {
             var path = CreateController("Mismatch");
-            AnimatorControllerCommands.AddAnimatorParameter(PathRef(path), "Speed", "Float", new JValue(0f));
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Idle");
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Run");
+            AnimatorControllerCommands.AddParameter(PathRef(path), "Speed", "Float", new JValue(0f));
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Idle");
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Run");
 
             // "If" is only valid for Bool/Trigger, not a Float parameter.
             var conditions = new JArray
@@ -177,7 +177,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
             };
 
             Assert.Throws<System.ArgumentException>(
-                () => AnimatorControllerCommands.AddAnimatorTransition(PathRef(path), null, "Idle", "Run", conditions));
+                () => AnimatorControllerCommands.AddTransition(PathRef(path), null, "Idle", "Run", conditions));
         }
 
         [Test]
@@ -186,7 +186,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
             var path = CreateController("FractionalLayer");
 
             // 0.9 must NOT be silently rounded to layer 1; a non-integer index is rejected.
-            var result = AnimatorControllerCommands.AddAnimatorState(
+            var result = AnimatorControllerCommands.AddState(
                 PathRef(path), layer: new JValue(0.9d), name: "S");
             Assert.IsInstanceOf<ErrorResult>(result);
             Assert.AreEqual("layer_not_found", ((ErrorResult)result).Code);
@@ -198,7 +198,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
             var path = CreateController("IntFloatLayer");
 
             // 0.0 is an integer-valued float and resolves to the Base Layer (index 0).
-            var added = AnimatorControllerCommands.AddAnimatorState(
+            var added = AnimatorControllerCommands.AddState(
                 PathRef(path), layer: new JValue(0d), name: "Idle");
             Assert.IsInstanceOf<AddStateResult>(added);
             Assert.AreEqual(0, ((AddStateResult)added).State.Layer);
@@ -208,14 +208,14 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void AddTransition_ExitTimeOutOfRange_Throws()
         {
             var path = CreateController("BadExitTime");
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Idle");
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Run");
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Idle");
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Run");
 
             Assert.Throws<System.ArgumentException>(
-                () => AnimatorControllerCommands.AddAnimatorTransition(
+                () => AnimatorControllerCommands.AddTransition(
                     PathRef(path), null, "Idle", "Run", conditions: null, hasExitTime: true, exitTime: 1.5f));
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             Assert.AreEqual(0, info.Layers[0].Transitions.Count, "an out-of-range exitTime must write nothing");
         }
 
@@ -223,14 +223,14 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         public void AddTransition_NegativeDuration_Throws()
         {
             var path = CreateController("BadDuration");
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Idle");
-            AnimatorControllerCommands.AddAnimatorState(PathRef(path), null, "Run");
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Idle");
+            AnimatorControllerCommands.AddState(PathRef(path), null, "Run");
 
             Assert.Throws<System.ArgumentException>(
-                () => AnimatorControllerCommands.AddAnimatorTransition(
+                () => AnimatorControllerCommands.AddTransition(
                     PathRef(path), null, "Idle", "Run", conditions: null, duration: -1f));
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             Assert.AreEqual(0, info.Layers[0].Transitions.Count, "a negative duration must write nothing");
         }
 
@@ -239,9 +239,9 @@ namespace Unity.Pipeline.Tests.Editor.Animation
         {
             var path = CreateController("DryParam");
 
-            AnimatorControllerCommands.AddAnimatorParameter(PathRef(path), "Speed", "Float", new JValue(0f), dryRun: true);
+            AnimatorControllerCommands.AddParameter(PathRef(path), "Speed", "Float", new JValue(0f), dryRun: true);
 
-            var info = AnimatorControllerCommands.GetAnimatorController(PathRef(path));
+            var info = AnimatorControllerCommands.GetController(PathRef(path));
             Assert.AreEqual(0, info.Parameters.Count, "dry_run must not write a parameter");
         }
 
@@ -251,7 +251,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
             using (var server = new PipelineTestServer())
             {
                 var path = Root + "/ViaClient/Made.controller";
-                var response = server.Execute("create_animator_controller", new { path });
+                var response = server.Execute("animation.animator create_controller", new { path });
 
                 Assert.IsTrue(response.IsSuccess, $"create_animator_controller should succeed: {response.Error}");
                 Assert.IsNotNull(AssetDatabase.LoadMainAssetAtPath(path), "Controller should exist on disk");

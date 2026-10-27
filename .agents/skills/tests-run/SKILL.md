@@ -17,14 +17,14 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_autotick --enable true
-unity command list_tests --mode editor
-unity command run_tests --mode editor --filter MyFixture.MyTest
-unity command run_tests --mode playmode --filter CategoryName --filter_type category --async_tests true
-unity command test_status
+unity command editor set_auto_tick --enable true
+unity command test list --mode editor
+unity command test run --mode editor --filter MyFixture.MyTest
+unity command test run --mode playmode --filter CategoryName --filter_type category --async_tests true
+unity command test status
 ```
 
 ## Notes
 
-Use the narrowest filter. For asynchronous runs poll `test_status`; inspect Console/Test Runner when a failing run returns opaque details.
+Use the narrowest filter. For asynchronous runs poll `test status`; inspect Console/Test Runner when a failing run returns opaque details.
 

@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_gameobject --name Cube --primitive cube --parent '{"hierarchyPath":"/Environment"}'
-unity command set_transform --target '{"hierarchyPath":"/Environment/Cube"}' --position '[0,1,0]' --rotation '[0,45,0]' --scale '[1,1,1]'
+unity command gameobject create --name Cube --primitive cube --parent '{"hierarchyPath":"/Environment"}'
+unity command gameobject set_transform --target '{"hierarchyPath":"/Environment/Cube"}' --position '[0,1,0]' --rotation '[0,45,0]' --scale '[1,1,1]'
 ```
 
 ## Notes

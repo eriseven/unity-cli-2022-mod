@@ -32,7 +32,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
         private static string CreateSampleAsset()
         {
             var path = Root + "/Imported.asset";
-            AssetCommands.CreateAsset(path, typeof(CLI191SampleAsset).FullName);
+            AssetCommands.Create(path, typeof(CLI191SampleAsset).FullName);
             return path;
         }
 
@@ -86,7 +86,7 @@ namespace Unity.Pipeline.Tests.Editor.Assets
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("set_import_settings", new
+                var response = server.Execute("asset set_import_settings", new
                 {
                     asset = new { path },
                     settings = new { userData = "viaclient" }

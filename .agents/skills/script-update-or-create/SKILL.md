@@ -17,13 +17,13 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_script --name PlayerController --path Scripts --namespace Game --base_class MonoBehaviour
-unity command recompile
-unity command recompile_status
-unity command attach_script --target '{"hierarchyPath":"/Player"}' --type Game.PlayerController
+unity command script create --name PlayerController --path Scripts --namespace Game --base_class MonoBehaviour
+unity command script recompile
+unity command script recompile_status
+unity command script attach --target '{"hierarchyPath":"/Player"}' --type Game.PlayerController
 ```
 
 ## Notes
 
-For custom source content, edit the ordinary `.cs` file using source tooling (allowed), then run `recompile` and poll status. Do not edit serialized assets or .meta files; attach only after compilation succeeds.
+For custom source content, edit the ordinary `.cs` file using source tooling (allowed), then run `script recompile` and poll status. Do not edit serialized assets or .meta files; attach only after compilation succeeds.
 

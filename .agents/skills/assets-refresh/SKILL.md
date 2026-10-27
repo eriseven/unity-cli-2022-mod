@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command eval --code 'UnityEditor.AssetDatabase.Refresh(); return "refreshed";'
+unity command script eval --code 'UnityEditor.AssetDatabase.Refresh(); return "refreshed";'
 ```
 
 ## Notes

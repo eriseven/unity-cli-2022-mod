@@ -28,7 +28,7 @@ namespace Unity.Pipeline.Tests.Editor.ServerLifecyle
         public static void Capture()
         {
             var projectPath = Path.GetDirectoryName(Application.dataPath);
-            s_DescriptorPath = InstanceDescriptor.GetDescriptorFilePath(projectPath);
+            s_DescriptorPath = EditorInstanceDescriptor.GetDescriptorFilePath(projectPath);
             // Key off the live server OBJECT, not the descriptor file: a prior test may have left the
             // live server running while the shared descriptor was already deleted (object/file desync).
             // Keying off the file would then wrongly skip the restart below.

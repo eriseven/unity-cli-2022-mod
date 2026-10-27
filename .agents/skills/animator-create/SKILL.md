@@ -17,7 +17,7 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command create_animator_controller --path Animation/Player.controller
+unity command animation.animator create_controller --path Animation/Player.controller
 ```
 
 ## Notes

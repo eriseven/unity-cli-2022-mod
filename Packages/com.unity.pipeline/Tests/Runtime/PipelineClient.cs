@@ -159,7 +159,7 @@ namespace Unity.Pipeline.Tests.Runtime
                 timeout = timeout
             };
 
-            return await ExecuteCommandAsync("eval", parameters);
+            return await ExecuteCommandAsync("script eval", parameters);
         }
 
         /// <summary>

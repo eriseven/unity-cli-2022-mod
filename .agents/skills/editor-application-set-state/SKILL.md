@@ -17,13 +17,13 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command editor_play
-unity command editor_pause
-unity command editor_stop
-unity command set_autotick --enable true
+unity command editor.playmode start
+unity command editor.playmode pause
+unity command editor.playmode stop
+unity command editor set_auto_tick --enable true
 ```
 
 ## Notes
 
-Use `set_autotick` before headless compilation or tests and re-enable it after every domain reload if more headless work remains.
+Use `editor set_auto_tick` before headless compilation or tests and re-enable it after every domain reload if more headless work remains.
 

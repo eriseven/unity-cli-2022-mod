@@ -90,7 +90,7 @@ namespace Unity.Pipeline.Tests.Editor
             {
                 try
                 {
-                    var response = server.Execute("set_target_framerate", new { frameRate = 30 });
+                    var response = server.Execute("runtime set_target_frame_rate", new { frameRate = 30 });
                     Assert.IsTrue(response.IsSuccess, $"should succeed: {response.Error}");
                     Assert.AreEqual(30, Application.targetFrameRate);
                 }

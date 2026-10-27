@@ -41,7 +41,7 @@ namespace Unity.Pipeline.Tests.Editor.Animation
             if (TimelineGuard.IsInstalled())
                 Assert.Pass("com.unity.timeline is installed; the not-installed path is covered only when it is absent.");
 
-            var result = TimelineCommands.CreateTimeline(Root + "/T.playable");
+            var result = TimelineCommands.Create(Root + "/T.playable");
             Assert.IsInstanceOf<ErrorResult>(result, "Timeline commands must not throw when the package is absent");
             Assert.AreEqual("package_not_found", ((ErrorResult)result).Code);
         }
@@ -54,24 +54,24 @@ namespace Unity.Pipeline.Tests.Editor.Animation
 
             // create_timeline
             var timelinePath = Root + "/Cutscene.playable";
-            var created = TimelineCommands.CreateTimeline(timelinePath, frameRate: 30f);
+            var created = TimelineCommands.Create(timelinePath, frameRate: 30f);
             Assert.IsInstanceOf<AuthoringResult>(created, "create_timeline should return an AuthoringResult when installed");
 
             // add an Animation track
-            var trackResult = TimelineCommands.AddTimelineTrack(PathRef(timelinePath), "Animation", name: "Anim");
+            var trackResult = TimelineCommands.AddTrack(PathRef(timelinePath), "Animation", name: "Anim");
             Assert.IsInstanceOf<AddTimelineTrackResult>(trackResult);
 
             // a clip asset for the Animation track
             var clipPath = Root + "/Move.anim";
-            AnimationClipCommands.CreateAnimationClip(clipPath);
+            AnimationClipCommands.Create(clipPath);
 
             // add_timeline_clip (start 0, duration 2)
-            var clipResult = TimelineCommands.AddTimelineClip(
+            var clipResult = TimelineCommands.AddClip(
                 PathRef(timelinePath), track: "Anim", start: 0f, duration: 2f, asset: PathRef(clipPath));
             Assert.IsInstanceOf<AddTimelineClipResult>(clipResult);
 
             // get_timeline => one Animation track with one 2s clip
-            var info = (TimelineInfo)TimelineCommands.GetTimeline(PathRef(timelinePath));
+            var info = (TimelineInfo)TimelineCommands.Get(PathRef(timelinePath));
             Assert.AreEqual(1, info.Tracks.Count, "expected exactly one track");
             Assert.AreEqual("Animation", info.Tracks[0].TrackType);
             Assert.AreEqual(1, info.Tracks[0].Clips.Count, "expected exactly one clip");

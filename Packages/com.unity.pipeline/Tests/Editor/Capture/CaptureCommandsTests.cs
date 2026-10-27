@@ -64,7 +64,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
             if (IsHeadless)
                 Assert.Ignore("No GPU in batchmode");
 
-            var result = CaptureCommands.CaptureGameView(64, 64, CameraName);
+            var result = CaptureCommands.GameView(64, 64, CameraName);
 
             Assert.IsNotNull(result, "Capture should return a result");
             Assert.IsNotEmpty(result.Base64, "Base64 payload should be non-empty");
@@ -89,7 +89,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
             if (sv == null)
                 Assert.Ignore("No Scene View");
 
-            var result = CaptureCommands.CaptureSceneView(64, 64);
+            var result = CaptureCommands.SceneView(64, 64);
 
             Assert.IsNotNull(result, "Capture should return a result");
             Assert.IsNotEmpty(result.Base64, "Base64 payload should be non-empty");
@@ -105,7 +105,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
             if (IsHeadless)
                 Assert.Ignore("No GPU in batchmode");
 
-            var result = CaptureCommands.CaptureGameView(64, 64, CameraName, $"{SaveFolder}/path_only.png");
+            var result = CaptureCommands.GameView(64, 64, CameraName, $"{SaveFolder}/path_only.png");
 
             Assert.IsNull(result.Base64, "save_path without include_inline_image should omit the base64 payload");
             Assert.IsNotNull(result.SavedPath, "SavedPath should be set");
@@ -121,7 +121,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
             if (IsHeadless)
                 Assert.Ignore("No GPU in batchmode");
 
-            var result = CaptureCommands.CaptureGameView(64, 64, CameraName, $"{SaveFolder}/both.png", includeInlineImage: true);
+            var result = CaptureCommands.GameView(64, 64, CameraName, $"{SaveFolder}/both.png", includeInlineImage: true);
 
             Assert.IsNotEmpty(result.Base64, "include_inline_image=true should return the base64 payload");
             Assert.IsNotNull(result.SavedPath, "SavedPath should be set");
@@ -136,7 +136,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
                 Assert.Ignore("No GPU in batchmode");
 
             // No save_path: the inline image is the only artifact, so the cap applies to the render.
-            var result = CaptureCommands.CaptureGameView(128, 64, CameraName, maxResolution: 32);
+            var result = CaptureCommands.GameView(128, 64, CameraName, maxResolution: 32);
 
             Assert.AreEqual(32, result.Width, "Long edge should be clamped to max_resolution");
             Assert.AreEqual(16, result.Height, "Short edge should keep the aspect ratio");
@@ -149,7 +149,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
             if (IsHeadless)
                 Assert.Ignore("No GPU in batchmode");
 
-            var result = CaptureCommands.CaptureGameView(128, 64, CameraName, $"{SaveFolder}/full.png",
+            var result = CaptureCommands.GameView(128, 64, CameraName, $"{SaveFolder}/full.png",
                 includeInlineImage: true, maxResolution: 32);
 
             Assert.AreEqual(128, result.Width, "The saved file keeps the requested resolution");
@@ -169,7 +169,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
             if (sv == null)
                 Assert.Ignore("No Scene View");
 
-            var result = CaptureCommands.CaptureSceneView(64, 64, $"{SaveFolder}/scene_path_only.png");
+            var result = CaptureCommands.SceneView(64, 64, $"{SaveFolder}/scene_path_only.png");
 
             Assert.IsNull(result.Base64, "save_path without include_inline_image should omit the base64 payload");
             Assert.IsNotNull(result.SavedPath, "SavedPath should be set");
@@ -184,7 +184,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
         public void CaptureGameView_ScreenSource_InEditMode_ReturnsImage()
         {
             if (IsHeadless) Assert.Ignore("Screen capture requires a graphics device.");
-            var result = CaptureCommands.CaptureGameView(64, 64, source: "screen");
+            var result = CaptureCommands.GameView(64, 64, source: "screen");
             Assert.IsNotEmpty(result.Base64);
             Assert.AreEqual(64, result.Width);
             Assert.AreEqual(64, result.Height);
@@ -194,7 +194,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
         public void CaptureGameView_UnknownSource_Throws()
         {
             var ex = Assert.Throws<ArgumentException>(
-                () => CaptureCommands.CaptureGameView(64, 64, source: "bogus"));
+                () => CaptureCommands.GameView(64, 64, source: "bogus"));
             StringAssert.Contains("Unknown source", ex.Message);
         }
 
@@ -210,7 +210,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("capture_game_view", new { width = 64, height = 64, camera = CameraName });
+                var response = server.Execute("capture game_view", new { width = 64, height = 64, camera = CameraName });
 
                 Assert.IsTrue(response.IsSuccess, $"capture_game_view should succeed: {response.Error}");
                 Assert.IsTrue(response.HasValidJson, "Response should have valid JSON");
@@ -226,7 +226,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
 
             using (var server = new PipelineTestServer())
             {
-                var response = server.Execute("capture_game_view",
+                var response = server.Execute("capture game_view",
                     new { width = 64, height = 64, camera = CameraName, save_path = $"{SaveFolder}/via_client.png" });
 
                 Assert.IsTrue(response.IsSuccess, $"capture_game_view should succeed: {response.Error}");
@@ -335,7 +335,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
             for (var frame = 0; frame < 30 && !overlayObserved; frame++)
             {
                 yield return new WaitForEndOfFrame();
-                screen = CaptureCommands.CaptureGameView(64, 64, source: "screen");
+                screen = CaptureCommands.GameView(64, 64, source: "screen");
                 stats = GrayStats(screen.Base64);
                 // The full-screen overlay should dominate the frame with neutral gray of ANY
                 // brightness — brightness-agnostic on purpose, so a tone or orientation bug is a
@@ -371,7 +371,7 @@ namespace Unity.Pipeline.Tests.Editor.Capture
 
             // Overlay is observable here: prove it shows in a screen capture but NOT a camera capture
             // (the camera clears to solid blue and renders nothing, so it contains no neutral gray).
-            var cameraShot = CaptureCommands.CaptureGameView(64, 64, camera: "CLI199_ScreenCam", source: "camera");
+            var cameraShot = CaptureCommands.GameView(64, 64, camera: "CLI199_ScreenCam", source: "camera");
             Assert.Less(GrayStats(cameraShot.Base64).fraction, 0.2f, "overlay UI must be absent from a camera capture");
 
             UnityEngine.Object.Destroy(overlayGo);

@@ -44,11 +44,11 @@ namespace Unity.Pipeline.Tests.Editor
         public void ReadTransformLocalPosition_LeanValueEnvelope_StaysTiny()
         {
             // The canonical read: one scalar, value-projected.
-            var result = SerializedFieldCommands.GetSerializedFields(
+            var result = SerializedFieldCommands.GetFields(
                 TransformRef(), field: "m_LocalPosition", format: "value");
 
             var json = ExecResponseSerializer.Serialize(
-                CommandExecutionResponse.CmdSuccess("get_serialized_fields", result), verbose: false);
+                CommandExecutionResponse.CmdSuccess("component get_fields", result), verbose: false);
             var bytes = Encoding.UTF8.GetByteCount(json);
 
             Assert.LessOrEqual(bytes, MaxCanonicalEnvelopeBytes,
@@ -63,9 +63,9 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ReadTransformLocalPosition_VerboseEnvelope_IsLargerThanLean()
         {
-            var result = SerializedFieldCommands.GetSerializedFields(
+            var result = SerializedFieldCommands.GetFields(
                 TransformRef(), field: "m_LocalPosition", format: "value");
-            var response = CommandExecutionResponse.CmdSuccess("get_serialized_fields", result);
+            var response = CommandExecutionResponse.CmdSuccess("component get_fields", result);
 
             var leanBytes = Encoding.UTF8.GetByteCount(ExecResponseSerializer.Serialize(response, verbose: false));
             var verboseBytes = Encoding.UTF8.GetByteCount(ExecResponseSerializer.Serialize(response, verbose: true));
@@ -82,7 +82,7 @@ namespace Unity.Pipeline.Tests.Editor
             // and verbose restores it (previously the flag never reached nested objects, so verbose
             // silently dropped the nested executedAt/executionTimeMs).
             var nested = EvalResponse.EvalSuccess(42, executionTimeMs: 5);
-            var response = CommandExecutionResponse.CmdSuccess("eval", nested);
+            var response = CommandExecutionResponse.CmdSuccess("script eval", nested);
 
             var lean = ExecResponseSerializer.Serialize(response, verbose: false);
             var verbose = ExecResponseSerializer.Serialize(response, verbose: true);
@@ -100,7 +100,7 @@ namespace Unity.Pipeline.Tests.Editor
             // indistinguishable from a nonexistent or misspelled one, so dropping payload nulls
             // is strictly opt-in via the request's omitNulls flag (review feedback on AUTHAPI-21).
             var result = new AuthoringResult { Type = "GameObject", HierarchyPath = "/AUTHAPI21_Subject" };
-            var response = CommandExecutionResponse.CmdSuccess("create_gameobject", result);
+            var response = CommandExecutionResponse.CmdSuccess("gameobject create", result);
 
             var lean = ExecResponseSerializer.Serialize(response, verbose: false);
             var verbose = ExecResponseSerializer.Serialize(response, verbose: true);
@@ -120,9 +120,9 @@ namespace Unity.Pipeline.Tests.Editor
             // failure drops its null result key, a lean success drops error/errorDetails — while
             // nulls INSIDE the payload survive untouched in the same reply.
             var failure = ExecResponseSerializer.Serialize(
-                CommandExecutionResponse.CmdFailure("create_gameobject", "Command Execution Failed", "boom"), verbose: false);
+                CommandExecutionResponse.CmdFailure("gameobject create", "Command Execution Failed", "boom"), verbose: false);
             var success = ExecResponseSerializer.Serialize(
-                CommandExecutionResponse.CmdSuccess("create_gameobject",
+                CommandExecutionResponse.CmdSuccess("gameobject create",
                     new { ok = true, optionalDetail = (string)null }), verbose: false);
 
             StringAssert.Contains("\"success\":false", failure);
@@ -169,7 +169,7 @@ namespace Unity.Pipeline.Tests.Editor
             // A null result on SUCCESS is the command's actual value (a format="value" read of a
             // genuinely-null field), not a droppable envelope null — every mode must emit it
             // explicitly so the caller can tell "the value is null" from "there was no result".
-            var success = CommandExecutionResponse.CmdSuccess("get_serialized_fields", null);
+            var success = CommandExecutionResponse.CmdSuccess("component get_fields", null);
 
             StringAssert.Contains("\"result\":null", ExecResponseSerializer.Serialize(success, verbose: false),
                 "Lean success must carry an explicit null result");
@@ -179,7 +179,7 @@ namespace Unity.Pipeline.Tests.Editor
                 "Even omitNulls keeps the success result explicit — it is the command's value, not a payload column");
 
             var failure = ExecResponseSerializer.Serialize(
-                CommandExecutionResponse.CmdFailure("get_serialized_fields", "Command Execution Failed", "boom"), verbose: false);
+                CommandExecutionResponse.CmdFailure("component get_fields", "Command Execution Failed", "boom"), verbose: false);
             StringAssert.DoesNotContain("\"result\"", failure,
                 "On failure the result is structurally meaningless and stays omitted");
         }
@@ -192,12 +192,12 @@ namespace Unity.Pipeline.Tests.Editor
             // (ObjectResolver.Describe(null) returns null), which must reach the wire as
             // "result":null through the exact serializer the exec endpoint uses.
             var comp = m_Go.AddComponent<ScriptCommandTestBehaviour>();
-            var result = SerializedFieldCommands.GetSerializedFields(
+            var result = SerializedFieldCommands.GetFields(
                 new ObjectRef { InstanceId = PipelineUtils.GetObjectId(comp) }, field: "m_Target", format: "value");
             Assert.IsNull(result, "Precondition: an unassigned object reference reads as a null value");
 
             var lean = ExecResponseSerializer.Serialize(
-                CommandExecutionResponse.CmdSuccess("get_serialized_fields", result), verbose: false);
+                CommandExecutionResponse.CmdSuccess("component get_fields", result), verbose: false);
 
             StringAssert.Contains("\"success\":true", lean);
             StringAssert.Contains("\"result\":null", lean,

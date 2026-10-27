@@ -17,10 +17,10 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command set_active_scene --path Scenes/Main
+unity command scene set_active --path Scenes/Main
 ```
 
 ## Notes
 
-The scene must already be open. Verify the active flag using `list_open_scenes`.
+The scene must already be open. Verify the active flag using `scene list_open`.
 

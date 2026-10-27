@@ -61,13 +61,13 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void Record_WritesOneJsonlLine_WithExpectedFields()
         {
-            EvalUsageTelemetry.Record("eval", "return MatchManager.Instance.State;", success: true, error: null, executionTimeMs: 12);
+            EvalUsageTelemetry.Record("script eval", "return MatchManager.Instance.State;", success: true, error: null, executionTimeMs: 12);
 
             var lines = File.ReadAllLines(m_JsonlPath);
             Assert.AreEqual(1, lines.Length, "One eval should append exactly one JSONL line");
 
             var obj = JObject.Parse(lines[0]);
-            Assert.AreEqual("eval", (string)obj["command"]);
+            Assert.AreEqual("script eval", (string)obj["command"]);
             Assert.IsTrue((bool)obj["success"]);
             Assert.AreEqual(EvalClassification.SingleExpression, (string)obj["classification"]);
             Assert.AreEqual(12, (long)obj["executionTimeMs"]);
@@ -83,7 +83,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         public void Record_ByDefault_DoesNotStoreRawSource()
         {
             EvalUsageTelemetry.StoreSource = false;
-            EvalUsageTelemetry.Record("eval", "return SecretApi.Token;", success: true, error: null, executionTimeMs: 1);
+            EvalUsageTelemetry.Record("script eval", "return SecretApi.Token;", success: true, error: null, executionTimeMs: 1);
 
             var line = File.ReadAllLines(m_JsonlPath).Single();
             var obj = JObject.Parse(line);
@@ -95,7 +95,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         public void Record_WithStoreSourceOptIn_StoresRawSource()
         {
             EvalUsageTelemetry.StoreSource = true;
-            EvalUsageTelemetry.Record("eval", "return 1 + 1;", success: true, error: null, executionTimeMs: 1);
+            EvalUsageTelemetry.Record("script eval", "return 1 + 1;", success: true, error: null, executionTimeMs: 1);
 
             var obj = JObject.Parse(File.ReadAllLines(m_JsonlPath).Single());
             Assert.AreEqual("return 1 + 1;", (string)obj["source"]);
@@ -107,7 +107,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             EvalUsageTelemetry.StoreSource = true;
             var code = "return 1; // " + new string('x', EvalUsageTelemetry.MaxStoredSourceChars + 100);
 
-            EvalUsageTelemetry.Record("eval", code, success: true, error: null, executionTimeMs: 1);
+            EvalUsageTelemetry.Record("script eval", code, success: true, error: null, executionTimeMs: 1);
 
             var obj = JObject.Parse(File.ReadAllLines(m_JsonlPath).Single());
             var stored = (string)obj["source"];
@@ -122,12 +122,12 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void RecordInBackground_WritesTheSameRecord_OffTheCallingThread()
         {
-            EvalUsageTelemetry.RecordInBackground("eval", "AssetDatabase.Refresh();", success: true, error: null, executionTimeMs: 7);
+            EvalUsageTelemetry.RecordInBackground("script eval", "AssetDatabase.Refresh();", success: true, error: null, executionTimeMs: 7);
 
             Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords(), "Background record should flush promptly");
 
             var record = EvalUsageTelemetry.ReadRecords(m_Dir).Single();
-            Assert.AreEqual("eval", record.Command);
+            Assert.AreEqual("script eval", record.Command);
             Assert.AreEqual(7, record.ExecutionTimeMs);
             CollectionAssert.Contains(record.Fingerprints, "AssetDatabase.Refresh");
         }
@@ -138,7 +138,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             // StoreSource is captured when the record is queued; a later flip must not affect the
             // in-flight record (the writer works from the snapshot, not the live statics).
             EvalUsageTelemetry.StoreSource = false;
-            EvalUsageTelemetry.RecordInBackground("eval", "return SecretApi.Token;", success: true, error: null, executionTimeMs: 1);
+            EvalUsageTelemetry.RecordInBackground("script eval", "return SecretApi.Token;", success: true, error: null, executionTimeMs: 1);
             EvalUsageTelemetry.StoreSource = true;
 
             Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords());
@@ -149,7 +149,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void Record_Failure_StoresErrorCategory()
         {
-            EvalUsageTelemetry.Record("eval", "return 2 +;", success: false, error: "Compilation Failed", executionTimeMs: 3);
+            EvalUsageTelemetry.Record("script eval", "return 2 +;", success: false, error: "Compilation Failed", executionTimeMs: 3);
 
             var obj = JObject.Parse(File.ReadAllLines(m_JsonlPath).Single());
             Assert.IsFalse((bool)obj["success"]);
@@ -160,7 +160,7 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         public void Record_WhenDisabled_WritesNothing()
         {
             EvalUsageTelemetry.Enabled = false;
-            EvalUsageTelemetry.Record("eval", "return 1;", success: true, error: null, executionTimeMs: 1);
+            EvalUsageTelemetry.Record("script eval", "return 1;", success: true, error: null, executionTimeMs: 1);
 
             Assert.IsFalse(File.Exists(m_JsonlPath), "Disabled telemetry must not write locally (and never transmits)");
         }
@@ -168,13 +168,13 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void ReadRecords_RoundTripsAppendedRecords_InOrder()
         {
-            EvalUsageTelemetry.Record("eval", "A.B();", true, null, 1);
-            EvalUsageTelemetry.Record("eval_file", "C.D();", false, "Runtime Error", 2);
+            EvalUsageTelemetry.Record("script eval", "A.B();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval_file", "C.D();", false, "Runtime Error", 2);
 
             var records = EvalUsageTelemetry.ReadRecords(m_Dir);
             Assert.AreEqual(2, records.Count);
-            Assert.AreEqual("eval", records[0].Command);
-            Assert.AreEqual("eval_file", records[1].Command);
+            Assert.AreEqual("script eval", records[0].Command);
+            Assert.AreEqual("script eval_file", records[1].Command);
             CollectionAssert.Contains(records[0].Fingerprints, "A.B");
             CollectionAssert.Contains(records[1].Fingerprints, "C.D");
         }
@@ -182,9 +182,9 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void ReadRecords_SkipsMalformedLines()
         {
-            EvalUsageTelemetry.Record("eval", "A.B();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "A.B();", true, null, 1);
             File.AppendAllText(m_JsonlPath, "this is not json\n");
-            EvalUsageTelemetry.Record("eval", "C.D();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "C.D();", true, null, 1);
 
             var records = EvalUsageTelemetry.ReadRecords(m_Dir);
             Assert.AreEqual(2, records.Count, "Malformed lines are skipped; valid records survive");
@@ -196,11 +196,11 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             // Force the cap so a couple of records trip rotation without writing megabytes.
             EvalUsageTelemetry.MaxFileBytes = 1;
 
-            EvalUsageTelemetry.Record("eval", "First.Call();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "First.Call();", true, null, 1);
             Assert.IsTrue(File.Exists(m_JsonlPath));
 
             // Next append sees the file already at/over the cap, rotates it away, then writes fresh.
-            EvalUsageTelemetry.Record("eval", "Second.Call();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "Second.Call();", true, null, 1);
 
             Assert.IsTrue(File.Exists(m_OldPath), "Previous log should be rotated to eval-usage.old.jsonl");
             Assert.AreEqual(1, File.ReadAllLines(m_JsonlPath).Length, "Active file starts fresh after rotation");
@@ -213,9 +213,9 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             // The report must not lose pre-rotation history: ReadRecords merges the rotated .old file
             // first, then the active file, so readable history is bounded to ~2x the size cap and stays
             // in chronological order.
-            EvalUsageTelemetry.Record("eval", "First.Call();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "First.Call();", true, null, 1);
             EvalUsageTelemetry.Rotate(m_Dir);
-            EvalUsageTelemetry.Record("eval", "Second.Call();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "Second.Call();", true, null, 1);
 
             var records = EvalUsageTelemetry.ReadRecords(m_Dir);
 
@@ -240,9 +240,9 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             // A reader racing an exclusive out-of-process writer (or a rotation TOCTOU) must degrade
             // to "return what parsed" rather than throw. Hold the ACTIVE file with no sharing; the
             // rotated history must still come back.
-            EvalUsageTelemetry.Record("eval", "First.Call();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "First.Call();", true, null, 1);
             EvalUsageTelemetry.Rotate(m_Dir);
-            EvalUsageTelemetry.Record("eval", "Second.Call();", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "Second.Call();", true, null, 1);
 
             using (new FileStream(m_JsonlPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
@@ -259,10 +259,10 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         [Test]
         public void Rotate_ReplacesPreviousOldFile()
         {
-            EvalUsageTelemetry.Append(m_Dir, new EvalUsageRecord { Command = "eval", Fingerprints = new List<string> { "A.X" } });
+            EvalUsageTelemetry.Append(m_Dir, new EvalUsageRecord { Command = "script eval", Fingerprints = new List<string> { "A.X" } });
             EvalUsageTelemetry.Rotate(m_Dir);
 
-            EvalUsageTelemetry.Append(m_Dir, new EvalUsageRecord { Command = "eval", Fingerprints = new List<string> { "B.Y" } });
+            EvalUsageTelemetry.Append(m_Dir, new EvalUsageRecord { Command = "script eval", Fingerprints = new List<string> { "B.Y" } });
             EvalUsageTelemetry.Rotate(m_Dir);
 
             Assert.IsFalse(File.Exists(m_JsonlPath), "Active file moved away by rotation");
@@ -282,9 +282,9 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
         {
             // Review regression: only \n was counted, so classic-Mac (\r) bodies reported
             // lineCount 1. All three ending styles must agree.
-            EvalUsageTelemetry.Record("eval", "a\rb\rc", true, null, 1);
-            EvalUsageTelemetry.Record("eval", "a\r\nb\r\nc", true, null, 1);
-            EvalUsageTelemetry.Record("eval", "a\nb\nc", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "a\rb\rc", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "a\r\nb\r\nc", true, null, 1);
+            EvalUsageTelemetry.Record("script eval", "a\nb\nc", true, null, 1);
 
             var records = EvalUsageTelemetry.ReadRecords(m_Dir);
             var lastThree = new List<int>();
@@ -301,8 +301,8 @@ namespace Unity.Pipeline.Tests.Editor.Telemetry
             // out of order; the chain must preserve submission order (ReadRecords documents the
             // log as chronological).
             for (var i = 1; i <= 10; i++)
-                EvalUsageTelemetry.RecordInBackground("eval", new string('a', i), success: true, error: null, executionTimeMs: 1);
-            Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords(10000), "background records must drain");
+                EvalUsageTelemetry.RecordInBackground("script eval", new string('a', i), success: true, error: null, executionTimeMs: 1);
+            Assert.IsTrue(EvalUsageTelemetry.WaitForPendingRecords(System.TimeSpan.FromSeconds(10)), "background records must drain");
 
             var records = EvalUsageTelemetry.ReadRecords(m_Dir);
             Assert.GreaterOrEqual(records.Count, 10);

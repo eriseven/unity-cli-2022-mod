@@ -35,7 +35,7 @@ namespace Unity.Pipeline.Tests.Editor
 
             var toolbar = new VisualElement { name = "toolbar" };
             toolbar.AddToClassList("toolbar");
-            var search = new Button { name = "search" };
+            var search = new Button { name = "editor search" };
             search.AddToClassList("primary");
             toolbar.Add(search);
 
@@ -56,7 +56,7 @@ namespace Unity.Pipeline.Tests.Editor
             var root = BuildTree();
             var e = VisualElementCaptureSupport.ResolveElement(root, "#search");
             Assert.IsNotNull(e);
-            Assert.AreEqual("search", e.name);
+            Assert.AreEqual("editor search", e.name);
         }
 
         [Test]
@@ -84,7 +84,7 @@ namespace Unity.Pipeline.Tests.Editor
             var root = BuildTree();
             var e = VisualElementCaptureSupport.ResolveElement(root, "Button#search.primary");
             Assert.IsNotNull(e);
-            Assert.AreEqual("search", e.name);
+            Assert.AreEqual("editor search", e.name);
             Assert.IsInstanceOf<Button>(e);
         }
 
@@ -94,7 +94,7 @@ namespace Unity.Pipeline.Tests.Editor
             var root = BuildTree();
             var e = VisualElementCaptureSupport.ResolveElement(root, ".toolbar #search");
             Assert.IsNotNull(e);
-            Assert.AreEqual("search", e.name);
+            Assert.AreEqual("editor search", e.name);
         }
 
         [Test]
@@ -140,7 +140,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void EditorCommand_IsDiscovered()
         {
             CommandRegistry.SetDiscovery(new TypeCacheCommandDiscovery());
-            var cmd = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.Name == "capture_editor_element");
+            var cmd = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.FullName == "capture editor_element");
             Assert.IsNotNull(cmd, "capture_editor_element should be discovered");
             Assert.IsTrue(cmd.MainThreadRequired);
         }
@@ -149,7 +149,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void RuntimeCommand_IsDiscovered_AndRuntimeOnly()
         {
             CommandRegistry.SetDiscovery(new TypeCacheCommandDiscovery());
-            var cmd = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.Name == "capture_runtime_element");
+            var cmd = CommandRegistry.DiscoverCommands().FirstOrDefault(c => c.FullName == "capture runtime_element");
             Assert.IsNotNull(cmd, "capture_runtime_element should be discovered");
             Assert.IsTrue(cmd.RuntimeOnly, "runtime capture command should be RuntimeOnly");
         }
@@ -157,7 +157,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EditorCommand_MissingWindow_Fails()
         {
-            var result = CaptureEditorElementCommand.CaptureEditorElement(window: "", selector: "#x");
+            var result = CaptureEditorElementCommand.EditorElement(window: "", selector: "#x");
             Assert.IsFalse(result.Success);
             StringAssert.Contains("window", result.Message);
         }
@@ -165,7 +165,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void EditorCommand_UnknownWindow_Fails()
         {
-            var result = CaptureEditorElementCommand.CaptureEditorElement(
+            var result = CaptureEditorElementCommand.EditorElement(
                 window: "ThisWindowTypeDoesNotExist12345", selector: "#x");
             Assert.IsFalse(result.Success);
             StringAssert.Contains("No open EditorWindow", result.Message);
@@ -178,7 +178,7 @@ namespace Unity.Pipeline.Tests.Editor
             try
             {
                 win.Show();
-                var result = CaptureEditorElementCommand.CaptureEditorElement(
+                var result = CaptureEditorElementCommand.EditorElement(
                     window: nameof(TestCaptureWindow), selector: "#no-such-element");
                 Assert.IsFalse(result.Success);
                 StringAssert.Contains("No element matched", result.Message);
@@ -200,7 +200,7 @@ namespace Unity.Pipeline.Tests.Editor
             try
             {
                 win.Show();
-                var result = CaptureEditorElementCommand.CaptureEditorElement(
+                var result = CaptureEditorElementCommand.EditorElement(
                     window: nameof(TestCaptureWindow), selector: "#target", output: output);
 
                 Assert.IsTrue(result.Success, result.Message);

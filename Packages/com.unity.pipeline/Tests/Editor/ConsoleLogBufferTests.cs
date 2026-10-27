@@ -54,7 +54,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void Query_LevelThreshold_IsMinimumSeverity()
         {
             var buffer = NewBuffer();
-            buffer.Add(LogType.Log, "log", null, k_Ts);
+            buffer.Add(LogType.Log, "console write", null, k_Ts);
             buffer.Add(LogType.Warning, "warn", null, k_Ts);
             buffer.Add(LogType.Error, "error", null, k_Ts);
             buffer.Add(LogType.Exception, "exception", null, k_Ts);
@@ -189,7 +189,7 @@ namespace Unity.Pipeline.Tests.Editor
             try
             {
                 var original = NewBuffer();
-                original.Add(LogType.Log, "log", null, k_Ts);
+                original.Add(LogType.Log, "console write", null, k_Ts);
                 original.Add(LogType.Warning, "warn", "trace", k_Ts);
                 original.Add(LogType.Error, "error", null, k_Ts);
                 original.Save(path);
@@ -198,7 +198,7 @@ namespace Unity.Pipeline.Tests.Editor
                 Assert.IsTrue(restored.Load(path));
 
                 var entries = restored.Query(-1, 100, ConsoleLogBuffer.SeverityLog).Entries;
-                CollectionAssert.AreEqual(new[] { "log", "warn", "error" }, entries.Select(e => e.Message));
+                CollectionAssert.AreEqual(new[] { "console write", "warn", "error" }, entries.Select(e => e.Message));
                 Assert.AreEqual(ConsoleLogBuffer.LevelWarn, entries[1].Level, "Severity must survive the round trip");
                 Assert.AreEqual("trace", entries[1].StackTrace);
 
@@ -303,7 +303,7 @@ namespace Unity.Pipeline.Tests.Editor
             Assert.AreEqual(ConsoleLogBuffer.SeverityError, ConsoleLogBuffer.SeverityFromLevelName("ERR"));
             Assert.AreEqual(ConsoleLogBuffer.SeverityWarn, ConsoleLogBuffer.SeverityFromLevelName("warn"));
             Assert.AreEqual(ConsoleLogBuffer.SeverityWarn, ConsoleLogBuffer.SeverityFromLevelName("Warning"));
-            Assert.AreEqual(ConsoleLogBuffer.SeverityLog, ConsoleLogBuffer.SeverityFromLevelName("log"));
+            Assert.AreEqual(ConsoleLogBuffer.SeverityLog, ConsoleLogBuffer.SeverityFromLevelName("console write"));
             Assert.AreEqual(ConsoleLogBuffer.SeverityLog, ConsoleLogBuffer.SeverityFromLevelName("nonsense"));
             Assert.AreEqual(ConsoleLogBuffer.SeverityLog, ConsoleLogBuffer.SeverityFromLevelName(null));
         }

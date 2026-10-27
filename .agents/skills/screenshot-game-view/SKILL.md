@@ -17,12 +17,12 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command capture_game_view --width 1280 --height 720 --save_path Screenshots/game.png
-unity command screenshot --view game --output Temp/pipeline-screenshots/game.png
+unity command capture game_view --width 1280 --height 720 --save_path Screenshots/game.png
+unity command capture screenshot --view game --output Temp/pipeline-screenshots/game.png
 ```
 
 ## Notes
 
-In Pipeline 0.8, `capture_game_view` defaults to `source=screen` and works in Edit Mode.
-Pass `--source camera` for an off-screen camera render. `screenshot` also writes Editor Game-view files.
+In Pipeline 0.8, `capture game_view` defaults to `source=screen` and works in Edit Mode.
+Pass `--source camera` for an off-screen camera render. `capture screenshot` also writes Editor Game-view files.
 

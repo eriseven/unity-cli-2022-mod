@@ -22,12 +22,12 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void NewCommands_AreDiscovered()
         {
-            var names = CommandRegistry.DiscoverCommands().Select(c => c.Name).ToList();
+            var names = CommandRegistry.DiscoverCommands().Select(c => c.FullName).ToList();
 
             foreach (var expected in new[]
             {
-                "list_build_targets", "get_build_settings", "set_build_settings",
-                "list_build_profiles", "switch_build_target", "switch_build_target_status"
+                "build.target list", "build get_settings", "build set_settings",
+                "build list_profiles", "build.target switch", "build.target switch_status"
             })
             {
                 CollectionAssert.Contains(names, expected, $"Should discover the {expected} command");
@@ -37,13 +37,13 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void SwitchBuildTarget_RequiresTarget_AndConfirm()
         {
-            var switchCmd = CommandRegistry.DiscoverCommands().First(c => c.Name == "switch_build_target");
+            var switchCmd = CommandRegistry.DiscoverCommands().First(c => c.FullName == "build.target switch");
 
             var target = switchCmd.Parameters.First(p => p.Name == "target");
             Assert.IsTrue(target.Required, "switch_build_target 'target' must be required");
 
             // Missing confirm must be refused without attempting the switch.
-            var result = JObjectOf(SwitchBuildTargetCommand.SwitchBuildTarget(
+            var result = JObjectOf(SwitchBuildTargetCommand.Switch(
                 EditorUserBuildSettings.activeBuildTarget == UnityEditor.BuildTarget.StandaloneWindows64
                     ? "StandaloneLinux64"
                     : "StandaloneWindows64",
@@ -56,7 +56,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void ListBuildTargets_IncludesActiveTarget_AsInstalled()
         {
-            var targets = (List<BuildTargetInfo>)BuildConfigCommands.ListBuildTargets();
+            var targets = (List<BuildTargetInfo>)BuildConfigCommands.List();
             Assert.IsNotNull(targets);
             Assert.Greater(targets.Count, 0, "should enumerate at least one build target");
 
@@ -69,7 +69,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void GetBuildSettings_ReportsActiveTargetAndScenes()
         {
-            var settings = (BuildSettingsResult)BuildConfigCommands.GetBuildSettings();
+            var settings = (BuildSettingsResult)BuildConfigCommands.GetSettings();
             Assert.IsNotNull(settings);
             Assert.AreEqual(EditorUserBuildSettings.activeBuildTarget.ToString(), settings.ActiveBuildTarget);
             Assert.IsNotNull(settings.Scenes, "scene list should be present (may be empty)");
@@ -82,7 +82,7 @@ namespace Unity.Pipeline.Tests.Editor
             var before = EditorUserBuildSettings.development;
 
             var input = new SetBuildSettingsInput { DevelopmentBuild = !before };
-            var result = (SetBuildSettingsResult)BuildConfigCommands.SetBuildSettings(input, dryRun: true);
+            var result = (SetBuildSettingsResult)BuildConfigCommands.SetSettings(input, dryRun: true);
 
             Assert.IsTrue(result.Success);
             Assert.IsTrue(result.DryRun);
@@ -95,7 +95,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void SetBuildSettings_NoSettings_Fails()
         {
-            var result = (SetBuildSettingsResult)BuildConfigCommands.SetBuildSettings(null, dryRun: false);
+            var result = (SetBuildSettingsResult)BuildConfigCommands.SetSettings(null, dryRun: false);
             Assert.IsFalse(result.Success);
         }
 

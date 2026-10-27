@@ -17,8 +17,8 @@ Use the Unity Pipeline `unity` CLI; this replaces the Unity-MCP tool. Do not cal
 ## Commands
 
 ```powershell
-unity command add_component --target '{"hierarchyPath":"/SlowZone"}' --type Unity.AI.Navigation.NavMeshModifierVolume
-unity command get_component_properties --target '{"hierarchyPath":"/SlowZone"}' --type Unity.AI.Navigation.NavMeshModifierVolume
+unity command component add --target '{"hierarchyPath":"/SlowZone"}' --type Unity.AI.Navigation.NavMeshModifierVolume
+unity command component get_properties --target '{"hierarchyPath":"/SlowZone"}' --type Unity.AI.Navigation.NavMeshModifierVolume
 ```
 
 ## Notes

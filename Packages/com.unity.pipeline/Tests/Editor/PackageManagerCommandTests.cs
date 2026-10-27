@@ -102,12 +102,12 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void AllPackageCommands_AreDiscovered()
         {
-            var names = CommandRegistry.DiscoverCommands().Select(c => c.Name).ToList();
+            var names = CommandRegistry.DiscoverCommands().Select(c => c.FullName).ToList();
 
             foreach (var command in new[]
                      {
-                         "package_list", "package_search", "package_add",
-                         "package_remove", "package_resolve", "package_status"
+                         "package list", "package search", "package add",
+                         "package remove", "package resolve", "package status"
                      })
             {
                 Assert.Contains(command, names, $"missing command {command}");
@@ -118,7 +118,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void PackageList_InstalledScope_ReturnsResultsSynchronously()
         {
             // Default (installed) scope reads the resolved set directly — no async trigger / poll.
-            var response = (PackageListResponse)PackageManagerCommand.PackageList();
+            var response = (PackageListResponse)PackageManagerCommand.List();
 
             Assert.IsTrue(response.Success);
             Assert.AreEqual("installed", response.Scope);
@@ -131,8 +131,8 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageList_DirectDependenciesOnly_AreFewerThanAll()
         {
-            var all = (PackageListResponse)PackageManagerCommand.PackageList("installed", includeIndirect: true);
-            var direct = (PackageListResponse)PackageManagerCommand.PackageList("installed", includeIndirect: false);
+            var all = (PackageListResponse)PackageManagerCommand.List("installed", includeIndirect: true);
+            var direct = (PackageListResponse)PackageManagerCommand.List("installed", includeIndirect: false);
 
             Assert.LessOrEqual(direct.Count, all.Count);
             Assert.IsTrue(direct.Packages.TrueForAll(p => p.IsDirectDependency), "include_indirect=false should drop transitive deps");
@@ -141,7 +141,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageList_UnknownScope_Fails()
         {
-            var response = (PackageListResponse)PackageManagerCommand.PackageList("bogus");
+            var response = (PackageListResponse)PackageManagerCommand.List("bogus");
 
             Assert.IsFalse(response.Success);
             StringAssert.Contains("scope", response.Message);
@@ -150,14 +150,14 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageStatus_IsOffMainThread()
         {
-            var command = CommandRegistry.DiscoverCommands().First(c => c.Name == "package_status");
+            var command = CommandRegistry.DiscoverCommands().First(c => c.FullName == "package status");
             Assert.IsFalse(command.MainThreadRequired, "package_status only reads a file; it must respond while an op is in flight");
         }
 
         [Test]
         public void PackageList_ExposesScopeArg()
         {
-            var command = CommandRegistry.DiscoverCommands().First(c => c.Name == "package_list");
+            var command = CommandRegistry.DiscoverCommands().First(c => c.FullName == "package list");
             var schema = JObject.Parse(JsonSchemaGenerator.GenerateCommandSchema(command));
             var properties = (JObject)schema["properties"];
 
@@ -168,7 +168,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageSearch_ExposesQueryArg()
         {
-            var command = CommandRegistry.DiscoverCommands().First(c => c.Name == "package_search");
+            var command = CommandRegistry.DiscoverCommands().First(c => c.FullName == "package search");
             var schema = JObject.Parse(JsonSchemaGenerator.GenerateCommandSchema(command));
             var properties = (JObject)schema["properties"];
 
@@ -179,7 +179,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageAdd_ExposesGateArgs()
         {
-            var command = CommandRegistry.DiscoverCommands().First(c => c.Name == "package_add");
+            var command = CommandRegistry.DiscoverCommands().First(c => c.FullName == "package add");
             var schema = JObject.Parse(JsonSchemaGenerator.GenerateCommandSchema(command));
             var properties = (JObject)schema["properties"];
 
@@ -197,7 +197,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageAdd_InvalidIdentifier_Fails()
         {
-            var response = (PackageMutationResponse)PackageManagerCommand.PackageAdd("", confirm: true);
+            var response = (PackageMutationResponse)PackageManagerCommand.Add("", confirm: true);
 
             Assert.IsFalse(response.Success);
             Assert.AreEqual("failed", response.Status);
@@ -207,7 +207,7 @@ namespace Unity.Pipeline.Tests.Editor
         public void PackageAdd_WithoutConfirm_IsRejected()
         {
             // confirm=false → the command refuses before Client.Add is ever called.
-            var response = (PackageMutationResponse)PackageManagerCommand.PackageAdd("com.unity.foo@1.2.3", confirm: false);
+            var response = (PackageMutationResponse)PackageManagerCommand.Add("com.unity.foo@1.2.3", confirm: false);
 
             Assert.IsFalse(response.Success);
             Assert.AreEqual("rejected", response.Status);
@@ -217,7 +217,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageAdd_DryRun_PreviewsWithoutApplying()
         {
-            var response = (PackageMutationResponse)PackageManagerCommand.PackageAdd("com.unity.foo@1.2.3", confirm: false, dryRun: true);
+            var response = (PackageMutationResponse)PackageManagerCommand.Add("com.unity.foo@1.2.3", confirm: false, dryRun: true);
 
             Assert.IsTrue(response.Success);
             Assert.IsTrue(response.DryRun);
@@ -229,7 +229,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageRemove_EmptyName_Fails()
         {
-            var response = (PackageMutationResponse)PackageManagerCommand.PackageRemove("", confirm: true);
+            var response = (PackageMutationResponse)PackageManagerCommand.Remove("", confirm: true);
 
             Assert.IsFalse(response.Success);
             Assert.AreEqual("failed", response.Status);
@@ -238,7 +238,7 @@ namespace Unity.Pipeline.Tests.Editor
         [Test]
         public void PackageRemove_WithoutConfirm_IsRejected()
         {
-            var response = (PackageMutationResponse)PackageManagerCommand.PackageRemove("com.unity.foo", confirm: false);
+            var response = (PackageMutationResponse)PackageManagerCommand.Remove("com.unity.foo", confirm: false);
 
             Assert.IsFalse(response.Success);
             Assert.AreEqual("rejected", response.Status);

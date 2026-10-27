@@ -7,7 +7,7 @@ utilities.
 
 The Editor source is compiled into `Unity.Pipeline.Editor` through an `.asmref`, giving it access
 to that assembly's internal types. The Runtime assembly already grants internal access to this
-Editor assembly. Tests similarly join `Unity.Pipeline.Tests.Editor`. This keeps upstream 0.6's
+Editor assembly. Tests similarly join `Unity.Pipeline.Tests.Editor`. This keeps upstream 0.9.1's
 type visibility without adding public APIs or new friend assemblies. Commands are discovered
 automatically by Pipeline's `[CliCommand]` discovery.
 
@@ -29,6 +29,10 @@ Install it as a local package:
 
 Run unity command after the Editor recompiles to inspect the available commands. Timeline
 commands also require the optional com.unity.timeline package.
+
+The core dependency is `0.9.1-exp.1`. Core commands now use groups (for example
+`gameobject create` and `component set_properties`). Extension commands retain their existing
+names in the `global` group and can still be invoked by their bare names.
 
 ## Boundaries
 
